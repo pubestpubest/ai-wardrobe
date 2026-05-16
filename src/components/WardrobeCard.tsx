@@ -1,70 +1,47 @@
 import type { WardrobeItem } from "@/lib/wardrobe";
-import { CATEGORY_LABELS } from "@/lib/wardrobe";
 
-const TONE_BG = {
-  lilac: "from-lilac/60 to-lilac/20",
-  blush: "from-blush/60 to-blush/20",
-  sky: "from-sky/60 to-sky/20",
+const TONE = {
+  lilac: "bg-lilac text-lilac-foreground",
+  blush: "bg-blush text-blush-foreground",
+  sky: "bg-sky text-sky-foreground",
 } as const;
 
 interface Props {
   item: WardrobeItem;
-  tone: keyof typeof TONE_BG;
+  tone: keyof typeof TONE;
   onClick?: () => void;
-  compact?: boolean;
 }
 
-export function WardrobeCard({ item, tone, onClick, compact = false }: Props) {
+export function WardrobeCard({ item, tone, onClick }: Props) {
   return (
-    <button
-      onClick={onClick}
-      className={`group relative overflow-hidden rounded-2xl bg-muted text-left w-full transition-transform active:scale-95 ${compact ? "aspect-square" : "aspect-[3/4]"}`}
-    >
-      {/* Photo or emoji fallback */}
-      {item.imageUrl ? (
-        <img
-          src={item.imageUrl}
-          alt={item.name}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-      ) : (
-        <div className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br ${TONE_BG[tone]}`}>
-          <span className="text-5xl">{item.emoji}</span>
-        </div>
-      )}
-
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-
-      {/* Top badges */}
-      <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1.5">
-        <span className="text-[10px] font-medium bg-white/80 backdrop-blur-sm rounded-full px-2 py-0.5 text-foreground leading-none">
-          {CATEGORY_LABELS[item.category]}
-        </span>
-        {(item.wearCount ?? 0) > 0 && (
-          <span className="text-[10px] bg-white/70 backdrop-blur-sm rounded-full px-2 py-0.5 text-foreground leading-none">
-            ×{item.wearCount}
+    <div className="group cursor-pointer" onClick={onClick}>
+      <div
+        className={`aspect-[4/5] rounded-[2rem] ${TONE[tone]} flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-[1.02] overflow-hidden relative shadow-sm`}
+      >
+        {item.imageUrl ? (
+          <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="text-5xl transition-transform duration-500 group-hover:scale-110">
+            {item.emoji}
+          </div>
+        )}
+        <div className="absolute top-4 right-4 px-2 py-1 bg-white/40 backdrop-blur-md rounded-full border border-white/40 opacity-0 group-hover:opacity-100 transition-opacity">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/70">
+            {item.category}
           </span>
+        </div>
+        {(item.wearCount ?? 0) > 0 && (
+          <div className="absolute top-4 left-4 px-2 py-1 bg-white/40 backdrop-blur-md rounded-full border border-white/40">
+            <span className="text-[10px] font-bold text-foreground/70">×{item.wearCount}</span>
+          </div>
         )}
       </div>
-
-      {/* Bottom info */}
-      <div className="absolute bottom-0 left-0 right-0 p-3">
-        <p className="text-white text-sm font-semibold leading-tight drop-shadow line-clamp-1">
-          {item.name}
+      <div className="px-1">
+        <p className="text-sm font-bold leading-tight text-foreground/90">{item.name}</p>
+        <p className="text-[11px] font-medium text-muted-foreground mt-1 capitalize">
+          {item.formality.replace("-", " ")} · {item.color}
         </p>
-        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-          <span className="text-white/80 text-[10px] drop-shadow">{item.color}</span>
-          {item.style.slice(0, 2).map((s) => (
-            <span
-              key={s}
-              className="text-[9px] bg-white/20 backdrop-blur-sm text-white rounded-full px-1.5 py-0.5"
-            >
-              {s}
-            </span>
-          ))}
-        </div>
       </div>
-    </button>
+    </div>
   );
 }

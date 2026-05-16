@@ -1,10 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Bell, Search, Sparkles, Shirt, Heart, User, Home, Plus } from "lucide-react";
 import { WardrobeCard } from "@/components/WardrobeCard";
 import { StylistChat } from "@/components/StylistChat";
 import { UploadItem } from "@/components/UploadItem";
 import { useWardrobe } from "@/hooks/use-wardrobe";
+import { BottomNav } from "@/components/BottomNav";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -37,9 +38,9 @@ function Index() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="size-10 rounded-full bg-white shadow-sm flex items-center justify-center">
+            <Link to="/wardrobe" className="size-10 rounded-full bg-white shadow-sm flex items-center justify-center">
               <Search className="size-4" />
-            </button>
+            </Link>
             <button className="size-10 rounded-full bg-white shadow-sm flex items-center justify-center relative">
               <Bell className="size-4" />
               <span className="absolute top-2 right-2 size-2 rounded-full bg-blush" />
@@ -99,7 +100,7 @@ function Index() {
 
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold">ตู้เสื้อผ้าของฉัน</h2>
+              <Link to="/wardrobe" className="text-sm font-semibold hover:text-primary transition-colors">ตู้เสื้อผ้าของฉัน</Link>
               <button
                 onClick={() => setUploadOpen(true)}
                 className="text-xs text-primary font-medium inline-flex items-center gap-1"
@@ -116,31 +117,7 @@ function Index() {
         </div>
       </div>
 
-      {/* Floating bottom nav */}
-      <nav className="fixed bottom-5 left-1/2 -translate-x-1/2 glass rounded-full border border-border px-2 py-2 flex items-center gap-1 shadow-lg">
-        {[
-          { icon: Home, active: true, onClick: () => {} },
-          { icon: Shirt, onClick: () => {} },
-          { icon: Plus, primary: true, onClick: () => setUploadOpen(true) },
-          { icon: Heart, onClick: () => {} },
-          { icon: User, onClick: () => {} },
-        ].map((b, i) => (
-          <button
-            key={i}
-            onClick={b.onClick}
-            className={`size-11 rounded-full flex items-center justify-center transition ${
-              b.primary
-                ? "bg-primary text-primary-foreground scale-110"
-                : b.active
-                ? "bg-lilac text-lilac-foreground"
-                : "text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            <b.icon className="size-4" />
-          </button>
-        ))}
-      </nav>
-
+      <BottomNav onPlusClick={() => setUploadOpen(true)} />
       <UploadItem open={uploadOpen} onClose={() => setUploadOpen(false)} onAdd={add} />
     </div>
   );

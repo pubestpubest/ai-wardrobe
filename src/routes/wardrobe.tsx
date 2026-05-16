@@ -2,12 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { Search, Plus, SlidersHorizontal } from "lucide-react";
 import { WardrobeCard } from "@/components/WardrobeCard";
-import { ItemDetail } from "@/components/ItemDetail";
 import { BottomNav } from "@/components/BottomNav";
 import { UploadItem } from "@/components/UploadItem";
 import { useWardrobe } from "@/hooks/use-wardrobe";
 import { Input } from "@/components/ui/input";
-import type { WardrobeItem } from "@/lib/wardrobe";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const Route = (createFileRoute as any)("/wardrobe")({
@@ -21,24 +19,23 @@ export const Route = (createFileRoute as any)("/wardrobe")({
 });
 
 const CATEGORIES = [
-  { id: "all", label: "ทั้งหมด" },
-  { id: "top", label: "เสื้อ" },
-  { id: "bottom", label: "กางเกง" },
-  { id: "shoes", label: "รองเท้า" },
-  { id: "outerwear", label: "คลุม" },
-  { id: "dress", label: "เดรส" },
-  { id: "accessory", label: "อุปกรณ์" },
+  { id: "all", label: "All" },
+  { id: "top", label: "Tops" },
+  { id: "bottom", label: "Bottoms" },
+  { id: "shoes", label: "Shoes" },
+  { id: "outerwear", label: "Outerwear" },
+  { id: "dress", label: "Dresses" },
+  { id: "accessory", label: "Accessories" },
 ];
 
 type SortKey = "newest" | "most-worn" | "name";
 
 function WardrobePage() {
-  const { items, add, remove, markWorn } = useWardrobe();
+  const { items, add } = useWardrobe();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sort, setSort] = useState<SortKey>("newest");
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [selected, setSelected] = useState<WardrobeItem | null>(null);
 
   const filteredItems = useMemo(() => {
     let list = items.filter((item) => {
@@ -90,13 +87,15 @@ function WardrobePage() {
             onClick={() =>
               setSort((s) => (s === "newest" ? "most-worn" : s === "most-worn" ? "name" : "newest"))
             }
-            className="absolute right-3 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center bg-muted rounded-lg text-muted-foreground relative"
+            className="absolute right-3 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center bg-muted rounded-lg text-muted-foreground"
             title={sort}
           >
-            <SlidersHorizontal className="size-4" />
-            {sort !== "newest" && (
-              <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
-            )}
+            <span className="relative flex items-center justify-center">
+              <SlidersHorizontal className="size-4" />
+              {sort !== "newest" && (
+                <span className="absolute -top-1 -right-1 size-1.5 rounded-full bg-primary" />
+              )}
+            </span>
           </button>
         </div>
 
@@ -126,7 +125,6 @@ function WardrobePage() {
                   key={item.id}
                   item={item}
                   tone={tones[idx % 3]}
-                  onClick={() => setSelected(item)}
                 />
               ))}
             </div>
@@ -163,12 +161,6 @@ function WardrobePage() {
         </div>
       </div>
 
-      <ItemDetail
-        item={selected}
-        onClose={() => setSelected(null)}
-        onDelete={(id, imageUrl) => { remove(id, imageUrl); setSelected(null); }}
-        onWear={(id) => { markWorn(id); setSelected(null); }}
-      />
       <BottomNav onUpload={() => setUploadOpen(true)} />
       <UploadItem open={uploadOpen} onClose={() => setUploadOpen(false)} onAdd={add} />
     </div>

@@ -27,7 +27,7 @@ export function UploadItem({
 }: {
   open: boolean;
   onClose: () => void;
-  onAdd: (item: StoredItem) => void;
+  onAdd: (item: StoredItem) => Promise<unknown>;
 }) {
   const analyze = useServerFn(analyzeClothing);
   const upload = useServerFn(uploadWardrobeImage);
@@ -67,7 +67,7 @@ export function UploadItem({
     setError(null);
     try {
       const { publicUrl } = await upload({ data: { imageDataUrl: preview } });
-      onAdd({ ...draft, id: crypto.randomUUID(), imageUrl: publicUrl });
+      await onAdd({ ...draft, id: crypto.randomUUID(), imageUrl: publicUrl });
       reset();
       onClose();
     } catch (e) {

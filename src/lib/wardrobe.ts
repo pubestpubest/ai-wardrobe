@@ -6,19 +6,38 @@ export type WardrobeItem = {
   style: string[];
   formality: "casual" | "smart-casual" | "formal";
   emoji: string;
+  imageUrl?: string;
+  wearCount?: number;
+  lastWorn?: string | null;
+  createdAt?: string;
 };
 
-export const WARDROBE: WardrobeItem[] = [
-  { id: "1", name: "เสื้อเชิ้ตขาว", category: "top", color: "ขาว", style: ["minimal", "classic"], formality: "formal", emoji: "👔" },
-  { id: "2", name: "เสื้อยืดสีพาสเทลม่วง", category: "top", color: "ม่วงพาสเทล", style: ["casual", "cute"], formality: "casual", emoji: "👚" },
-  { id: "3", name: "เสื้อสเวตเตอร์สีชมพู", category: "top", color: "ชมพู", style: ["cozy", "cute"], formality: "casual", emoji: "🧥" },
-  { id: "4", name: "เบลเซอร์สีฟ้าอ่อน", category: "outerwear", color: "ฟ้าอ่อน", style: ["smart", "modern"], formality: "smart-casual", emoji: "🧥" },
-  { id: "5", name: "กางเกงยีนส์สีน้ำเงิน", category: "bottom", color: "น้ำเงิน", style: ["casual"], formality: "casual", emoji: "👖" },
-  { id: "6", name: "กางเกงสแล็คสีดำ", category: "bottom", color: "ดำ", style: ["formal", "classic"], formality: "formal", emoji: "👖" },
-  { id: "7", name: "กระโปรงพลีทสีครีม", category: "bottom", color: "ครีม", style: ["feminine"], formality: "smart-casual", emoji: "👗" },
-  { id: "8", name: "เดรสลายดอกพาสเทล", category: "dress", color: "พาสเทล", style: ["feminine", "cute"], formality: "smart-casual", emoji: "👗" },
-  { id: "9", name: "รองเท้าผ้าใบขาว", category: "shoes", color: "ขาว", style: ["casual", "minimal"], formality: "casual", emoji: "👟" },
-  { id: "10", name: "รองเท้าส้นสูงสีนู้ด", category: "shoes", color: "นู้ด", style: ["elegant"], formality: "formal", emoji: "👠" },
-  { id: "11", name: "กระเป๋าสะพายสีชมพู", category: "accessory", color: "ชมพู", style: ["cute"], formality: "smart-casual", emoji: "👜" },
-  { id: "12", name: "แว่นกันแดด", category: "accessory", color: "ดำ", style: ["chic"], formality: "casual", emoji: "🕶️" },
+export const CATEGORY_LABELS: Record<WardrobeItem["category"], string> = {
+  top: "เสื้อ",
+  bottom: "กางเกง/กระโปรง",
+  outerwear: "เสื้อคลุม",
+  shoes: "รองเท้า",
+  dress: "เดรส",
+  accessory: "อุปกรณ์",
+};
+
+export const FORMALITY_LABELS: Record<WardrobeItem["formality"], string> = {
+  casual: "ลำลอง",
+  "smart-casual": "สมาร์ทแคชชวล",
+  formal: "ทางการ",
+};
+
+export const SEED_ITEMS: WardrobeItem[] = [
+  { id: "s1", name: "เสื้อเชิ้ตขาว", category: "top", color: "ขาว", style: ["minimal", "classic"], formality: "formal", emoji: "👔" },
+  { id: "s2", name: "เสื้อยืดสีพาสเทลม่วง", category: "top", color: "ม่วงพาสเทล", style: ["casual", "cute"], formality: "casual", emoji: "👚" },
+  { id: "s3", name: "เสื้อสเวตเตอร์สีชมพู", category: "top", color: "ชมพู", style: ["cozy", "cute"], formality: "casual", emoji: "🧥" },
+  { id: "s4", name: "เบลเซอร์สีฟ้าอ่อน", category: "outerwear", color: "ฟ้าอ่อน", style: ["smart", "modern"], formality: "smart-casual", emoji: "🧥" },
+  { id: "s5", name: "กางเกงยีนส์สีน้ำเงิน", category: "bottom", color: "น้ำเงิน", style: ["casual"], formality: "casual", emoji: "👖" },
+  { id: "s6", name: "กางเกงสแล็คสีดำ", category: "bottom", color: "ดำ", style: ["formal", "classic"], formality: "formal", emoji: "👖" },
+  { id: "s7", name: "กระโปรงพลีทสีครีม", category: "bottom", color: "ครีม", style: ["feminine"], formality: "smart-casual", emoji: "👗" },
+  { id: "s8", name: "เดรสลายดอกพาสเทล", category: "dress", color: "พาสเทล", style: ["feminine", "cute"], formality: "smart-casual", emoji: "👗" },
+  { id: "s9", name: "รองเท้าผ้าใบขาว", category: "shoes", color: "ขาว", style: ["casual", "minimal"], formality: "casual", emoji: "👟" },
+  { id: "s10", name: "รองเท้าส้นสูงสีนู้ด", category: "shoes", color: "นู้ด", style: ["elegant"], formality: "formal", emoji: "👠" },
+  { id: "s11", name: "กระเป๋าสะพายสีชมพู", category: "accessory", color: "ชมพู", style: ["cute"], formality: "smart-casual", emoji: "👜" },
+  { id: "s12", name: "แว่นกันแดด", category: "accessory", color: "ดำ", style: ["chic"], formality: "casual", emoji: "🕶️" },
 ];

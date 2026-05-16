@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Bell, Search, Sparkles, Shirt, Heart, User, Home, Plus } from "lucide-react";
 import { WardrobeCard } from "@/components/WardrobeCard";
@@ -119,26 +119,38 @@ function Index() {
       {/* Floating bottom nav */}
       <nav className="fixed bottom-5 left-1/2 -translate-x-1/2 glass rounded-full border border-border px-2 py-2 flex items-center gap-1 shadow-lg">
         {[
-          { icon: Home, active: true, onClick: () => {} },
-          { icon: Shirt, onClick: () => {} },
-          { icon: Plus, primary: true, onClick: () => setUploadOpen(true) },
-          { icon: Heart, onClick: () => {} },
-          { icon: User, onClick: () => {} },
-        ].map((b, i) => (
-          <button
-            key={i}
-            onClick={b.onClick}
-            className={`size-11 rounded-full flex items-center justify-center transition ${
-              b.primary
-                ? "bg-primary text-primary-foreground scale-110"
-                : b.active
-                ? "bg-lilac text-lilac-foreground"
-                : "text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            <b.icon className="size-4" />
-          </button>
-        ))}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          { icon: Home, active: true, onClick: () => {}, to: "/" as any },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          { icon: Shirt, onClick: () => {}, to: "/wardrobe" as any },
+          { icon: Plus, primary: true, onClick: () => setUploadOpen(true), to: null },
+          { icon: Heart, onClick: () => {}, to: null },
+          { icon: User, onClick: () => {}, to: null },
+        ].map((b, i) =>
+          b.to ? (
+            <Link
+              key={i}
+              to={b.to}
+              className={`size-11 rounded-full flex items-center justify-center transition ${
+                b.active ? "bg-lilac text-lilac-foreground" : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <b.icon className="size-4" />
+            </Link>
+          ) : (
+            <button
+              key={i}
+              onClick={b.onClick}
+              className={`size-11 rounded-full flex items-center justify-center transition ${
+                b.primary
+                  ? "bg-primary text-primary-foreground scale-110"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <b.icon className="size-4" />
+            </button>
+          )
+        )}
       </nav>
 
       <UploadItem open={uploadOpen} onClose={() => setUploadOpen(false)} onAdd={add} />

@@ -14,7 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      items: {
+        Row: {
+          category: string
+          color: string
+          created_at: string
+          emoji: string | null
+          formality: string
+          id: string
+          image_url: string | null
+          last_worn: string | null
+          name: string
+          style: string[]
+          user_id: string
+          wear_count: number
+        }
+        Insert: {
+          category: string
+          color: string
+          created_at?: string
+          emoji?: string | null
+          formality: string
+          id?: string
+          image_url?: string | null
+          last_worn?: string | null
+          name: string
+          style?: string[]
+          user_id: string
+          wear_count?: number
+        }
+        Update: {
+          category?: string
+          color?: string
+          created_at?: string
+          emoji?: string | null
+          formality?: string
+          id?: string
+          image_url?: string | null
+          last_worn?: string | null
+          name?: string
+          style?: string[]
+          user_id?: string
+          wear_count?: number
+        }
+        Relationships: []
+      }
+      outfits: {
+        Row: {
+          created_at: string
+          feedback: string | null
+          id: string
+          item_ids: string[]
+          occasion: string | null
+          user_id: string
+          weather: string | null
+          worn_date: string
+        }
+        Insert: {
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          item_ids: string[]
+          occasion?: string | null
+          user_id: string
+          weather?: string | null
+          worn_date?: string
+        }
+        Update: {
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          item_ids?: string[]
+          occasion?: string | null
+          user_id?: string
+          weather?: string | null
+          worn_date?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

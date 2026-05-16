@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Upload, X, Check } from "lucide-react";
 import { analyzeClothing } from "@/lib/analyze.functions";
+import { uploadWardrobeImage } from "@/lib/upload.functions";
 import type { StoredItem } from "@/hooks/use-wardrobe";
 
 const MAX_DIM = 1024;
@@ -29,10 +30,12 @@ export function UploadItem({
   onAdd: (item: StoredItem) => void;
 }) {
   const analyze = useServerFn(analyzeClothing);
+  const upload = useServerFn(uploadWardrobeImage);
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [draft, setDraft] = useState<Omit<StoredItem, "id" | "imageUrl"> | null>(null);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function reset() {
@@ -40,6 +43,7 @@ export function UploadItem({
     setDraft(null);
     setError(null);
     setLoading(false);
+    setSaving(false);
   }
 
   async function handleFile(file: File) {
@@ -57,11 +61,19 @@ export function UploadItem({
     }
   }
 
-  function save() {
+  async function save() {
     if (!draft || !preview) return;
-    onAdd({ ...draft, id: crypto.randomUUID(), imageUrl: preview });
-    reset();
-    onClose();
+    setSaving(true);
+    setError(null);
+    try {
+      const { publicUrl } = await upload({ data: { imageDataUrl: preview } });
+      onAdd({ ...draft, id: crypto.randomUUID(), imageUrl: publicUrl });
+      reset();
+      onClose();
+    } catch (e) {
+      setError((e as Error).message);
+      setSaving(false);
+    }
   }
 
   if (!open) return null;
@@ -136,9 +148,14 @@ export function UploadItem({
             />
             <button
               onClick={save}
-              className="bg-primary text-primary-foreground rounded-full py-3 text-sm font-medium flex items-center justify-center gap-2"
+              disabled={saving}
+              className="bg-primary text-primary-foreground rounded-full py-3 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60"
             >
-              <Check className="size-4" /> บันทึกเข้าตู้
+              {saving ? (
+                <><Loader2 className="size-4 animate-spin" /> กำลังบันทึก...</>
+              ) : (
+                <><Check className="size-4" /> บันทึกเข้าตู้</>
+              )}
             </button>
           </div>
         )}

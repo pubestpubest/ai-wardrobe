@@ -1,8 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { GoogleGenAI } from "@google/genai";
 
 const MessageSchema = z.object({
-  role: z.enum(["user", "assistant", "system"]),
+  role: z.enum(["user", "assistant"]),
   content: z.string(),
 });
 
@@ -14,8 +15,10 @@ const InputSchema = z.object({
 export const stylistChat = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => InputSchema.parse(d))
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY ไม่ได้ตั้งค่า");
+    const apiKey = process.env.AGENT_PLATFORM_API_KEY;
+    if (!apiKey) throw new Error("AGENT_PLATFORM_API_KEY ไม่ได้ตั้งค่า");
+
+    const ai = new GoogleGenAI({ apiKey });
 
     const system = `คุณคือ AI Stylist สำหรับแอป Digital Wardrobe ผู้ใช้งานเป็นคนไทย ตอบเป็นภาษาไทยเสมอ
 หน้าที่: แนะนำการจับคู่ชุดจากเสื้อผ้าที่ผู้ใช้มี โดยพิจารณาสไตล์ส่วนตัว โอกาส สี รูปทรง เทรนด์ และสภาพอากาศ
@@ -31,22 +34,16 @@ export const stylistChat = createServerFn({ method: "POST" })
 ตู้เสื้อผ้าของผู้ใช้ (JSON):
 ${data.wardrobe}`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [{ role: "system", content: system }, ...data.messages],
-      }),
+    const contents = data.messages.map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents,
+      config: { systemInstruction: system },
     });
 
-    if (res.status === 429) throw new Error("ใช้งานเกินโควต้าชั่วคราว กรุณาลองใหม่");
-    if (res.status === 402) throw new Error("ต้องเติมเครดิตใน Lovable AI");
-    if (!res.ok) throw new Error(`AI error: ${res.status}`);
-
-    const json = (await res.json()) as { choices: { message: { content: string } }[] };
-    return { reply: json.choices[0]?.message?.content ?? "" };
+    return { reply: response.text ?? "" };
   });

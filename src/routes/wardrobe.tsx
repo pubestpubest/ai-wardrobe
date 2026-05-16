@@ -4,6 +4,7 @@ import { Plus, ArrowLeft, SlidersHorizontal, Search, X } from "lucide-react";
 import { WardrobeCard } from "@/components/WardrobeCard";
 import { ItemDetail } from "@/components/ItemDetail";
 import { UploadItem } from "@/components/UploadItem";
+import { BottomNav } from "@/components/BottomNav";
 import { useWardrobe } from "@/hooks/use-wardrobe";
 import type { WardrobeItem } from "@/lib/wardrobe";
 import { CATEGORY_LABELS } from "@/lib/wardrobe";
@@ -233,6 +234,8 @@ function WardrobePage() {
 
       {/* Upload modal */}
       <UploadItem open={uploadOpen} onClose={() => setUploadOpen(false)} onAdd={add} />
+
+      <BottomNav onUpload={() => setUploadOpen(true)} />
     </div>
   );
 }

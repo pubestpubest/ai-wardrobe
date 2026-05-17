@@ -49,13 +49,30 @@ export function UploadItem({
   async function handleFile(file: File) {
     setError(null);
     setLoading(true);
+
     try {
       const dataUrl = await fileToCompressedDataUrl(file);
       setPreview(dataUrl);
-      const result = await analyze({ data: { imageDataUrl: dataUrl } });
+
+      const result = await analyze({
+        data: { imageDataUrl: dataUrl },
+      });
+
       setDraft(result);
     } catch (e) {
-      setError((e as Error).message);
+      console.error(e);
+
+      // fallback ให้กรอกเองได้
+      setDraft({
+        name: "",
+        color: "",
+        category: "top",
+        formality: "casual",
+        style: [],
+        emoji: "👕",
+      });
+
+      setError("AI วิเคราะห์ไม่สำเร็จ กรุณากรอกข้อมูลเอง");
     } finally {
       setLoading(false);
     }
@@ -135,6 +152,16 @@ export function UploadItem({
               value={draft.color}
               onChange={(v) => setDraft({ ...draft, color: v })}
             />
+            <Field
+              label="ชื่อ"
+              value={draft.name}
+              onChange={(v) => setDraft({ ...draft, name: v })}
+            />
+            <Field
+              label="สี"
+              value={draft.color}
+              onChange={(v) => setDraft({ ...draft, color: v })}
+            />
             <div className="grid grid-cols-2 gap-2">
               <SelectField
                 label="หมวดหมู่"
@@ -151,7 +178,7 @@ export function UploadItem({
             </div>
             <Field
               label="สไตล์ (คั่นด้วย ,)"
-              value={draft.style.join(", ")}
+              value={draft.style?.join(", ") || ""}
               onChange={(v) =>
                 setDraft({
                   ...draft,

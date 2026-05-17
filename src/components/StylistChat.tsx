@@ -44,7 +44,10 @@ export function StylistChat({ wardrobe }: { wardrobe: StoredItem[] }) {
     } catch (e) {
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: `ขออภัยค่ะ เกิดข้อผิดพลาด: ${(e as Error).message}` },
+        {
+          role: "assistant",
+          content: `ขออภัยค่ะ เกิดข้อผิดพลาด: ขณะนี้ระบบมีผู้ใช้งานจำนวนมาก กรุณาลองใหม่อีกครั้งภายหลัง`,
+        },
       ]);
     } finally {
       setLoading(false);

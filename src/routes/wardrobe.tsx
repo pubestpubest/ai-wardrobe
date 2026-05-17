@@ -4,8 +4,9 @@ import { Search, Plus, SlidersHorizontal } from "lucide-react";
 import { WardrobeCard } from "@/components/WardrobeCard";
 import { BottomNav } from "@/components/BottomNav";
 import { UploadItem } from "@/components/UploadItem";
-import { useWardrobe } from "@/hooks/use-wardrobe";
+import { StoredItem, useWardrobe } from "@/hooks/use-wardrobe";
 import { Input } from "@/components/ui/input";
+import { EditItem } from "@/components/EditItem";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const Route = (createFileRoute as any)("/wardrobe")({
@@ -31,11 +32,12 @@ const CATEGORIES = [
 type SortKey = "newest" | "most-worn" | "name";
 
 function WardrobePage() {
-  const { items, add } = useWardrobe();
+  const { items, add, update, remove } = useWardrobe();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sort, setSort] = useState<SortKey>("newest");
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [editing, setEditing] = useState<StoredItem | null>(null);
 
   const filteredItems = useMemo(() => {
     const list = items.filter((item) => {
@@ -121,7 +123,12 @@ function WardrobePage() {
           {filteredItems.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-5 gap-y-8">
               {filteredItems.map((item, idx) => (
-                <WardrobeCard key={item.id} item={item} tone={tones[idx % 3]} />
+                <WardrobeCard
+                  key={item.id}
+                  item={item}
+                  tone={tones[idx % 3]}
+                  onClick={() => setEditing(item)}
+                />
               ))}
             </div>
           ) : (
@@ -164,6 +171,7 @@ function WardrobePage() {
 
       <BottomNav onUpload={() => setUploadOpen(true)} />
       <UploadItem open={uploadOpen} onClose={() => setUploadOpen(false)} onAdd={add} />
+      <EditItem item={editing} onClose={() => setEditing(null)} onSave={update} onDelete={remove} />
     </div>
   );
 }

@@ -76,6 +76,37 @@ export const saveItem = createServerFn({ method: "POST" })
 
 // ─── Delete an item (also removes image from storage) ────────────────────────
 
+export const updateItem = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string(),
+        patch: z.object({
+          name: z.string().optional(),
+          category: z.string().optional(),
+          color: z.string().optional(),
+          style: z.array(z.string()).optional(),
+          formality: z.string().optional(),
+          emoji: z.string().optional(),
+          imageUrl: z.string().optional(),
+        }),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: any = { ...data.patch };
+    if (updateData.imageUrl !== undefined) {
+      updateData.image_url = updateData.imageUrl;
+      delete updateData.imageUrl;
+    }
+    const { error } = await adminClient().from("items").update(updateData).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ─── Delete an item (also removes image from storage) ────────────────────────
+
 export const removeItem = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({ id: z.string(), imageUrl: z.string().optional() }).parse(d),

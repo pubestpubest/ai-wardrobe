@@ -6,8 +6,9 @@ import { StylistChat } from "@/components/StylistChat";
 import { UploadItem } from "@/components/UploadItem";
 import { BottomNav } from "@/components/BottomNav";
 import { DevTools } from "@/components/DevTools";
-import { useWardrobe } from "@/hooks/use-wardrobe";
+import { StoredItem, useWardrobe } from "@/hooks/use-wardrobe";
 import { useAiEnv, type AiEnv } from "@/hooks/use-ai-env";
+import { EditItem } from "@/components/EditItem";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -20,12 +21,13 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { items, add } = useWardrobe();
+  const { items, add, update, remove } = useWardrobe();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [devOpen, setDevOpen] = useState(false);
   const { env, setEnv } = useAiEnv();
   const tones = ["lilac", "blush", "sky"] as const;
   const featured = items.slice(0, 6);
+  const [editing, setEditing] = useState<StoredItem | null>(null);
 
   const tapCount = useState(0);
   const handleLogoTap = useCallback(() => {
@@ -129,7 +131,12 @@ function Index() {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {featured.map((it, idx) => (
-                <WardrobeCard key={it.id} item={it} tone={tones[idx % 3]} />
+                <WardrobeCard
+                  key={it.id}
+                  item={it}
+                  tone={tones[idx % 3]}
+                  onClick={() => setEditing(it)}
+                />
               ))}
             </div>
           </div>
@@ -139,6 +146,7 @@ function Index() {
       <BottomNav onUpload={() => setUploadOpen(true)} />
 
       <UploadItem open={uploadOpen} onClose={() => setUploadOpen(false)} onAdd={add} env={env} />
+      <EditItem item={editing} onClose={() => setEditing(null)} onSave={update} onDelete={remove} />
 
       <DevTools
         open={devOpen}

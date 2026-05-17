@@ -49,13 +49,30 @@ export function UploadItem({
   async function handleFile(file: File) {
     setError(null);
     setLoading(true);
+
     try {
       const dataUrl = await fileToCompressedDataUrl(file);
       setPreview(dataUrl);
-      const result = await analyze({ data: { imageDataUrl: dataUrl } });
+
+      const result = await analyze({
+        data: { imageDataUrl: dataUrl },
+      });
+
       setDraft(result);
     } catch (e) {
-      setError((e as Error).message);
+      console.error(e);
+
+      // fallback ให้กรอกเองได้
+      setDraft({
+        name: "",
+        color: "",
+        category: "top",
+        formality: "casual",
+        style: [],
+        emoji: "👕",
+      });
+
+      setError("AI วิเคราะห์ไม่สำเร็จ กรุณากรอกข้อมูลเอง");
     } finally {
       setLoading(false);
     }
@@ -125,8 +142,16 @@ export function UploadItem({
         {draft && (
           <div className="flex flex-col gap-3">
             <p className="text-xs text-muted-foreground">AI วิเคราะห์ได้ดังนี้ (แก้ไขได้):</p>
-            <Field label="ชื่อ" value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} />
-            <Field label="สี" value={draft.color} onChange={(v) => setDraft({ ...draft, color: v })} />
+            <Field
+              label="ชื่อ"
+              value={draft.name}
+              onChange={(v) => setDraft({ ...draft, name: v })}
+            />
+            <Field
+              label="สี"
+              value={draft.color}
+              onChange={(v) => setDraft({ ...draft, color: v })}
+            />
             <div className="grid grid-cols-2 gap-2">
               <SelectField
                 label="หมวดหมู่"
@@ -143,8 +168,16 @@ export function UploadItem({
             </div>
             <Field
               label="สไตล์ (คั่นด้วย ,)"
-              value={draft.style.join(", ")}
-              onChange={(v) => setDraft({ ...draft, style: v.split(",").map((s) => s.trim()).filter(Boolean) })}
+              value={draft.style?.join(", ") || ""}
+              onChange={(v) =>
+                setDraft({
+                  ...draft,
+                  style: v
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                })
+              }
             />
             <button
               onClick={save}
@@ -152,9 +185,13 @@ export function UploadItem({
               className="bg-primary text-primary-foreground rounded-full py-3 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {saving ? (
-                <><Loader2 className="size-4 animate-spin" /> กำลังบันทึก...</>
+                <>
+                  <Loader2 className="size-4 animate-spin" /> กำลังบันทึก...
+                </>
               ) : (
-                <><Check className="size-4" /> บันทึกเข้าตู้</>
+                <>
+                  <Check className="size-4" /> บันทึกเข้าตู้
+                </>
               )}
             </button>
           </div>
@@ -176,7 +213,15 @@ export function UploadItem({
   );
 }
 
-function Field({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function Field({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
   return (
     <label className="flex flex-col gap-1">
       <span className="text-xs text-muted-foreground">{label}</span>

@@ -1,12 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { Search, Plus, SlidersHorizontal } from "lucide-react";
+import { toast } from "sonner";
+import { Search, Plus, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { WardrobeCard } from "@/components/WardrobeCard";
 import { BottomNav } from "@/components/BottomNav";
 import { UploadItem } from "@/components/UploadItem";
 import { StoredItem, useWardrobe } from "@/hooks/use-wardrobe";
 import { Input } from "@/components/ui/input";
 import { EditItem } from "@/components/EditItem";
+import { SaveMatchModal } from "@/components/SaveMatchModal";
+import { useMatches } from "@/hooks/use-matches";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const Route = (createFileRoute as any)("/wardrobe")({
@@ -33,11 +36,34 @@ type SortKey = "newest" | "most-worn" | "name";
 
 function WardrobePage() {
   const { items, add, update, remove } = useWardrobe();
+  const { add: addMatch } = useMatches();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sort, setSort] = useState<SortKey>("newest");
   const [uploadOpen, setUploadOpen] = useState(false);
   const [editing, setEditing] = useState<StoredItem | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [saveOpen, setSaveOpen] = useState(false);
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const selectedItems = useMemo(
+    () => items.filter((i) => selectedIds.has(i.id)),
+    [items, selectedIds],
+  );
 
   const filteredItems = useMemo(() => {
     const list = items.filter((item) => {
@@ -63,15 +89,39 @@ function WardrobePage() {
         {/* Header */}
         <header className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">เสื้อผ้าของฉัน</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">{items.length} ไอเท็ม</p>
+            <h1 className="text-2xl font-bold text-foreground">
+              {selectMode ? "เลือกไอเท็ม" : "เสื้อผ้าของฉัน"}
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {selectMode ? `${selectedIds.size} ชิ้นที่เลือก` : `${items.length} ไอเท็ม`}
+            </p>
           </div>
-          <button
-            onClick={() => setUploadOpen(true)}
-            className="size-10 rounded-full bg-white shadow-sm flex items-center justify-center border border-border/40 hover:bg-muted transition-colors"
-          >
-            <Plus className="size-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {selectMode ? (
+              <button
+                onClick={exitSelectMode}
+                className="size-10 rounded-full bg-white shadow-sm flex items-center justify-center border border-border/40 hover:bg-muted transition-colors"
+                aria-label="ยกเลิก"
+              >
+                <X className="size-5" />
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => setSelectMode(true)}
+                  className="h-10 px-4 rounded-full bg-white shadow-sm flex items-center gap-1.5 border border-border/40 hover:bg-muted transition-colors text-xs font-semibold"
+                >
+                  <Sparkles className="size-4" /> สร้างแมตช์
+                </button>
+                <button
+                  onClick={() => setUploadOpen(true)}
+                  className="size-10 rounded-full bg-white shadow-sm flex items-center justify-center border border-border/40 hover:bg-muted transition-colors"
+                >
+                  <Plus className="size-5" />
+                </button>
+              </>
+            )}
+          </div>
         </header>
 
         {/* Search Bar */}
@@ -127,7 +177,9 @@ function WardrobePage() {
                   key={item.id}
                   item={item}
                   tone={tones[idx % 3]}
-                  onClick={() => setEditing(item)}
+                  selectable={selectMode}
+                  selected={selectedIds.has(item.id)}
+                  onClick={() => (selectMode ? toggleSelected(item.id) : setEditing(item))}
                 />
               ))}
             </div>
@@ -169,9 +221,39 @@ function WardrobePage() {
         </div>
       </div>
 
+      {selectMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 bg-background rounded-full border border-border px-2 py-2 shadow-lg flex items-center gap-2 glass">
+          <span className="px-3 text-xs font-semibold">{selectedIds.size} ชิ้น</span>
+          <button
+            onClick={exitSelectMode}
+            className="px-4 h-9 rounded-full bg-muted text-xs font-semibold hover:bg-border transition"
+          >
+            ยกเลิก
+          </button>
+          <button
+            onClick={() => setSaveOpen(true)}
+            disabled={selectedIds.size < 1}
+            className="px-4 h-9 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40"
+          >
+            <Sparkles className="size-3.5" /> บันทึกแมตช์
+          </button>
+        </div>
+      )}
+
       <BottomNav onUpload={() => setUploadOpen(true)} />
       <UploadItem open={uploadOpen} onClose={() => setUploadOpen(false)} onAdd={add} />
       <EditItem item={editing} onClose={() => setEditing(null)} onSave={update} onDelete={remove} />
+      <SaveMatchModal
+        open={saveOpen}
+        items={selectedItems}
+        onClose={() => setSaveOpen(false)}
+        onSave={async (m) => {
+          await addMatch(m);
+          toast.success("บันทึกแมตช์แล้ว");
+          setSaveOpen(false);
+          exitSelectMode();
+        }}
+      />
     </div>
   );
 }

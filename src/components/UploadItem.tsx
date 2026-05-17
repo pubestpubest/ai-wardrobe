@@ -152,16 +152,6 @@ export function UploadItem({
               value={draft.color}
               onChange={(v) => setDraft({ ...draft, color: v })}
             />
-            <Field
-              label="ชื่อ"
-              value={draft.name}
-              onChange={(v) => setDraft({ ...draft, name: v })}
-            />
-            <Field
-              label="สี"
-              value={draft.color}
-              onChange={(v) => setDraft({ ...draft, color: v })}
-            />
             <div className="grid grid-cols-2 gap-2">
               <SelectField
                 label="หมวดหมู่"

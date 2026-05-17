@@ -12,6 +12,26 @@ export type WardrobeItem = {
   createdAt?: string;
 };
 
+export type MatchSource = "manual" | "ai";
+
+export type Match = {
+  id: string;
+  name: string;
+  itemIds: string[];
+  occasion?: string;
+  note?: string;
+  reason?: string;
+  source: MatchSource;
+  createdAt: string;
+};
+
+export type MatchSuggestion = {
+  name: string;
+  itemIds: string[];
+  occasion?: string;
+  reason: string;
+};
+
 export const CATEGORY_LABELS: Record<WardrobeItem["category"], string> = {
   top: "เสื้อ",
   bottom: "กางเกง/กระโปรง",

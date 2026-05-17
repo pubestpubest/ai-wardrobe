@@ -1,10 +1,19 @@
 import { useState, useRef, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { Send, Sparkles, Loader2 } from "lucide-react";
-import { stylistChat } from "@/lib/stylist.functions";
+import { matchChat } from "@/lib/match-chat.functions";
+import { useMatches } from "@/hooks/use-matches";
+import { SuggestionCard } from "@/components/SuggestionCard";
 import type { StoredItem } from "@/hooks/use-wardrobe";
+import type { MatchSuggestion } from "@/lib/wardrobe";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = {
+  role: "user" | "assistant";
+  content: string;
+  suggestion?: MatchSuggestion;
+  dismissed?: boolean;
+};
 
 const SUGGESTIONS = [
   "ไปงานแต่งงานช่วงบ่าย ใส่อะไรดี",
@@ -14,7 +23,8 @@ const SUGGESTIONS = [
 ];
 
 export function StylistChat({ wardrobe, env }: { wardrobe: StoredItem[]; env?: string }) {
-  const chat = useServerFn(stylistChat);
+  const chat = useServerFn(matchChat);
+  const { add: addMatch } = useMatches();
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
@@ -38,16 +48,19 @@ export function StylistChat({ wardrobe, env }: { wardrobe: StoredItem[]; env?: s
     setInput("");
     setLoading(true);
     try {
-      const wardrobeStr = JSON.stringify(wardrobe.map(({ imageUrl: _img, ...rest }) => rest));
-      const { reply } = await chat({
+      const wardrobePayload = wardrobe.map(({ imageUrl: _img, ...rest }) => rest);
+      const wardrobeStr = JSON.stringify(wardrobePayload);
+      const wardrobeIds = wardrobe.map((w) => w.id);
+      const { reply, suggestion } = await chat({
         data: {
-          messages: next,
+          messages: next.map(({ role, content }) => ({ role, content })),
           wardrobe: wardrobeStr,
+          wardrobeIds,
           env: env as "dev" | "uat" | "prod" | undefined,
         },
       });
-      setMessages((m) => [...m, { role: "assistant", content: reply }]);
-    } catch (e) {
+      setMessages((m) => [...m, { role: "assistant", content: reply, suggestion }]);
+    } catch (_err) {
       setMessages((m) => [
         ...m,
         {
@@ -58,6 +71,21 @@ export function StylistChat({ wardrobe, env }: { wardrobe: StoredItem[]; env?: s
     } finally {
       setLoading(false);
     }
+  }
+
+  async function saveSuggestion(s: MatchSuggestion) {
+    await addMatch({
+      name: s.name,
+      itemIds: s.itemIds,
+      occasion: s.occasion,
+      reason: s.reason,
+      source: "ai",
+    });
+    toast.success("บันทึกแมตช์เข้าโปรดแล้ว");
+  }
+
+  function dismissSuggestion(index: number) {
+    setMessages((m) => m.map((msg, i) => (i === index ? { ...msg, dismissed: true } : msg)));
   }
 
   return (
@@ -77,15 +105,26 @@ export function StylistChat({ wardrobe, env }: { wardrobe: StoredItem[]; env?: s
         className="flex-1 overflow-y-auto max-h-[380px] flex flex-col gap-3 pr-1"
       >
         {messages.map((m, i) => (
-          <div
-            key={i}
-            className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap leading-relaxed ${
-              m.role === "user"
-                ? "self-end bg-sky text-sky-foreground"
-                : "self-start bg-blush text-blush-foreground"
-            }`}
-          >
-            {m.content}
+          <div key={i} className="flex flex-col gap-2">
+            {m.content && (
+              <div
+                className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap leading-relaxed ${
+                  m.role === "user"
+                    ? "self-end bg-sky text-sky-foreground"
+                    : "self-start bg-blush text-blush-foreground"
+                }`}
+              >
+                {m.content}
+              </div>
+            )}
+            {m.suggestion && !m.dismissed && (
+              <SuggestionCard
+                suggestion={m.suggestion}
+                items={wardrobe}
+                onSave={saveSuggestion}
+                onDismiss={() => dismissSuggestion(i)}
+              />
+            )}
           </div>
         ))}
         {loading && (

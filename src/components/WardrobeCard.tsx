@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import type { WardrobeItem } from "@/lib/wardrobe";
 
 const TONE = {
@@ -10,13 +11,17 @@ interface Props {
   item: WardrobeItem;
   tone: keyof typeof TONE;
   onClick?: () => void;
+  selectable?: boolean;
+  selected?: boolean;
 }
 
-export function WardrobeCard({ item, tone, onClick }: Props) {
+export function WardrobeCard({ item, tone, onClick, selectable, selected }: Props) {
   return (
     <div className="group cursor-pointer" onClick={onClick}>
       <div
-        className={`aspect-[4/5] rounded-[2rem] ${TONE[tone]} flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-[1.02] overflow-hidden relative shadow-sm`}
+        className={`aspect-[4/5] rounded-[2rem] ${TONE[tone]} flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-[1.02] overflow-hidden relative shadow-sm ${
+          selectable && selected ? "ring-4 ring-primary ring-offset-2 ring-offset-background" : ""
+        } ${selectable && !selected ? "opacity-80" : ""}`}
       >
         {item.imageUrl ? (
           <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
@@ -25,12 +30,25 @@ export function WardrobeCard({ item, tone, onClick }: Props) {
             {item.emoji}
           </div>
         )}
-        <div className="absolute top-4 right-4 px-2 py-1 bg-white/40 backdrop-blur-md rounded-full border border-white/40 opacity-0 group-hover:opacity-100 transition-opacity">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/70">
-            {item.category}
-          </span>
-        </div>
-        {(item.wearCount ?? 0) > 0 && (
+        {selectable && (
+          <div
+            className={`absolute top-4 left-4 size-7 rounded-full flex items-center justify-center transition ${
+              selected
+                ? "bg-primary text-primary-foreground"
+                : "bg-white/70 backdrop-blur-md border border-white/60"
+            }`}
+          >
+            {selected && <Check className="size-4" />}
+          </div>
+        )}
+        {!selectable && (
+          <div className="absolute top-4 right-4 px-2 py-1 bg-white/40 backdrop-blur-md rounded-full border border-white/40 opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/70">
+              {item.category}
+            </span>
+          </div>
+        )}
+        {!selectable && (item.wearCount ?? 0) > 0 && (
           <div className="absolute top-4 left-4 px-2 py-1 bg-white/40 backdrop-blur-md rounded-full border border-white/40">
             <span className="text-[10px] font-bold text-foreground/70">×{item.wearCount}</span>
           </div>

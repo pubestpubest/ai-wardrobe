@@ -1,10 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Sparkles, Shirt, Heart, ChevronRight, Bell, Globe, Palette, LogOut } from "lucide-react";
+import {
+  Sparkles,
+  Shirt,
+  Heart,
+  ChevronRight,
+  Bell,
+  Globe,
+  Palette,
+  LogOut,
+  Pencil,
+} from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
+import { EditProfileModal } from "@/components/EditProfileModal";
 import { useWardrobe } from "@/hooks/use-wardrobe";
 import { useMatches } from "@/hooks/use-matches";
+import { useProfile } from "@/hooks/use-profile";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const Route = (createFileRoute as any)("/profile")({
@@ -14,18 +26,13 @@ export const Route = (createFileRoute as any)("/profile")({
   }),
 });
 
-const MOCK_USER = {
-  name: "พุเบสต์",
-  handle: "@pubest",
-  email: "pubestpubest@gmail.com",
-  joined: "เข้าร่วมเมื่อ พฤษภาคม 2026",
-  favoriteStyle: "Minimal · Pastel",
-  bio: "ชอบสไตล์มินิมอลโทนพาสเทล ❀",
-};
+const JOINED_LABEL = "เข้าร่วมเมื่อ พฤษภาคม 2026";
 
 function ProfilePage() {
   const { items } = useWardrobe();
   const { matches } = useMatches();
+  const { profile, update } = useProfile();
+  const [editOpen, setEditOpen] = useState(false);
 
   const aiMatchCount = useMemo(() => matches.filter((m) => m.source === "ai").length, [matches]);
 
@@ -36,25 +43,41 @@ function ProfilePage() {
       <div className="mx-auto max-w-2xl px-5 pt-8">
         <header className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-foreground">โปรไฟล์</h1>
+          <button
+            onClick={() => setEditOpen(true)}
+            className="h-10 px-4 rounded-full bg-white shadow-sm flex items-center gap-1.5 border border-border/40 hover:bg-muted transition text-xs font-semibold"
+          >
+            <Pencil className="size-3.5" /> แก้ไข
+          </button>
         </header>
 
         {/* Profile card */}
         <div className="bg-white rounded-3xl border border-border/40 shadow-sm p-5 flex items-center gap-4 mb-5">
-          <div className="size-16 rounded-full bg-lilac text-lilac-foreground flex items-center justify-center text-2xl font-bold shrink-0">
-            {MOCK_USER.name[0]}
+          <div className="size-16 rounded-full overflow-hidden bg-lilac text-lilac-foreground flex items-center justify-center text-2xl font-bold shrink-0">
+            {profile.avatarUrl ? (
+              <img
+                src={profile.avatarUrl}
+                alt={profile.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              (profile.name[0] ?? "?")
+            )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-base font-bold text-foreground/90 truncate">{MOCK_USER.name}</p>
-            <p className="text-xs text-muted-foreground truncate">{MOCK_USER.handle}</p>
-            <p className="text-[11px] text-muted-foreground/80 mt-1 truncate">{MOCK_USER.email}</p>
+            <p className="text-base font-bold text-foreground/90 truncate">{profile.name}</p>
+            <p className="text-xs text-muted-foreground truncate">{profile.handle}</p>
+            <p className="text-[11px] text-muted-foreground/80 mt-1 truncate">{profile.email}</p>
           </div>
         </div>
 
         {/* Bio */}
-        <div className="bg-blush/40 rounded-3xl px-5 py-4 mb-5 flex items-center gap-3 border border-blush/60">
-          <Sparkles className="size-4 text-blush-foreground/70 shrink-0" />
-          <p className="text-sm text-foreground/80">{MOCK_USER.bio}</p>
-        </div>
+        {profile.bio && (
+          <div className="bg-blush/40 rounded-3xl px-5 py-4 mb-5 flex items-center gap-3 border border-blush/60">
+            <Sparkles className="size-4 text-blush-foreground/70 shrink-0" />
+            <p className="text-sm text-foreground/80">{profile.bio}</p>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 mb-6">
@@ -83,9 +106,9 @@ function ProfilePage() {
           <div className="flex items-center justify-between p-4 rounded-2xl bg-white border border-border/40">
             <div>
               <p className="text-xs text-muted-foreground">สไตล์โปรด</p>
-              <p className="text-sm font-semibold mt-0.5">{MOCK_USER.favoriteStyle}</p>
+              <p className="text-sm font-semibold mt-0.5">{profile.favoriteStyle || "—"}</p>
             </div>
-            <span className="text-[11px] text-muted-foreground">{MOCK_USER.joined}</span>
+            <span className="text-[11px] text-muted-foreground">{JOINED_LABEL}</span>
           </div>
         </Section>
 
@@ -109,6 +132,12 @@ function ProfilePage() {
       </div>
 
       <BottomNav />
+      <EditProfileModal
+        open={editOpen}
+        profile={profile}
+        onClose={() => setEditOpen(false)}
+        onSave={update}
+      />
     </div>
   );
 }

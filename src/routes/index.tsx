@@ -1,14 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
+import { toast } from "sonner";
 import { Bell, Search, Sparkles, Plus } from "lucide-react";
 import { WardrobeCard } from "@/components/WardrobeCard";
-import { StylistChat } from "@/components/StylistChat";
+import { StylistChat, type StylistChatHandle } from "@/components/StylistChat";
 import { UploadItem } from "@/components/UploadItem";
 import { BottomNav } from "@/components/BottomNav";
 import { DevTools } from "@/components/DevTools";
 import { StoredItem, useWardrobe } from "@/hooks/use-wardrobe";
 import { useAiEnv, type AiEnv } from "@/hooks/use-ai-env";
 import { EditItem } from "@/components/EditItem";
+import { pickRandomOutfit } from "@/lib/daily-pick";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -28,6 +30,20 @@ function Index() {
   const tones = ["lilac", "blush", "sky"] as const;
   const featured = items.slice(0, 6);
   const [editing, setEditing] = useState<StoredItem | null>(null);
+  const chatRef = useRef<StylistChatHandle>(null);
+  const chatWrapRef = useRef<HTMLDivElement>(null);
+
+  const handleDailyPick = useCallback(() => {
+    const pick = pickRandomOutfit(items);
+    if (!pick) {
+      toast.error("ยังมีไอเท็มไม่พอจัดชุด ลองเพิ่มเสื้อผ้าก่อนนะคะ");
+      return;
+    }
+    chatRef.current?.injectDaily(pick);
+    requestAnimationFrame(() => {
+      chatWrapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [items]);
 
   const tapCount = useState(0);
   const handleLogoTap = useCallback(() => {
@@ -103,21 +119,26 @@ function Index() {
               <Plus className="size-3" /> อัปโหลด
             </span>
           </button>
-          <div className="pastel-card bg-sky text-sky-foreground flex flex-col gap-3">
+          <button
+            onClick={handleDailyPick}
+            className="pastel-card bg-sky text-sky-foreground flex flex-col gap-3 text-left active:scale-[0.98] transition"
+          >
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold">Daily Pick</span>
               <span className="text-xl">✨</span>
             </div>
-            <p className="text-xs opacity-80 leading-relaxed">ชุดแนะนำประจำวัน — ถาม AI ได้เลย</p>
-            <span className="text-xs font-medium self-start mt-auto bg-white/60 rounded-full px-3 py-1.5">
-              ดูชุด →
+            <p className="text-xs opacity-80 leading-relaxed">
+              สุ่มชุดวันนี้จากตู้ของคุณ — ไม่ใช้โควต้า AI
+            </p>
+            <span className="text-xs font-medium self-start mt-auto bg-white/60 rounded-full px-3 py-1.5 inline-flex items-center gap-1">
+              <Sparkles className="size-3" /> ดูชุดวันนี้
             </span>
-          </div>
+          </button>
         </div>
 
         {/* Main grid */}
-        <div className="grid lg:grid-cols-2 gap-5">
-          <StylistChat wardrobe={items} env={env} />
+        <div className="grid lg:grid-cols-2 gap-5" ref={chatWrapRef}>
+          <StylistChat ref={chatRef} wardrobe={items} env={env} />
 
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useImperativeHandle } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Send, Sparkles, Loader2, Trash2 } from "lucide-react";
@@ -7,6 +7,11 @@ import { useMatches } from "@/hooks/use-matches";
 import { SuggestionCard } from "@/components/SuggestionCard";
 import type { StoredItem } from "@/hooks/use-wardrobe";
 import type { MatchSuggestion } from "@/lib/wardrobe";
+import type { DailyPick } from "@/lib/daily-pick";
+
+export type StylistChatHandle = {
+  injectDaily: (pick: DailyPick) => void;
+};
 
 type Msg = {
   role: "user" | "assistant";
@@ -42,13 +47,35 @@ function loadMessages(): Msg[] {
   }
 }
 
-export function StylistChat({ wardrobe, env }: { wardrobe: StoredItem[]; env?: string }) {
+export function StylistChat({
+  ref,
+  wardrobe,
+  env,
+}: {
+  ref?: React.Ref<StylistChatHandle>;
+  wardrobe: StoredItem[];
+  env?: string;
+}) {
   const chat = useServerFn(matchChat);
   const { add: addMatch } = useMatches();
   const [messages, setMessages] = useState<Msg[]>(() => loadMessages());
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      injectDaily: (p: DailyPick) => {
+        setMessages((prev) => [
+          ...prev,
+          { role: "user", content: p.userText },
+          { role: "assistant", content: p.reply, suggestion: p.suggestion },
+        ]);
+      },
+    }),
+    [],
+  );
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });

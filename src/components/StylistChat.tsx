@@ -13,7 +13,7 @@ const SUGGESTIONS = [
   "เที่ยวคาเฟ่วันหยุด",
 ];
 
-export function StylistChat({ wardrobe }: { wardrobe: StoredItem[] }) {
+export function StylistChat({ wardrobe, model }: { wardrobe: StoredItem[]; model?: string }) {
   const chat = useServerFn(stylistChat);
   const [messages, setMessages] = useState<Msg[]>([
     {
@@ -39,7 +39,7 @@ export function StylistChat({ wardrobe }: { wardrobe: StoredItem[] }) {
     setLoading(true);
     try {
       const wardrobeStr = JSON.stringify(wardrobe.map(({ imageUrl: _img, ...rest }) => rest));
-      const { reply } = await chat({ data: { messages: next, wardrobe: wardrobeStr } });
+      const { reply } = await chat({ data: { messages: next, wardrobe: wardrobeStr, model } });
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
     } catch (e) {
       setMessages((m) => [

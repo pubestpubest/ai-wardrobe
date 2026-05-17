@@ -24,10 +24,12 @@ export function UploadItem({
   open,
   onClose,
   onAdd,
+  model,
 }: {
   open: boolean;
   onClose: () => void;
   onAdd: (item: StoredItem) => Promise<unknown>;
+  model?: string;
 }) {
   const analyze = useServerFn(analyzeClothing);
   const upload = useServerFn(uploadWardrobeImage);
@@ -53,11 +55,7 @@ export function UploadItem({
     try {
       const dataUrl = await fileToCompressedDataUrl(file);
       setPreview(dataUrl);
-
-      const result = await analyze({
-        data: { imageDataUrl: dataUrl },
-      });
-
+      const result = await analyze({ data: { imageDataUrl: dataUrl, model } });
       setDraft(result);
     } catch (e) {
       console.error(e);

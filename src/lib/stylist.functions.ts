@@ -10,6 +10,7 @@ const MessageSchema = z.object({
 const InputSchema = z.object({
   messages: z.array(MessageSchema).min(1).max(50),
   wardrobe: z.string().min(1).max(8000),
+  model: z.string().optional(),
 });
 
 export const stylistChat = createServerFn({ method: "POST" })
@@ -40,7 +41,7 @@ ${data.wardrobe}`;
     }));
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: data.model ?? "gemini-2.5-flash",
       contents,
       config: { systemInstruction: system },
     });

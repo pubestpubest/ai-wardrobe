@@ -4,6 +4,7 @@ import { FunctionCallingConfigMode, GoogleGenAI, Type } from "@google/genai";
 
 const InputSchema = z.object({
   imageDataUrl: z.string().startsWith("data:image/").max(8_000_000),
+  model: z.string().optional(),
 });
 
 const CATEGORIES = ["top", "bottom", "outerwear", "shoes", "dress", "accessory"] as const;
@@ -25,7 +26,7 @@ export const analyzeClothing = createServerFn({ method: "POST" })
     const { mimeType, data: imageData } = parseDataUrl(data.imageDataUrl);
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: data.model ?? "gemini-2.5-flash",
       contents: [
         {
           role: "user",

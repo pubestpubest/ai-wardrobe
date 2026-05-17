@@ -15,9 +15,7 @@ export function BottomNav({ onUpload }: { onUpload?: () => void }) {
         <Plus className="size-4" />
       </button>
       <NavLink to="/matches" icon={Heart} active={pathname === "/matches"} />
-      <button className="size-11 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition">
-        <User className="size-4" />
-      </button>
+      <NavLink to="/profile" icon={User} active={pathname === "/profile"} />
     </nav>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Send, Sparkles, Loader2 } from "lucide-react";
+import { Send, Sparkles, Loader2, Trash2 } from "lucide-react";
 import { matchChat } from "@/lib/match-chat.functions";
 import { useMatches } from "@/hooks/use-matches";
 import { SuggestionCard } from "@/components/SuggestionCard";
@@ -22,16 +22,30 @@ const SUGGESTIONS = [
   "เที่ยวคาเฟ่วันหยุด",
 ];
 
+const CHAT_STORAGE_KEY = "wardrobe.chat";
+
+const GREETING: Msg = {
+  role: "assistant",
+  content:
+    "สวัสดีค่ะ ✨ ฉันเป็น AI Stylist ส่วนตัวของคุณ\nบอกฉันได้เลยว่าวันนี้จะไปไหน อากาศเป็นยังไง หรือสไตล์ที่อยากได้ แล้วฉันจะจัดชุดให้จากตู้เสื้อผ้าของคุณค่ะ",
+};
+
+function loadMessages(): Msg[] {
+  if (typeof window === "undefined") return [GREETING];
+  try {
+    const raw = window.localStorage.getItem(CHAT_STORAGE_KEY);
+    if (!raw) return [GREETING];
+    const parsed = JSON.parse(raw) as Msg[];
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [GREETING];
+  } catch {
+    return [GREETING];
+  }
+}
+
 export function StylistChat({ wardrobe, env }: { wardrobe: StoredItem[]; env?: string }) {
   const chat = useServerFn(matchChat);
   const { add: addMatch } = useMatches();
-  const [messages, setMessages] = useState<Msg[]>([
-    {
-      role: "assistant",
-      content:
-        "สวัสดีค่ะ ✨ ฉันเป็น AI Stylist ส่วนตัวของคุณ\nบอกฉันได้เลยว่าวันนี้จะไปไหน อากาศเป็นยังไง หรือสไตล์ที่อยากได้ แล้วฉันจะจัดชุดให้จากตู้เสื้อผ้าของคุณค่ะ",
-    },
-  ]);
+  const [messages, setMessages] = useState<Msg[]>(() => loadMessages());
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -40,20 +54,28 @@ export function StylistChat({ wardrobe, env }: { wardrobe: StoredItem[]; env?: s
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+    } catch {
+      // storage full / disabled — silently skip
+    }
+  }, [messages]);
+
   async function send(text: string) {
     const content = text.trim();
     if (!content || loading) return;
-    const next: Msg[] = [...messages, { role: "user", content }];
-    setMessages(next);
+    setMessages((prev) => [...prev, { role: "user", content }]);
     setInput("");
     setLoading(true);
     try {
       const wardrobePayload = wardrobe.map(({ imageUrl: _img, ...rest }) => rest);
       const wardrobeStr = JSON.stringify(wardrobePayload);
       const wardrobeIds = wardrobe.map((w) => w.id);
+      // One-shot: send only the current user prompt, no prior history (saves tokens).
       const { reply, suggestion } = await chat({
         data: {
-          messages: next.map(({ role, content }) => ({ role, content })),
+          messages: [{ role: "user", content }],
           wardrobe: wardrobeStr,
           wardrobeIds,
           env: env as "dev" | "uat" | "prod" | undefined,
@@ -71,6 +93,11 @@ export function StylistChat({ wardrobe, env }: { wardrobe: StoredItem[]; env?: s
     } finally {
       setLoading(false);
     }
+  }
+
+  function clearChat() {
+    setMessages([GREETING]);
+    toast.success("เคลียร์แชทแล้ว");
   }
 
   async function saveSuggestion(s: MatchSuggestion) {
@@ -94,10 +121,20 @@ export function StylistChat({ wardrobe, env }: { wardrobe: StoredItem[]; env?: s
         <div className="size-9 rounded-full bg-lilac flex items-center justify-center">
           <Sparkles className="size-4 text-lilac-foreground" />
         </div>
-        <div>
+        <div className="flex-1">
           <p className="text-sm font-semibold">AI Stylist</p>
           <p className="text-xs text-muted-foreground">แชทเพื่อรับชุดแนะนำ</p>
         </div>
+        {messages.length > 1 && (
+          <button
+            onClick={clearChat}
+            className="size-8 rounded-full bg-muted text-muted-foreground hover:bg-border flex items-center justify-center transition"
+            aria-label="เคลียร์แชท"
+            title="เคลียร์แชท"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+        )}
       </div>
 
       <div

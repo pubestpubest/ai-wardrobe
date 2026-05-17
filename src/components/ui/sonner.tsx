@@ -10,19 +10,21 @@ const Toaster = ({ ...props }: ToasterProps) => {
         unstyled: false,
         classNames: {
           toast:
-            "group toast !rounded-2xl !border !backdrop-blur-xl !shadow-[0_8px_24px_-12px_oklch(0.5_0.1_290_/_0.25)] !px-4 !py-3 !text-sm !font-medium",
-          default: "!bg-white/85 !border-border !text-foreground",
-          success: "!bg-lilac/90 !border-lilac !text-lilac-foreground",
-          error: "!bg-blush/95 !border-blush !text-blush-foreground",
-          info: "!bg-sky/90 !border-sky !text-sky-foreground",
-          warning: "!bg-blush/80 !border-blush !text-blush-foreground",
+            "group toast !rounded-2xl !border-2 !backdrop-blur-xl !shadow-[0_8px_24px_-12px_oklch(0.5_0.1_290_/_0.3)] !px-4 !py-3 !text-sm !font-medium !gap-2",
+          default: "!bg-white/90 !border-border !text-foreground",
+          success:
+            "!bg-lilac !border-[oklch(0.55_0.15_295)] !text-lilac-foreground [&_[data-icon]]:!text-[oklch(0.55_0.15_295)]",
+          error:
+            "!bg-blush !border-[oklch(0.55_0.18_5)] !text-blush-foreground [&_[data-icon]]:!text-[oklch(0.55_0.18_5)]",
+          info: "!bg-sky !border-[oklch(0.5_0.15_245)] !text-sky-foreground [&_[data-icon]]:!text-[oklch(0.5_0.15_245)]",
+          warning:
+            "!bg-[oklch(0.92_0.08_85)] !border-[oklch(0.6_0.15_75)] !text-[oklch(0.32_0.08_75)] [&_[data-icon]]:!text-[oklch(0.6_0.15_75)]",
           title: "!font-semibold !leading-tight",
-          description: "!text-foreground/70 !text-xs !mt-0.5",
+          description: "!text-current/70 !text-xs !mt-0.5",
           actionButton:
             "!bg-primary !text-primary-foreground !rounded-full !px-3 !py-1.5 !text-xs !font-semibold",
           cancelButton:
             "!bg-muted !text-muted-foreground !rounded-full !px-3 !py-1.5 !text-xs !font-semibold",
-          icon: "!mr-1",
         },
       }}
       {...props}

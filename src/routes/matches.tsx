@@ -4,6 +4,7 @@ import { Heart } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { MatchCard } from "@/components/MatchCard";
 import { EditMatchModal } from "@/components/EditMatchModal";
+import { ShareMatchModal } from "@/components/ShareMatchModal";
 import { useMatches } from "@/hooks/use-matches";
 import { useWardrobe } from "@/hooks/use-wardrobe";
 import type { Match } from "@/lib/wardrobe";
@@ -23,6 +24,7 @@ function MatchesPage() {
   const { matches, isLoading, update, remove } = useMatches();
   const { items } = useWardrobe();
   const [editing, setEditing] = useState<Match | null>(null);
+  const [sharing, setSharing] = useState<Match | null>(null);
 
   return (
     <div className="min-h-screen pb-28 bg-[#FDFCFD]">
@@ -39,7 +41,13 @@ function MatchesPage() {
         ) : matches.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {matches.map((m) => (
-              <MatchCard key={m.id} match={m} items={items} onClick={() => setEditing(m)} />
+              <MatchCard
+                key={m.id}
+                match={m}
+                items={items}
+                onClick={() => setEditing(m)}
+                onShare={() => setSharing(m)}
+              />
             ))}
           </div>
         ) : (
@@ -63,6 +71,7 @@ function MatchesPage() {
         onSave={update}
         onDelete={remove}
       />
+      <ShareMatchModal match={sharing} items={items} onClose={() => setSharing(null)} />
     </div>
   );
 }

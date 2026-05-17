@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Bell, Search, Sparkles, Plus } from "lucide-react";
 import { WardrobeCard } from "@/components/WardrobeCard";
 import { StylistChat } from "@/components/StylistChat";
 import { UploadItem } from "@/components/UploadItem";
 import { BottomNav } from "@/components/BottomNav";
+import { DevTools } from "@/components/DevTools";
 import { useWardrobe } from "@/hooks/use-wardrobe";
+import { useAiModel, type AiModelId } from "@/hooks/use-ai-model";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -20,8 +22,22 @@ export const Route = createFileRoute("/")({
 function Index() {
   const { items, add } = useWardrobe();
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [devOpen, setDevOpen] = useState(false);
+  const { model, setModel } = useAiModel();
   const tones = ["lilac", "blush", "sky"] as const;
   const featured = items.slice(0, 6);
+
+  const tapCount = useState(0);
+  const handleLogoTap = useCallback(() => {
+    tapCount[1]((n) => {
+      const next = n + 1;
+      if (next >= 5) {
+        setDevOpen(true);
+        return 0;
+      }
+      return next;
+    });
+  }, [tapCount]);
 
   return (
     <div className="min-h-screen pb-28">
@@ -29,9 +45,12 @@ function Index() {
         {/* Header */}
         <header className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="size-11 rounded-full bg-gradient-to-br from-lilac to-blush flex items-center justify-center text-lg">
+            <button
+              onClick={handleLogoTap}
+              className="size-11 rounded-full bg-gradient-to-br from-lilac to-blush flex items-center justify-center text-lg select-none"
+            >
               👗
-            </div>
+            </button>
             <div>
               <p className="text-xs text-muted-foreground">สวัสดี,</p>
               <h1 className="text-base font-semibold leading-tight">ตู้เสื้อผ้าของฉัน</h1>
@@ -96,7 +115,7 @@ function Index() {
 
         {/* Main grid */}
         <div className="grid lg:grid-cols-2 gap-5">
-          <StylistChat wardrobe={items} />
+          <StylistChat wardrobe={items} model={model} />
 
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -119,7 +138,19 @@ function Index() {
 
       <BottomNav onUpload={() => setUploadOpen(true)} />
 
-      <UploadItem open={uploadOpen} onClose={() => setUploadOpen(false)} onAdd={add} />
+      <UploadItem
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        onAdd={add}
+        model={model}
+      />
+
+      <DevTools
+        open={devOpen}
+        onClose={() => setDevOpen(false)}
+        model={model as AiModelId}
+        onModelChange={setModel}
+      />
     </div>
   );
 }

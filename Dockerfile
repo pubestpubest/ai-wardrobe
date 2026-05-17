@@ -10,10 +10,10 @@ RUN bun run build
 FROM oven/bun:1-alpine AS runner
 WORKDIR /app
 
-COPY --from=builder /app/.output /app/.output
+COPY --from=builder /app/dist /app/dist
 
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
 
-CMD ["bun", ".output/server/index.mjs"]
+CMD ["bun", "dist/server/server.js"]

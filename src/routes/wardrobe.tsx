@@ -38,7 +38,7 @@ function WardrobePage() {
   const [uploadOpen, setUploadOpen] = useState(false);
 
   const filteredItems = useMemo(() => {
-    let list = items.filter((item) => {
+    const list = items.filter((item) => {
       const matchesSearch =
         item.name.toLowerCase().includes(search.toLowerCase()) ||
         item.color.toLowerCase().includes(search.toLowerCase()) ||
@@ -121,11 +121,7 @@ function WardrobePage() {
           {filteredItems.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-5 gap-y-8">
               {filteredItems.map((item, idx) => (
-                <WardrobeCard
-                  key={item.id}
-                  item={item}
-                  tone={tones[idx % 3]}
-                />
+                <WardrobeCard key={item.id} item={item} tone={tones[idx % 3]} />
               ))}
             </div>
           ) : (
@@ -134,16 +130,21 @@ function WardrobePage() {
                 👚
               </div>
               <p className="text-base font-bold text-foreground/80">
-                {search || selectedCategory !== "all" ? "ไม่พบเสื้อผ้าที่ค้นหา" : "ยังไม่มีเสื้อผ้าในตู้"}
+                {search || selectedCategory !== "all"
+                  ? "ไม่พบเสื้อผ้าที่ค้นหา"
+                  : "ยังไม่มีเสื้อผ้าในตู้"}
               </p>
               <p className="text-sm opacity-60 mt-1">
                 {search || selectedCategory !== "all"
                   ? "ลองเปลี่ยนคำค้นหาหรือตัวกรองดูนะ"
                   : "เพิ่มเสื้อผ้าชิ้นแรกกันเลย!"}
               </p>
-              {(search || selectedCategory !== "all") ? (
+              {search || selectedCategory !== "all" ? (
                 <button
-                  onClick={() => { setSearch(""); setSelectedCategory("all"); }}
+                  onClick={() => {
+                    setSearch("");
+                    setSelectedCategory("all");
+                  }}
                   className="mt-6 px-6 py-2 bg-muted rounded-full text-xs font-bold hover:bg-border transition-colors"
                 >
                   ล้างตัวกรองทั้งหมด

@@ -12,7 +12,9 @@ async function ensureBucket() {
     console.warn("[migrate] SUPABASE_SERVICE_ROLE_KEY not set — skipping bucket");
     return;
   }
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false },
+  });
   const { data: buckets } = await admin.storage.listBuckets();
   if (buckets?.some((b) => b.id === "wardrobe-images")) {
     console.log("[migrate] bucket wardrobe-images already exists");
@@ -34,7 +36,8 @@ async function runSqlMigrations() {
     const dir = join(import.meta.dir, "../supabase/migrations");
     const files = (await readdir(dir)).filter((f) => f.endsWith(".sql")).sort();
     for (const file of files) {
-      const [{ count }] = await sql`select count(*)::int as count from public._migrations where name = ${file}`;
+      const [{ count }] =
+        await sql`select count(*)::int as count from public._migrations where name = ${file}`;
       if (count > 0) {
         console.log(`[migrate] ${file} already applied`);
         continue;

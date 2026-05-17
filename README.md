@@ -4,14 +4,14 @@ AI-powered wardrobe manager with outfit stylist — built with TanStack Start, S
 
 ## Stack
 
-| Layer | Tech |
-|-------|------|
-| Framework | TanStack Start (React SSR) |
-| Styling | Tailwind CSS v4 + shadcn/ui |
-| AI | Google AI Agent Platform — `gemini-2.5-flash` |
-| Database | Supabase (PostgreSQL) |
-| Package manager | Bun |
-| Container | Docker + docker-compose |
+| Layer           | Tech                                          |
+| --------------- | --------------------------------------------- |
+| Framework       | TanStack Start (React SSR)                    |
+| Styling         | Tailwind CSS v4 + shadcn/ui                   |
+| AI              | Google AI Agent Platform — `gemini-2.5-flash` |
+| Database        | Supabase (PostgreSQL)                         |
+| Package manager | Bun                                           |
+| Container       | Docker + docker-compose                       |
 
 ---
 
@@ -95,6 +95,7 @@ The app **auto-migrates the database on startup** — no manual SQL needed. Just
 Supabase dashboard → **Settings → Database → Connection string → Transaction Pooler (port 6543)**
 
 It looks like:
+
 ```
 postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
 ```
@@ -112,6 +113,7 @@ bun run dev
 ```
 
 On startup you'll see:
+
 ```
 [migrate] running 001_init.sql
 [migrate] 001_init.sql done
@@ -163,14 +165,14 @@ bun run format     # Prettier
 
 ## Environment Variables Reference
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `AGENT_PLATFORM_API_KEY` | Yes | Google AI Agent Platform API key |
-| `DATABASE_URL` | Yes* | Supabase direct connection URI — enables auto-migration |
-| `SUPABASE_URL` | Yes | Supabase project URL |
-| `SUPABASE_PUBLISHABLE_KEY` | Yes | Supabase anon/public key |
-| `VITE_SUPABASE_URL` | Yes | Same as above (exposed to browser) |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Yes | Same as above (exposed to browser) |
-| `VITE_SUPABASE_PROJECT_ID` | Yes | Supabase project ref ID |
+| Variable                        | Required | Description                                             |
+| ------------------------------- | -------- | ------------------------------------------------------- |
+| `AGENT_PLATFORM_API_KEY`        | Yes      | Google AI Agent Platform API key                        |
+| `DATABASE_URL`                  | Yes\*    | Supabase direct connection URI — enables auto-migration |
+| `SUPABASE_URL`                  | Yes      | Supabase project URL                                    |
+| `SUPABASE_PUBLISHABLE_KEY`      | Yes      | Supabase anon/public key                                |
+| `VITE_SUPABASE_URL`             | Yes      | Same as above (exposed to browser)                      |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Yes      | Same as above (exposed to browser)                      |
+| `VITE_SUPABASE_PROJECT_ID`      | Yes      | Supabase project ref ID                                 |
 
 > `DATABASE_URL` is only needed server-side for migrations. Without it the app still runs but skips DB setup.

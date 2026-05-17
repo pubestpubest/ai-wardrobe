@@ -21,10 +21,7 @@ export function ItemDetail({ item, onClose, onDelete, onWear }: Props) {
   return (
     <>
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={onClose} />
 
       {/* Bottom sheet */}
       <div className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-background shadow-2xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
@@ -44,11 +41,7 @@ export function ItemDetail({ item, onClose, onDelete, onWear }: Props) {
         {/* Image */}
         <div className="mx-4 mt-2 rounded-2xl overflow-hidden bg-muted aspect-[4/3] relative">
           {item.imageUrl ? (
-            <img
-              src={item.imageUrl}
-              alt={item.name}
-              className="w-full h-full object-cover"
-            />
+            <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-7xl">
               {item.emoji}
@@ -78,7 +71,9 @@ export function ItemDetail({ item, onClose, onDelete, onWear }: Props) {
               />
               {item.color}
             </span>
-            <span className={`text-xs font-medium rounded-full px-3 py-1.5 ${FORMALITY_COLOR[item.formality]}`}>
+            <span
+              className={`text-xs font-medium rounded-full px-3 py-1.5 ${FORMALITY_COLOR[item.formality]}`}
+            >
               {FORMALITY_LABELS[item.formality]}
             </span>
           </div>
@@ -113,14 +108,20 @@ export function ItemDetail({ item, onClose, onDelete, onWear }: Props) {
 
           {/* Action buttons */}
           <button
-            onClick={() => { onWear(item.id); onClose(); }}
+            onClick={() => {
+              onWear(item.id);
+              onClose();
+            }}
             className="w-full bg-primary text-primary-foreground rounded-2xl py-3.5 text-sm font-semibold flex items-center justify-center gap-2"
           >
             <ShirtIcon className="size-4" /> ใส่วันนี้
           </button>
 
           <button
-            onClick={() => { onDelete(item.id, item.imageUrl); onClose(); }}
+            onClick={() => {
+              onDelete(item.id, item.imageUrl);
+              onClose();
+            }}
             className="w-full bg-destructive/10 text-destructive rounded-2xl py-3.5 text-sm font-semibold flex items-center justify-center gap-2"
           >
             <Trash2 className="size-4" /> ลบออกจากตู้
@@ -139,11 +140,22 @@ function formatDate(dateStr: string): string {
 // Best-effort pastel color approximation from Thai color names
 function colorToHex(color: string): string {
   const map: Record<string, string> = {
-    ขาว: "#ffffff", ดำ: "#1a1a1a", แดง: "#f87171", ชมพู: "#fccce2",
-    ม่วง: "#d2ccfc", "ม่วงพาสเทล": "#d2ccfc", ฟ้า: "#cce2fc",
-    "ฟ้าอ่อน": "#cce2fc", น้ำเงิน: "#3b82f6", เขียว: "#86efac",
-    เหลือง: "#fde68a", ส้ม: "#fed7aa", เทา: "#d1d5db",
-    ครีม: "#fef3c7", นู้ด: "#fde8d8", พาสเทล: "#f0e6ff",
+    ขาว: "#ffffff",
+    ดำ: "#1a1a1a",
+    แดง: "#f87171",
+    ชมพู: "#fccce2",
+    ม่วง: "#d2ccfc",
+    ม่วงพาสเทล: "#d2ccfc",
+    ฟ้า: "#cce2fc",
+    ฟ้าอ่อน: "#cce2fc",
+    น้ำเงิน: "#3b82f6",
+    เขียว: "#86efac",
+    เหลือง: "#fde68a",
+    ส้ม: "#fed7aa",
+    เทา: "#d1d5db",
+    ครีม: "#fef3c7",
+    นู้ด: "#fde8d8",
+    พาสเทล: "#f0e6ff",
     น้ำตาล: "#d97706",
   };
   return map[color] ?? "#e5e7eb";

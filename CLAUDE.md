@@ -14,6 +14,7 @@ bun run format       # Prettier
 ```
 
 After changing the DB schema, regenerate types:
+
 ```bash
 supabase gen types typescript --project-id <project-ref> > src/integrations/supabase/types.ts
 ```
@@ -25,6 +26,7 @@ supabase gen types typescript --project-id <project-ref> > src/integrations/supa
 **Server Functions** (`src/lib/*.functions.ts`) — the primary way client components call server-side logic. Created with `createServerFn` from `@tanstack/react-start`. All AI calls, DB mutations, and storage ops live here. They are called via `useServerFn()` on the client side (see `use-wardrobe.ts`).
 
 **Data flow:**
+
 1. `useWardrobe` hook (`src/hooks/use-wardrobe.ts`) wraps TanStack Query + server functions for all CRUD on wardrobe items. It uses a `session_id` stored in `localStorage` (guest mode — no auth yet) to scope items per browser.
 2. Items are stored in Supabase (`items` table). Images go to the `wardrobe-images` Supabase Storage bucket.
 3. AI analysis (`analyzeClothing` in `analyze.functions.ts`) sends the image to Gemini 2.5 Flash with forced function calling — the model must call `save_clothing_item` to return structured tags.
@@ -38,17 +40,18 @@ supabase gen types typescript --project-id <project-ref> > src/integrations/supa
 
 ## Key environment variables
 
-| Variable | Purpose |
-|---|---|
-| `AGENT_PLATFORM_API_KEY` | Google AI (Gemini) API key |
-| `DATABASE_URL` | Supabase transaction pooler URI — needed for migrations |
-| `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` | Server-side Supabase client |
-| `SUPABASE_SERVICE_ROLE_KEY` | Admin client for storage uploads and item CRUD (bypasses RLS) |
-| `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` | Browser-side Supabase client |
+| Variable                                              | Purpose                                                       |
+| ----------------------------------------------------- | ------------------------------------------------------------- |
+| `AGENT_PLATFORM_API_KEY`                              | Google AI (Gemini) API key                                    |
+| `DATABASE_URL`                                        | Supabase transaction pooler URI — needed for migrations       |
+| `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY`           | Server-side Supabase client                                   |
+| `SUPABASE_SERVICE_ROLE_KEY`                           | Admin client for storage uploads and item CRUD (bypasses RLS) |
+| `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` | Browser-side Supabase client                                  |
 
 ## Development workflow (per global CLAUDE.md)
 
 Plan full features, then implement in small complete iterations:
+
 1. DB migration
 2. Server function + route/component
 3. Manual test

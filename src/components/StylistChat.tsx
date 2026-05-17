@@ -38,9 +38,7 @@ export function StylistChat({ wardrobe }: { wardrobe: StoredItem[] }) {
     setInput("");
     setLoading(true);
     try {
-      const wardrobeStr = JSON.stringify(
-        wardrobe.map(({ imageUrl: _img, ...rest }) => rest),
-      );
+      const wardrobeStr = JSON.stringify(wardrobe.map(({ imageUrl: _img, ...rest }) => rest));
       const { reply } = await chat({ data: { messages: next, wardrobe: wardrobeStr } });
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
     } catch (e) {
@@ -65,7 +63,10 @@ export function StylistChat({ wardrobe }: { wardrobe: StoredItem[] }) {
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto max-h-[380px] flex flex-col gap-3 pr-1">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto max-h-[380px] flex flex-col gap-3 pr-1"
+      >
         {messages.map((m, i) => (
           <div
             key={i}

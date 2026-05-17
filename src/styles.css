@@ -70,11 +70,11 @@
   --ring: oklch(0.7 0.1 295);
 
   /* Pastel palette from brief */
-  --lilac: oklch(0.86 0.07 295);          /* #d2ccfc */
+  --lilac: oklch(0.86 0.07 295); /* #d2ccfc */
   --lilac-foreground: oklch(0.32 0.08 295);
-  --blush: oklch(0.88 0.06 0);            /* #fccce2 */
+  --blush: oklch(0.88 0.06 0); /* #fccce2 */
   --blush-foreground: oklch(0.36 0.09 5);
-  --sky: oklch(0.89 0.05 245);            /* #cce2fc */
+  --sky: oklch(0.89 0.05 245); /* #cce2fc */
   --sky-foreground: oklch(0.32 0.09 250);
 }
 
@@ -82,7 +82,8 @@
   * {
     border-color: var(--color-border);
   }
-  html, body {
+  html,
+  body {
     background: linear-gradient(180deg, oklch(0.985 0.008 290) 0%, oklch(0.97 0.012 320) 100%);
     color: var(--color-foreground);
     font-family: var(--font-display);

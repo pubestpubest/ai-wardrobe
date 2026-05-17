@@ -59,9 +59,7 @@ export async function runMigrations() {
     `;
 
     const migrationsDir = join(process.cwd(), "supabase/migrations");
-    const files = (await readdir(migrationsDir))
-      .filter((f) => f.endsWith(".sql"))
-      .sort();
+    const files = (await readdir(migrationsDir)).filter((f) => f.endsWith(".sql")).sort();
 
     for (const file of files) {
       const [{ count }] = await sql`

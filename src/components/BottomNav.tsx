@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, type LinkProps } from "@tanstack/react-router";
 import { Home, Shirt, Plus, Heart, User } from "lucide-react";
 
 export function BottomNav({ onUpload }: { onUpload?: () => void }) {
@@ -24,11 +24,18 @@ export function BottomNav({ onUpload }: { onUpload?: () => void }) {
   );
 }
 
-function NavLink({ to, icon: Icon, active }: { to: string; icon: React.ElementType; active: boolean }) {
+function NavLink({
+  to,
+  icon: Icon,
+  active,
+}: {
+  to: LinkProps["to"];
+  icon: React.ElementType;
+  active: boolean;
+}) {
   return (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     <Link
-      to={to as any}
+      to={to}
       className={`size-11 rounded-full flex items-center justify-center transition ${
         active ? "bg-lilac text-lilac-foreground" : "text-muted-foreground hover:bg-muted"
       }`}

@@ -28,6 +28,8 @@ export const uploadWardrobeImage = createServerFn({ method: "POST" })
 
     if (error) throw new Error(`อัปโหลดรูปไม่สำเร็จ: ${error.message}`);
 
-    const { data: { publicUrl } } = admin.storage.from(BUCKET).getPublicUrl(path);
+    const {
+      data: { publicUrl },
+    } = admin.storage.from(BUCKET).getPublicUrl(path);
     return { publicUrl };
   });

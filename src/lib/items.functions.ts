@@ -77,7 +77,9 @@ export const saveItem = createServerFn({ method: "POST" })
 // ─── Delete an item (also removes image from storage) ────────────────────────
 
 export const removeItem = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ id: z.string(), imageUrl: z.string().optional() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string(), imageUrl: z.string().optional() }).parse(d),
+  )
   .handler(async ({ data }) => {
     const admin = adminClient();
 

@@ -1,11 +1,23 @@
 import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Upload, X, Check } from "lucide-react";
+import { toast } from "sonner";
+import { Loader2, Upload, X, Check, Sparkles } from "lucide-react";
 import { analyzeClothing } from "@/lib/analyze.functions";
 import { uploadWardrobeImage } from "@/lib/upload.functions";
 import type { StoredItem } from "@/hooks/use-wardrobe";
 
 const MAX_DIM = 1024;
+
+type Draft = Omit<StoredItem, "id" | "imageUrl">;
+
+const EMPTY_DRAFT: Draft = {
+  name: "",
+  color: "",
+  category: "top",
+  formality: "casual",
+  style: [],
+  emoji: "👕",
+};
 
 async function fileToCompressedDataUrl(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file);
@@ -35,60 +47,60 @@ export function UploadItem({
   const upload = useServerFn(uploadWardrobeImage);
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Omit<StoredItem, "id" | "imageUrl"> | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   function reset() {
     setPreview(null);
     setDraft(null);
-    setError(null);
-    setLoading(false);
+    setAiLoading(false);
     setSaving(false);
   }
 
   async function handleFile(file: File) {
-    setError(null);
-    setLoading(true);
-
     try {
       const dataUrl = await fileToCompressedDataUrl(file);
       setPreview(dataUrl);
-      const result = await analyze({
-        data: { imageDataUrl: dataUrl, env: env as "dev" | "uat" | "prod" | undefined },
-      });
-      setDraft(result);
+      setDraft(EMPTY_DRAFT);
     } catch (e) {
       console.error(e);
+      toast.error(`อ่านไฟล์ไม่สำเร็จ: ${(e as Error).message}`);
+    }
+  }
 
-      // fallback ให้กรอกเองได้
-      setDraft({
-        name: "",
-        color: "",
-        category: "top",
-        formality: "casual",
-        style: [],
-        emoji: "👕",
+  async function fillWithAI() {
+    if (!preview || aiLoading) return;
+    setAiLoading(true);
+    try {
+      const result = await analyze({
+        data: { imageDataUrl: preview, env: env as "dev" | "uat" | "prod" | undefined },
       });
-
-      setError("AI วิเคราะห์ไม่สำเร็จ กรุณากรอกข้อมูลเอง");
+      setDraft(result);
+      toast.success("AI วิเคราะห์เสร็จแล้ว");
+    } catch (e) {
+      console.error(e);
+      toast.error(`AI วิเคราะห์ไม่สำเร็จ: ${(e as Error).message}`);
     } finally {
-      setLoading(false);
+      setAiLoading(false);
     }
   }
 
   async function save() {
     if (!draft || !preview) return;
+    if (!draft.name.trim()) {
+      toast.error("กรุณาตั้งชื่อไอเท็มก่อน");
+      return;
+    }
     setSaving(true);
-    setError(null);
     try {
       const { publicUrl } = await upload({ data: { imageDataUrl: preview } });
       await onAdd({ ...draft, id: crypto.randomUUID(), imageUrl: publicUrl });
+      toast.success("เพิ่มไอเท็มแล้ว");
       reset();
       onClose();
     } catch (e) {
-      setError((e as Error).message);
+      toast.error(`บันทึกไม่สำเร็จ: ${(e as Error).message}`);
       setSaving(false);
     }
   }
@@ -118,7 +130,7 @@ export function UploadItem({
           >
             <Upload className="size-6 text-muted-foreground" />
             <p className="text-sm font-medium">เลือกรูปเสื้อผ้า</p>
-            <p className="text-xs text-muted-foreground">AI จะช่วยกรอกหมวดหมู่ สี และสไตล์ให้</p>
+            <p className="text-xs text-muted-foreground">หรือกรอกข้อมูลเอง แล้วใช้ AI ช่วยทีหลัง</p>
           </button>
         )}
 
@@ -128,20 +140,24 @@ export function UploadItem({
           </div>
         )}
 
-        {loading && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center py-3">
-            <Loader2 className="size-4 animate-spin" />
-            AI กำลังวิเคราะห์...
-          </div>
-        )}
-
-        {error && (
-          <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
-        )}
-
         {draft && (
           <div className="flex flex-col gap-3">
-            <p className="text-xs text-muted-foreground">AI วิเคราะห์ได้ดังนี้ (แก้ไขได้):</p>
+            <button
+              onClick={fillWithAI}
+              disabled={aiLoading}
+              className="w-full rounded-2xl bg-sky text-sky-foreground py-3 px-4 text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition disabled:opacity-60 shadow-sm"
+            >
+              {aiLoading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" /> AI กำลังวิเคราะห์...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="size-4" /> ให้ AI ช่วยกรอก
+                </>
+              )}
+            </button>
+
             <Field
               label="ชื่อ"
               value={draft.name}
@@ -182,7 +198,7 @@ export function UploadItem({
             <button
               onClick={save}
               disabled={saving}
-              className="bg-primary text-primary-foreground rounded-full py-3 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60"
+              className="bg-primary text-primary-foreground rounded-full py-3 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60 mt-1"
             >
               {saving ? (
                 <>

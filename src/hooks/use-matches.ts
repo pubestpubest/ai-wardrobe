@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { getMatches, saveMatch, removeMatch } from "@/lib/matches.functions";
+import { getMatches, saveMatch, updateMatch, removeMatch } from "@/lib/matches.functions";
 import type { Match, MatchSource } from "@/lib/wardrobe";
 
 export const MATCHES_QUERY_KEY = ["matches"];
@@ -15,11 +15,20 @@ export type NewMatch = {
   source?: MatchSource;
 };
 
+export type MatchPatch = {
+  name?: string;
+  itemIds?: string[];
+  occasion?: string;
+  note?: string;
+  reason?: string;
+};
+
 export function useMatches() {
   const qc = useQueryClient();
 
   const fetchFn = useServerFn(getMatches);
   const saveFn = useServerFn(saveMatch);
+  const updateFn = useServerFn(updateMatch);
   const removeFn = useServerFn(removeMatch);
 
   const { data: matches = [], isLoading } = useQuery<Match[]>({
@@ -37,9 +46,22 @@ export function useMatches() {
     onError: (err) => toast.error(`บันทึกไม่สำเร็จ: ${(err as Error).message}`),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: MatchPatch }) =>
+      updateFn({ data: { id, patch } }),
+    onSuccess: () => {
+      invalidate();
+      toast.success("แก้ไขแมตช์แล้ว");
+    },
+    onError: (err) => toast.error(`แก้ไขไม่สำเร็จ: ${(err as Error).message}`),
+  });
+
   const removeMutation = useMutation({
     mutationFn: (id: string) => removeFn({ data: { id } }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      toast.success("ลบแมตช์แล้ว");
+    },
     onError: (err) => toast.error(`ลบไม่สำเร็จ: ${(err as Error).message}`),
   });
 
@@ -47,6 +69,7 @@ export function useMatches() {
     matches,
     isLoading,
     add: (m: NewMatch) => addMutation.mutateAsync(m),
+    update: (id: string, patch: MatchPatch) => updateMutation.mutateAsync({ id, patch }),
     remove: (id: string) => removeMutation.mutate(id),
   };
 }

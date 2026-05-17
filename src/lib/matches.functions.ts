@@ -65,6 +65,39 @@ export const saveMatch = createServerFn({ method: "POST" })
     return mapRow(rows);
   });
 
+const UpdateMatchInput = z.object({
+  id: z.string(),
+  patch: z.object({
+    name: z.string().min(1).optional(),
+    itemIds: z.array(z.string()).optional(),
+    occasion: z.string().optional(),
+    note: z.string().optional(),
+    reason: z.string().optional(),
+  }),
+});
+
+export const updateMatch = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => UpdateMatchInput.parse(d))
+  .handler(async ({ data }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: any = {};
+    if (data.patch.name !== undefined) updateData.name = data.patch.name;
+    if (data.patch.itemIds !== undefined) updateData.item_ids = data.patch.itemIds;
+    if (data.patch.occasion !== undefined)
+      updateData.occasion = data.patch.occasion.trim() ? data.patch.occasion.trim() : null;
+    if (data.patch.note !== undefined)
+      updateData.note = data.patch.note.trim() ? data.patch.note.trim() : null;
+    if (data.patch.reason !== undefined)
+      updateData.reason = data.patch.reason.trim() ? data.patch.reason.trim() : null;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (adminClient().from("matches" as any) as any)
+      .update(updateData)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const removeMatch = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
   .handler(async ({ data }) => {

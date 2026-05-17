@@ -1,9 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { Heart } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { MatchCard } from "@/components/MatchCard";
+import { EditMatchModal } from "@/components/EditMatchModal";
 import { useMatches } from "@/hooks/use-matches";
 import { useWardrobe } from "@/hooks/use-wardrobe";
+import type { Match } from "@/lib/wardrobe";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const Route = (createFileRoute as any)("/matches")({
@@ -17,8 +20,9 @@ export const Route = (createFileRoute as any)("/matches")({
 });
 
 function MatchesPage() {
-  const { matches, isLoading, remove } = useMatches();
+  const { matches, isLoading, update, remove } = useMatches();
   const { items } = useWardrobe();
+  const [editing, setEditing] = useState<Match | null>(null);
 
   return (
     <div className="min-h-screen pb-28 bg-[#FDFCFD]">
@@ -35,7 +39,7 @@ function MatchesPage() {
         ) : matches.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {matches.map((m) => (
-              <MatchCard key={m.id} match={m} items={items} onDelete={remove} />
+              <MatchCard key={m.id} match={m} items={items} onClick={() => setEditing(m)} />
             ))}
           </div>
         ) : (
@@ -52,6 +56,13 @@ function MatchesPage() {
       </div>
 
       <BottomNav />
+      <EditMatchModal
+        match={editing}
+        items={items}
+        onClose={() => setEditing(null)}
+        onSave={update}
+        onDelete={remove}
+      />
     </div>
   );
 }

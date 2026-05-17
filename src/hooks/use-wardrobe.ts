@@ -27,14 +27,19 @@ export function useWardrobe() {
   const addMutation = useMutation({
     mutationFn: (item: WardrobeItem) =>
       saveFn({ data: { item: { ...item, imageUrl: item.imageUrl } } }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+    },
     onError: (err) => toast.error(`บันทึกไม่สำเร็จ: ${(err as Error).message}`),
   });
 
   const deleteMutation = useMutation({
     mutationFn: ({ id, imageUrl }: { id: string; imageUrl?: string }) =>
       removeFn({ data: { id, imageUrl } }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      toast.success("ลบไอเท็มแล้ว");
+    },
     onError: (err) => toast.error(`ลบไม่สำเร็จ: ${(err as Error).message}`),
   });
 
@@ -48,7 +53,10 @@ export function useWardrobe() {
   const updateMutation = useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: Partial<StoredItem> }) =>
       updateFn({ data: { id, patch } }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      toast.success("แก้ไขไอเท็มแล้ว");
+    },
     onError: (err) => toast.error(`แก้ไขไม่สำเร็จ: ${(err as Error).message}`),
   });
 

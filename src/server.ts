@@ -1,6 +1,10 @@
 import "./lib/error-capture";
 
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { consumeLastCapturedError } from "./lib/error-capture";
+
+const CLIENT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..", "client");
 import { renderErrorPage } from "./lib/error-page";
 import { runMigrations } from "./lib/migrate.server";
 
@@ -72,6 +76,20 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 
 export default {
   async fetch(request: Request) {
+    const url = new URL(request.url);
+
+    if (url.pathname.startsWith("/assets/")) {
+      const filePath = resolve(CLIENT_DIR, url.pathname.slice(1));
+      if (filePath.startsWith(CLIENT_DIR)) {
+        const file = Bun.file(filePath);
+        if (await file.exists()) {
+          return new Response(file, {
+            headers: { "cache-control": "public, max-age=31536000, immutable" },
+          });
+        }
+      }
+    }
+
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request);

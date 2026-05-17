@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 
-import appCss from "../styles.css?url";
+import "../styles.css";
 
 function NotFoundComponent() {
   return (
@@ -79,12 +79,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "AI-powered digital wardrobe & outfit stylist" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
     ],
   }),
   shellComponent: RootShell,

@@ -1,23 +1,30 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
+import { withRetry } from "./retry";
 
 const MessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string(),
 });
 
+const API_KEYS: Record<string, string | undefined> = {
+  dev: process.env.AGENT_PLATFORM_API_KEY_DEV,
+  uat: process.env.AGENT_PLATFORM_API_KEY_UAT,
+  prod: process.env.AGENT_PLATFORM_API_KEY_PROD ?? process.env.AGENT_PLATFORM_API_KEY,
+};
+
 const InputSchema = z.object({
   messages: z.array(MessageSchema).min(1).max(50),
   wardrobe: z.string().min(1).max(8000),
-  model: z.string().optional(),
+  env: z.enum(["dev", "uat", "prod"]).optional(),
 });
 
 export const stylistChat = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => InputSchema.parse(d))
   .handler(async ({ data }) => {
-    const apiKey = process.env.AGENT_PLATFORM_API_KEY;
-    if (!apiKey) throw new Error("AGENT_PLATFORM_API_KEY ไม่ได้ตั้งค่า");
+    const apiKey = API_KEYS[data.env ?? "prod"];
+    if (!apiKey) throw new Error(`API key สำหรับ env "${data.env ?? "prod"}" ไม่ได้ตั้งค่า`);
 
     const ai = new GoogleGenAI({ apiKey });
 
@@ -40,11 +47,13 @@ ${data.wardrobe}`;
       parts: [{ text: m.content }],
     }));
 
-    const response = await ai.models.generateContent({
-      model: data.model ?? "gemini-2.5-flash",
-      contents,
-      config: { systemInstruction: system },
-    });
+    const response = await withRetry(() =>
+      ai.models.generateContent({
+        model: "gemini-3.1-flash-lite",
+        contents,
+        config: { systemInstruction: system },
+      }),
+    );
 
     return { reply: response.text ?? "" };
   });

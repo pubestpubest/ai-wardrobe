@@ -1,16 +1,16 @@
 import { X, Cpu } from "lucide-react";
-import { AI_MODELS, type AiModelId } from "@/hooks/use-ai-model";
+import { AI_ENVS, type AiEnv } from "@/hooks/use-ai-env";
 
 export function DevTools({
   open,
   onClose,
-  model,
-  onModelChange,
+  env,
+  onEnvChange,
 }: {
   open: boolean;
   onClose: () => void;
-  model: AiModelId;
-  onModelChange: (id: AiModelId) => void;
+  env: AiEnv;
+  onEnvChange: (id: AiEnv) => void;
 }) {
   if (!open) return null;
 
@@ -34,19 +34,19 @@ export function DevTools({
         </div>
 
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-muted-foreground font-medium">AI Model</p>
-          {AI_MODELS.map((m) => (
+          <p className="text-xs text-muted-foreground font-medium">API Environment</p>
+          {AI_ENVS.map((e) => (
             <button
-              key={m.id}
-              onClick={() => onModelChange(m.id as AiModelId)}
+              key={e.id}
+              onClick={() => onEnvChange(e.id)}
               className={`flex items-center justify-between px-4 py-3 rounded-2xl text-sm transition ${
-                model === m.id
+                env === e.id
                   ? "bg-lilac text-lilac-foreground font-medium"
                   : "bg-muted text-foreground hover:bg-muted/70"
               }`}
             >
-              <span>{m.label}</span>
-              {model === m.id && (
+              <span>{e.label}</span>
+              {env === e.id && (
                 <span className="text-xs bg-white/30 rounded-full px-2 py-0.5">active</span>
               )}
             </button>

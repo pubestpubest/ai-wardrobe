@@ -7,7 +7,7 @@ import { UploadItem } from "@/components/UploadItem";
 import { BottomNav } from "@/components/BottomNav";
 import { DevTools } from "@/components/DevTools";
 import { useWardrobe } from "@/hooks/use-wardrobe";
-import { useAiModel, type AiModelId } from "@/hooks/use-ai-model";
+import { useAiEnv, type AiEnv } from "@/hooks/use-ai-env";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -23,7 +23,7 @@ function Index() {
   const { items, add } = useWardrobe();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [devOpen, setDevOpen] = useState(false);
-  const { model, setModel } = useAiModel();
+  const { env, setEnv } = useAiEnv();
   const tones = ["lilac", "blush", "sky"] as const;
   const featured = items.slice(0, 6);
 
@@ -115,7 +115,7 @@ function Index() {
 
         {/* Main grid */}
         <div className="grid lg:grid-cols-2 gap-5">
-          <StylistChat wardrobe={items} model={model} />
+          <StylistChat wardrobe={items} env={env} />
 
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -138,18 +138,13 @@ function Index() {
 
       <BottomNav onUpload={() => setUploadOpen(true)} />
 
-      <UploadItem
-        open={uploadOpen}
-        onClose={() => setUploadOpen(false)}
-        onAdd={add}
-        model={model}
-      />
+      <UploadItem open={uploadOpen} onClose={() => setUploadOpen(false)} onAdd={add} env={env} />
 
       <DevTools
         open={devOpen}
         onClose={() => setDevOpen(false)}
-        model={model as AiModelId}
-        onModelChange={setModel}
+        env={env as AiEnv}
+        onEnvChange={setEnv}
       />
     </div>
   );

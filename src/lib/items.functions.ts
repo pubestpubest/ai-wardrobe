@@ -27,15 +27,14 @@ function mapRow(row: any): WardrobeItem {
   };
 }
 
-// ─── Fetch all items for a session ───────────────────────────────────────────
+// ─── Fetch all items ──────────────────────────────────────────────────────────
 
 export const getItems = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ sessionId: z.string() }).parse(d))
-  .handler(async ({ data }) => {
+  .inputValidator((d: unknown) => z.object({}).parse(d))
+  .handler(async () => {
     const { data: rows, error } = await adminClient()
       .from("items")
       .select("*")
-      .eq("session_id", data.sessionId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (rows ?? []).map(mapRow);
@@ -44,7 +43,6 @@ export const getItems = createServerFn({ method: "POST" })
 // ─── Save a new item ──────────────────────────────────────────────────────────
 
 const ItemInputSchema = z.object({
-  sessionId: z.string(),
   item: z.object({
     id: z.string(),
     name: z.string(),
@@ -64,7 +62,6 @@ export const saveItem = createServerFn({ method: "POST" })
       .from("items")
       .insert({
         id: data.item.id,
-        session_id: data.sessionId,
         name: data.item.name,
         category: data.item.category,
         color: data.item.color,

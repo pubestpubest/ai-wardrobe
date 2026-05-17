@@ -6,24 +6,10 @@ import type { WardrobeItem } from "@/lib/wardrobe";
 
 export type { WardrobeItem as StoredItem };
 
-const SESSION_KEY = "wardrobe-session-id";
-
-export function getSessionId(): string {
-  // Never run during SSR — localStorage is client-only
-  if (typeof window === "undefined") return "";
-  let id = localStorage.getItem(SESSION_KEY);
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem(SESSION_KEY, id);
-  }
-  return id;
-}
-
 export const WARDROBE_QUERY_KEY = ["wardrobe"];
 
 export function useWardrobe() {
   const qc = useQueryClient();
-  const sessionId = getSessionId();
 
   const fetchFn = useServerFn(getItems);
   const saveFn = useServerFn(saveItem);
@@ -31,10 +17,8 @@ export function useWardrobe() {
   const wearFn = useServerFn(wearItem);
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: [...WARDROBE_QUERY_KEY, sessionId],
-    queryFn: () => fetchFn({ data: { sessionId } }),
-    // Only fetch client-side when we have a real session ID
-    enabled: !!sessionId,
+    queryKey: WARDROBE_QUERY_KEY,
+    queryFn: () => fetchFn({ data: {} }),
     staleTime: 30_000,
   });
 
@@ -42,7 +26,7 @@ export function useWardrobe() {
 
   const addMutation = useMutation({
     mutationFn: (item: WardrobeItem) =>
-      saveFn({ data: { sessionId, item: { ...item, imageUrl: item.imageUrl } } }),
+      saveFn({ data: { item: { ...item, imageUrl: item.imageUrl } } }),
     onSuccess: invalidate,
     onError: (err) => toast.error(`บันทึกไม่สำเร็จ: ${(err as Error).message}`),
   });

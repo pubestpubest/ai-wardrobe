@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { Bell, Search, Sparkles, Plus } from "lucide-react";
@@ -9,6 +9,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { DevTools } from "@/components/DevTools";
 import { StoredItem, useWardrobe } from "@/hooks/use-wardrobe";
 import { useAiEnv, type AiEnv } from "@/hooks/use-ai-env";
+import { useProfile } from "@/hooks/use-profile";
 import { EditItem } from "@/components/EditItem";
 import { pickRandomOutfit } from "@/lib/daily-pick";
 
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { items, add, update, remove } = useWardrobe();
+  const { profile } = useProfile();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [devOpen, setDevOpen] = useState(false);
   const { env, setEnv } = useAiEnv();
@@ -63,16 +65,25 @@ function Index() {
         {/* Header */}
         <header className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleLogoTap}
-              className="size-11 rounded-full bg-gradient-to-br from-lilac to-blush flex items-center justify-center text-lg select-none"
+            <Link
+              to="/profile"
+              className="size-11 rounded-full overflow-hidden bg-gradient-to-br from-lilac to-blush flex items-center justify-center text-lg font-bold text-lilac-foreground shrink-0 hover:opacity-90 transition"
+              aria-label="ไปหน้าโปรไฟล์"
             >
-              👗
-            </button>
-            <div>
+              {profile.avatarUrl ? (
+                <img
+                  src={profile.avatarUrl}
+                  alt={profile.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                (profile.name[0] ?? "👗")
+              )}
+            </Link>
+            <button onClick={handleLogoTap} className="text-left select-none">
               <p className="text-xs text-muted-foreground">สวัสดี,</p>
-              <h1 className="text-base font-semibold leading-tight">ตู้เสื้อผ้าของฉัน</h1>
-            </div>
+              <h1 className="text-base font-semibold leading-tight">{profile.name} ✨</h1>
+            </button>
           </div>
           <div className="flex items-center gap-2">
             <button className="size-10 rounded-full bg-white shadow-sm flex items-center justify-center">
@@ -86,10 +97,18 @@ function Index() {
         </header>
 
         {/* Hero stat card */}
-        <section className="pastel-card bg-lilac text-lilac-foreground mb-4 relative overflow-hidden">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="size-4" />
-            <span className="text-sm font-medium">Outfit Today</span>
+        <Link
+          to="/wardrobe"
+          className="pastel-card bg-lilac text-lilac-foreground mb-4 relative overflow-hidden block hover:shadow-md active:scale-[0.99] transition"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4" />
+              <span className="text-sm font-medium">Outfit Today</span>
+            </div>
+            <span className="text-[11px] font-semibold bg-white/50 rounded-full px-2.5 py-0.5">
+              ดูตู้ทั้งหมด →
+            </span>
           </div>
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -102,7 +121,7 @@ function Index() {
               <Stat label="Shoes" value={items.filter((i) => i.category === "shoes").length} />
             </div>
           </div>
-        </section>
+        </Link>
 
         {/* Two-column quick cards */}
         <div className="grid grid-cols-2 gap-4 mb-6">

@@ -2,7 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { FunctionCallingConfigMode, GoogleGenAI, Type } from "@google/genai";
 import { withRetry } from "./retry";
+import { logAiUsage, summarizeUsage, type UsageMetadata } from "./ai-log";
 import type { MatchSuggestion } from "./wardrobe";
+
+const MODEL = "gemini-3.1-flash-lite";
 
 const MessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -22,9 +25,18 @@ const InputSchema = z.object({
   wardrobeIds: z.array(z.string()).default([]),
 });
 
+export type MatchChatUsage = {
+  promptTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  cachedTokens: number;
+  costUsd: number;
+};
+
 export type MatchChatResult = {
   reply: string;
   suggestion?: MatchSuggestion;
+  usage?: MatchChatUsage;
 };
 
 export const matchChat = createServerFn({ method: "POST" })
@@ -56,54 +68,92 @@ ${data.wardrobe}`;
       parts: [{ text: m.content }],
     }));
 
-    const response = await withRetry(() =>
-      ai.models.generateContent({
-        model: "gemini-3.1-flash-lite",
-        contents,
-        config: {
-          systemInstruction: system,
-          tools: [
-            {
-              functionDeclarations: [
-                {
-                  name: "suggest_outfit_match",
-                  description: "ส่งชุดที่แนะนำให้ผู้ใช้ ประกอบด้วย itemIds จากตู้เสื้อผ้า",
-                  parameters: {
-                    type: Type.OBJECT,
-                    properties: {
-                      name: {
-                        type: Type.STRING,
-                        description: "ชื่อชุดสั้น ๆ ภาษาไทย เช่น 'ชุดคาเฟ่วันหยุด'",
+    const t0 = Date.now();
+    const lastUser = [...data.messages].reverse().find((m) => m.role === "user")?.content ?? "";
+    const promptPreview = lastUser.slice(0, 80) + (lastUser.length > 80 ? "…" : "");
+
+    let response;
+    try {
+      response = await withRetry(() =>
+        ai.models.generateContent({
+          model: MODEL,
+          contents,
+          config: {
+            systemInstruction: system,
+            tools: [
+              {
+                functionDeclarations: [
+                  {
+                    name: "suggest_outfit_match",
+                    description: "ส่งชุดที่แนะนำให้ผู้ใช้ ประกอบด้วย itemIds จากตู้เสื้อผ้า",
+                    parameters: {
+                      type: Type.OBJECT,
+                      properties: {
+                        name: {
+                          type: Type.STRING,
+                          description: "ชื่อชุดสั้น ๆ ภาษาไทย เช่น 'ชุดคาเฟ่วันหยุด'",
+                        },
+                        itemIds: {
+                          type: Type.ARRAY,
+                          items: { type: Type.STRING },
+                          description: "id ของไอเท็มจากตู้ (2-6 ชิ้น)",
+                        },
+                        occasion: {
+                          type: Type.STRING,
+                          description: "โอกาสที่เหมาะ เช่น ทำงาน, ปาร์ตี้",
+                        },
+                        reason: {
+                          type: Type.STRING,
+                          description: "เหตุผลการจับคู่ ภาษาไทย 1-2 ประโยค",
+                        },
                       },
-                      itemIds: {
-                        type: Type.ARRAY,
-                        items: { type: Type.STRING },
-                        description: "id ของไอเท็มจากตู้ (2-6 ชิ้น)",
-                      },
-                      occasion: {
-                        type: Type.STRING,
-                        description: "โอกาสที่เหมาะ เช่น ทำงาน, ปาร์ตี้",
-                      },
-                      reason: {
-                        type: Type.STRING,
-                        description: "เหตุผลการจับคู่ ภาษาไทย 1-2 ประโยค",
-                      },
+                      required: ["name", "itemIds", "reason"],
                     },
-                    required: ["name", "itemIds", "reason"],
                   },
-                },
-              ],
+                ],
+              },
+            ],
+            toolConfig: {
+              functionCallingConfig: { mode: FunctionCallingConfigMode.AUTO },
             },
-          ],
-          toolConfig: {
-            functionCallingConfig: { mode: FunctionCallingConfigMode.AUTO },
           },
+        }),
+      );
+    } catch (err) {
+      logAiUsage({
+        fn: "matchChat",
+        model: MODEL,
+        durationMs: Date.now() - t0,
+        ok: false,
+        extras: {
+          env: data.env ?? "prod",
+          wardrobeItems: data.wardrobeIds.length,
+          promptPreview,
         },
-      }),
-    );
+        error: err,
+      });
+      throw err;
+    }
 
     const fc = response.functionCalls?.[0];
     const text = response.text ?? "";
+    const usageMeta = response.usageMetadata as UsageMetadata | undefined;
+    const usage = summarizeUsage(MODEL, usageMeta);
+
+    logAiUsage({
+      fn: "matchChat",
+      model: MODEL,
+      usage: usageMeta,
+      durationMs: Date.now() - t0,
+      ok: true,
+      extras: {
+        env: data.env ?? "prod",
+        wardrobeItems: data.wardrobeIds.length,
+        toolCalled: fc?.name ?? null,
+        replyChars: text.length,
+        promptPreview,
+      },
+    });
 
     if (fc && fc.name === "suggest_outfit_match") {
       const args = fc.args as {
@@ -133,9 +183,10 @@ ${data.wardrobe}`;
         return {
           reply: text.trim() || reason,
           suggestion: { name, itemIds, occasion, reason },
+          usage,
         };
       }
     }
 
-    return { reply: text };
+    return { reply: text, usage };
   });

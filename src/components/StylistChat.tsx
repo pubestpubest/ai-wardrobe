@@ -100,7 +100,7 @@ export function StylistChat({
       const wardrobeStr = JSON.stringify(wardrobePayload);
       const wardrobeIds = wardrobe.map((w) => w.id);
       // One-shot: send only the current user prompt, no prior history (saves tokens).
-      const { reply, suggestion } = await chat({
+      const { reply, suggestion, usage } = await chat({
         data: {
           messages: [{ role: "user", content }],
           wardrobe: wardrobeStr,
@@ -108,6 +108,13 @@ export function StylistChat({
           env: env as "dev" | "uat" | "prod" | undefined,
         },
       });
+      if (usage) {
+        console.log(
+          `%c[ai] matchChat`,
+          "color:#7c3aed;font-weight:bold",
+          `tokens in=${usage.promptTokens} out=${usage.outputTokens} total=${usage.totalTokens} · $${usage.costUsd.toFixed(6)}${suggestion ? " · suggestion" : ""}`,
+        );
+      }
       setMessages((m) => [...m, { role: "assistant", content: reply, suggestion }]);
     } catch (_err) {
       setMessages((m) => [

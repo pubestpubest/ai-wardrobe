@@ -11,6 +11,8 @@ import { StoredItem, useWardrobe } from "@/hooks/use-wardrobe";
 import { useAiEnv, type AiEnv } from "@/hooks/use-ai-env";
 import { useProfile } from "@/hooks/use-profile";
 import { EditItem } from "@/components/EditItem";
+import { WardrobeUpgradeCard } from "@/components/WardrobeUpgradeCard";
+import { useAffiliateProducts } from "@/hooks/use-affiliate-products";
 import { pickRandomOutfit } from "@/lib/daily-pick";
 
 export const Route = createFileRoute("/")({
@@ -25,6 +27,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { items, add, update, remove } = useWardrobe();
+  const { affiliateProducts } = useAffiliateProducts();
   const { profile } = useProfile();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [devOpen, setDevOpen] = useState(false);
@@ -154,6 +157,8 @@ function Index() {
             </span>
           </button>
         </div>
+
+        <WardrobeUpgradeCard items={items} products={affiliateProducts} />
 
         {/* Main grid */}
         <div className="grid lg:grid-cols-2 gap-5" ref={chatWrapRef}>

@@ -16,6 +16,7 @@ function mapRow(row: any): Match {
     id: row.id,
     name: row.name,
     itemIds: row.item_ids ?? [],
+    affiliateProductIds: row.affiliate_product_ids ?? [],
     occasion: row.occasion ?? undefined,
     note: row.note ?? undefined,
     reason: row.reason ?? undefined,
@@ -39,6 +40,7 @@ const SaveMatchInput = z.object({
   match: z.object({
     name: z.string().min(1),
     itemIds: z.array(z.string()).min(1),
+    affiliateProductIds: z.array(z.string()).optional().default([]),
     occasion: z.string().optional(),
     note: z.string().optional(),
     reason: z.string().optional(),
@@ -54,6 +56,7 @@ export const saveMatch = createServerFn({ method: "POST" })
       .insert({
         name: data.match.name,
         item_ids: data.match.itemIds,
+        affiliate_product_ids: data.match.affiliateProductIds,
         occasion: data.match.occasion ?? null,
         note: data.match.note ?? null,
         reason: data.match.reason ?? null,
@@ -70,6 +73,7 @@ const UpdateMatchInput = z.object({
   patch: z.object({
     name: z.string().min(1).optional(),
     itemIds: z.array(z.string()).optional(),
+    affiliateProductIds: z.array(z.string()).optional(),
     occasion: z.string().optional(),
     note: z.string().optional(),
     reason: z.string().optional(),
@@ -83,6 +87,8 @@ export const updateMatch = createServerFn({ method: "POST" })
     const updateData: any = {};
     if (data.patch.name !== undefined) updateData.name = data.patch.name;
     if (data.patch.itemIds !== undefined) updateData.item_ids = data.patch.itemIds;
+    if (data.patch.affiliateProductIds !== undefined)
+      updateData.affiliate_product_ids = data.patch.affiliateProductIds;
     if (data.patch.occasion !== undefined)
       updateData.occasion = data.patch.occasion.trim() ? data.patch.occasion.trim() : null;
     if (data.patch.note !== undefined)

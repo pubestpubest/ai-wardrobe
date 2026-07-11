@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Check, Sparkles, Trash2, X } from "lucide-react";
-import type { Match, WardrobeItem } from "@/lib/wardrobe";
+import type { AffiliateProduct, Match, WardrobeItem } from "@/lib/wardrobe";
 import type { MatchPatch } from "@/hooks/use-matches";
 
 interface Props {
   match: Match | null;
   items: WardrobeItem[];
+  affiliateItems: AffiliateProduct[];
   onClose: () => void;
   onSave: (id: string, patch: MatchPatch) => Promise<unknown>;
   onDelete: (id: string) => void;
@@ -14,12 +15,13 @@ interface Props {
 
 const TONES = ["bg-lilac", "bg-blush", "bg-sky"] as const;
 
-export function EditMatchModal({ match, items, onClose, onSave, onDelete }: Props) {
+export function EditMatchModal({ match, items, affiliateItems, onClose, onSave, onDelete }: Props) {
   const [name, setName] = useState("");
   const [occasion, setOccasion] = useState("");
   const [note, setNote] = useState("");
   const [reason, setReason] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedAffiliateIds, setSelectedAffiliateIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -29,6 +31,7 @@ export function EditMatchModal({ match, items, onClose, onSave, onDelete }: Prop
       setNote(match.note ?? "");
       setReason(match.reason ?? "");
       setSelectedIds(new Set(match.itemIds));
+      setSelectedAffiliateIds(new Set(match.affiliateProductIds));
       setSaving(false);
     }
   }, [match]);
@@ -43,6 +46,16 @@ export function EditMatchModal({ match, items, onClose, onSave, onDelete }: Prop
       return next;
     });
   };
+
+  const removeAffiliateItem = (id: string) => {
+    setSelectedAffiliateIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  const linkedAffiliateItems = affiliateItems.filter((p) => selectedAffiliateIds.has(p.id));
 
   const handleSave = async () => {
     if (saving) return;
@@ -59,6 +72,7 @@ export function EditMatchModal({ match, items, onClose, onSave, onDelete }: Prop
       await onSave(match.id, {
         name: name.trim(),
         itemIds: Array.from(selectedIds),
+        affiliateProductIds: Array.from(selectedAffiliateIds),
         occasion,
         note,
         reason,
@@ -154,6 +168,34 @@ export function EditMatchModal({ match, items, onClose, onSave, onDelete }: Prop
             </div>
           )}
         </div>
+
+        {linkedAffiliateItems.length > 0 && (
+          <div>
+            <span className="text-xs font-semibold text-foreground/80">ไอเท็มแนะนำจากร้านค้า</span>
+            <div className="flex gap-2 overflow-x-auto pt-2 pb-1">
+              {linkedAffiliateItems.map((p) => (
+                <div
+                  key={p.id}
+                  className="relative shrink-0 flex items-center gap-1.5 bg-muted rounded-full pl-2 pr-1 py-1"
+                >
+                  <span className="text-base">{p.emoji}</span>
+                  <div className="flex flex-col leading-tight max-w-[100px]">
+                    <span className="text-[11px] font-medium truncate">{p.name}</span>
+                    <span className="text-[10px] text-muted-foreground truncate">{p.store}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeAffiliateItem(p.id)}
+                    className="size-5 rounded-full bg-background flex items-center justify-center shrink-0"
+                    aria-label={`เอา ${p.name} ออก`}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-2 mt-1">
           <button

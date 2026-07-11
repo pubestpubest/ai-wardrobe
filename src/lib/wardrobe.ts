@@ -14,10 +14,28 @@ export type WardrobeItem = {
 
 export type MatchSource = "manual" | "ai";
 
+export type AffiliateProduct = {
+  id: string;
+  name: string;
+  category: WardrobeItem["category"];
+  color?: string;
+  style: string[];
+  formality: WardrobeItem["formality"];
+  price: number;
+  size?: string;
+  store: string;
+  platform: string;
+  emoji: string;
+  imageUrl?: string;
+  description?: string;
+  affiliateUrl: string;
+};
+
 export type Match = {
   id: string;
   name: string;
   itemIds: string[];
+  affiliateProductIds: string[];
   occasion?: string;
   note?: string;
   reason?: string;
@@ -31,6 +49,15 @@ export type MatchSuggestion = {
   occasion?: string;
   reason: string;
 };
+
+export type WardrobeMode = "empty" | "incomplete" | "complete";
+
+export function wardrobeMode(items: Pick<WardrobeItem, "category">[]): WardrobeMode {
+  if (items.length === 0) return "empty";
+  const has = (c: WardrobeItem["category"]) => items.some((i) => i.category === c);
+  const complete = ((has("top") && has("bottom")) || has("dress")) && has("shoes");
+  return complete ? "complete" : "incomplete";
+}
 
 export const CATEGORY_LABELS: Record<WardrobeItem["category"], string> = {
   top: "เสื้อ",

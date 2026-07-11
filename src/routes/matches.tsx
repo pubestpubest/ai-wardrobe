@@ -7,6 +7,7 @@ import { EditMatchModal } from "@/components/EditMatchModal";
 import { ShareMatchModal } from "@/components/ShareMatchModal";
 import { useMatches } from "@/hooks/use-matches";
 import { useWardrobe } from "@/hooks/use-wardrobe";
+import { useAffiliateProducts } from "@/hooks/use-affiliate-products";
 import type { Match } from "@/lib/wardrobe";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,8 +24,13 @@ export const Route = (createFileRoute as any)("/matches")({
 function MatchesPage() {
   const { matches, isLoading, update, remove } = useMatches();
   const { items } = useWardrobe();
+  const { affiliateProducts } = useAffiliateProducts();
   const [editing, setEditing] = useState<Match | null>(null);
   const [sharing, setSharing] = useState<Match | null>(null);
+
+  const editingAffiliateItems = editing
+    ? affiliateProducts.filter((p) => editing.affiliateProductIds.includes(p.id))
+    : [];
 
   return (
     <div className="min-h-screen pb-28 bg-[#FDFCFD]">
@@ -67,6 +73,7 @@ function MatchesPage() {
       <EditMatchModal
         match={editing}
         items={items}
+        affiliateItems={editingAffiliateItems}
         onClose={() => setEditing(null)}
         onSave={update}
         onDelete={remove}

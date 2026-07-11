@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useImperativeHandle } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Send, Sparkles, Loader2, Trash2 } from "lucide-react";
+import { Send, Sparkles, Loader2, Trash2, Mic, Square } from "lucide-react";
 import { matchChat } from "@/lib/match-chat.functions";
 import { useMatches } from "@/hooks/use-matches";
+import { useSpeechToText } from "@/hooks/use-speech-to-text";
 import { SuggestionCard } from "@/components/SuggestionCard";
 import { AffiliateItemCard } from "@/components/AffiliateItemCard";
 import { AffiliateItemModal } from "@/components/AffiliateItemModal";
@@ -83,6 +84,12 @@ export function StylistChat({
   const [loading, setLoading] = useState(false);
   const [viewingAffiliate, setViewingAffiliate] = useState<AffiliateProduct | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const {
+    isListening,
+    isSupported: micSupported,
+    start: startListening,
+    stop: stopListening,
+  } = useSpeechToText({ lang: "th-TH" });
 
   useImperativeHandle(
     ref,
@@ -151,6 +158,16 @@ export function StylistChat({
     } finally {
       setLoading(false);
     }
+  }
+
+  function toggleMic() {
+    if (isListening) {
+      stopListening();
+      return;
+    }
+    startListening((transcript) => {
+      setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
+    });
   }
 
   function clearChat() {
@@ -264,9 +281,25 @@ export function StylistChat({
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="พิมพ์โอกาส สภาพอากาศ หรือสไตล์ที่อยากได้..."
+          placeholder={isListening ? "กำลังฟัง..." : "พิมพ์โอกาส สภาพอากาศ หรือสไตล์ที่อยากได้..."}
           className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
         />
+        {micSupported && (
+          <button
+            type="button"
+            onClick={toggleMic}
+            disabled={loading}
+            aria-label={isListening ? "หยุดพูด" : "พูดเพื่อพิมพ์"}
+            title={isListening ? "หยุดพูด" : "พูดเพื่อพิมพ์"}
+            className={`size-9 rounded-full flex items-center justify-center disabled:opacity-40 transition ${
+              isListening
+                ? "bg-destructive text-destructive-foreground animate-pulse"
+                : "bg-muted text-muted-foreground hover:bg-border"
+            }`}
+          >
+            {isListening ? <Square className="size-3.5" /> : <Mic className="size-4" />}
+          </button>
+        )}
         <button
           type="submit"
           disabled={loading || !input.trim()}

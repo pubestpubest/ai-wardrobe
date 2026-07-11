@@ -63,7 +63,8 @@ export const matchChat = createServerFn({ method: "POST" })
 3) การแนะนำไอเท็มจากร้านค้าภายนอก (suggest_affiliate_item):
    - ถ้าชุดที่แนะนำในข้อ 2) ขาดไอเท็มสำคัญที่ตู้เสื้อผ้าไม่มี (เช่น ไม่มีรองเท้าที่เข้ากัน) ให้เรียก suggest_affiliate_item ใน response เดียวกันกับ suggest_outfit_match โดยระบุ category ให้ตรงกับ enum ที่กำหนด เพื่อเติมชุดให้ครบ
    - ถ้าตู้เสื้อผ้าของผู้ใช้มีไอเท็มครบชุดอยู่แล้ว คุณยังสามารถเรียก suggest_affiliate_item ได้ โดยแนะนำ "เครื่องประดับ" ที่ช่วยยกระดับลุค หรือไอเท็ม "ทางเลือก" ที่เข้ากับสไตล์และโอกาสได้ดีขึ้นในเชิงแฟชั่น (โทนสี ความเข้ากันของสไตล์ ความเหมาะกับโอกาส) — ไม่ใช่เพราะไอเท็มเดิมคุณภาพต่ำหรือราคาถูก และถ้าเป็นการแนะนำให้เปลี่ยน ให้บอกในข้อความตอบกลับอย่างเป็นธรรมชาติ (เช่น "ลองเปลี่ยนรองเท้าเป็น...เพื่อให้ลุคดูเรียบหรูขึ้น")
-   - คุณเรียก suggest_affiliate_item ได้มากกว่า 1 ครั้งใน response เดียว ถ้ามีหลายไอเท็มที่ช่วยให้ลุคดีขึ้น${modeHint}${forceHint}
+   - คุณเรียก suggest_affiliate_item ได้มากกว่า 1 ครั้งใน response เดียว ถ้ามีหลายไอเท็มที่ช่วยให้ลุคดีขึ้น
+   - สำคัญ: เมื่อผู้ใช้ขอไอเท็มเฉพาะเจาะจง (เช่น "แว่นตา", "กระเป๋า", "เข็มขัด") ให้ใส่ keyword เป็นชื่อ/ประเภทไอเท็มนั้นเสมอ โดยเฉพาะหมวด accessory ที่มีหลายชนิด เพื่อเลือกสินค้าให้ตรงกับที่ผู้ใช้ขอ${modeHint}${forceHint}
 
 ข้อกำหนดการแนะนำชุด:
 - เลือก itemIds จาก JSON ของตู้เสื้อผ้าด้านล่างเท่านั้น ห้ามคิด id ขึ้นเอง
@@ -129,6 +130,11 @@ ${data.wardrobe}`;
                         format: "enum",
                         enum: VALID_CATEGORIES,
                         description: "หมวดหมู่ของไอเท็มที่แนะนำ",
+                      },
+                      keyword: {
+                        type: Type.STRING,
+                        description:
+                          "ชื่อ/ประเภทไอเท็มที่ต้องการแบบเจาะจง เช่น 'แว่นกันแดด', 'กระเป๋าสะพาย', 'เข็มขัด' — สำคัญมากเมื่อ category กว้าง (เช่น accessory มีทั้งแว่น กระเป๋า เข็มขัด) ให้ระบุเสมอเมื่อผู้ใช้ขอไอเท็มเฉพาะ",
                       },
                       color: {
                         type: Type.STRING,
@@ -197,12 +203,17 @@ ${data.wardrobe}`;
       } else if (fc.name === "suggest_affiliate_item") {
         const args = fc.args as {
           category?: unknown;
+          keyword?: unknown;
           color?: unknown;
           style?: unknown;
           formality?: unknown;
         };
         const category = typeof args.category === "string" ? args.category : undefined;
         if (category && (VALID_CATEGORIES as string[]).includes(category)) {
+          const keyword =
+            typeof args.keyword === "string" && args.keyword.trim()
+              ? args.keyword.trim()
+              : undefined;
           const color =
             typeof args.color === "string" && args.color.trim() ? args.color.trim() : undefined;
           const formality =
@@ -215,6 +226,7 @@ ${data.wardrobe}`;
 
           const product = await findAffiliateProduct({
             category: category as WardrobeItem["category"],
+            keyword,
             color,
             style,
             formality: formality as WardrobeItem["formality"] | undefined,

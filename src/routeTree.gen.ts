@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WardrobeRouteImport } from './routes/wardrobe'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MatchesRouteImport } from './routes/matches'
+import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as IndexRouteImport } from './routes/index'
 
 const WardrobeRoute = WardrobeRouteImport.update({
@@ -29,6 +30,11 @@ const MatchesRoute = MatchesRouteImport.update({
   path: '/matches',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DiscoverRoute = DiscoverRouteImport.update({
+  id: '/discover',
+  path: '/discover',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -37,12 +43,14 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/discover': typeof DiscoverRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
   '/wardrobe': typeof WardrobeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/discover': typeof DiscoverRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
   '/wardrobe': typeof WardrobeRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/discover': typeof DiscoverRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
   '/wardrobe': typeof WardrobeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/matches' | '/profile' | '/wardrobe'
+  fullPaths: '/' | '/discover' | '/matches' | '/profile' | '/wardrobe'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/matches' | '/profile' | '/wardrobe'
-  id: '__root__' | '/' | '/matches' | '/profile' | '/wardrobe'
+  to: '/' | '/discover' | '/matches' | '/profile' | '/wardrobe'
+  id: '__root__' | '/' | '/discover' | '/matches' | '/profile' | '/wardrobe'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DiscoverRoute: typeof DiscoverRoute
   MatchesRoute: typeof MatchesRoute
   ProfileRoute: typeof ProfileRoute
   WardrobeRoute: typeof WardrobeRoute
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MatchesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/discover': {
+      id: '/discover'
+      path: '/discover'
+      fullPath: '/discover'
+      preLoaderRoute: typeof DiscoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DiscoverRoute: DiscoverRoute,
   MatchesRoute: MatchesRoute,
   ProfileRoute: ProfileRoute,
   WardrobeRoute: WardrobeRoute,

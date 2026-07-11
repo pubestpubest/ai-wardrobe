@@ -1,5 +1,5 @@
 import { Link, useRouterState, type LinkProps } from "@tanstack/react-router";
-import { Home, Shirt, Plus, Heart, User } from "lucide-react";
+import { Home, Shirt, Plus, ShoppingBag, Heart, User } from "lucide-react";
 
 export function BottomNav({ onUpload }: { onUpload?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -14,6 +14,7 @@ export function BottomNav({ onUpload }: { onUpload?: () => void }) {
       >
         <Plus className="size-4" />
       </button>
+      <NavLink to="/discover" icon={ShoppingBag} active={pathname === "/discover"} />
       <NavLink to="/matches" icon={Heart} active={pathname === "/matches"} />
       <NavLink to="/profile" icon={User} active={pathname === "/profile"} />
     </nav>

@@ -5,8 +5,11 @@ import { Send, Sparkles, Loader2, Trash2 } from "lucide-react";
 import { matchChat } from "@/lib/match-chat.functions";
 import { useMatches } from "@/hooks/use-matches";
 import { SuggestionCard } from "@/components/SuggestionCard";
+import { AffiliateItemCard } from "@/components/AffiliateItemCard";
+import { AffiliateItemModal } from "@/components/AffiliateItemModal";
+import { wardrobeMode } from "@/lib/wardrobe";
 import type { StoredItem } from "@/hooks/use-wardrobe";
-import type { MatchSuggestion } from "@/lib/wardrobe";
+import type { AffiliateProduct, MatchSuggestion } from "@/lib/wardrobe";
 import type { DailyPick } from "@/lib/daily-pick";
 
 export type StylistChatHandle = {
@@ -17,6 +20,7 @@ type Msg = {
   role: "user" | "assistant";
   content: string;
   suggestion?: MatchSuggestion;
+  affiliateItems?: AffiliateProduct[];
   dismissed?: boolean;
 };
 
@@ -28,6 +32,22 @@ const SUGGESTIONS = [
 ];
 
 const CHAT_STORAGE_KEY = "wardrobe.chat";
+const AFFILIATE_TURNS_KEY = "wardrobe.affiliateTurns";
+
+function readAffiliateTurns(): number {
+  if (typeof window === "undefined") return 0;
+  const n = Number(window.localStorage.getItem(AFFILIATE_TURNS_KEY));
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+}
+
+function writeAffiliateTurns(n: number) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(AFFILIATE_TURNS_KEY, String(n));
+  } catch {
+    // storage full / disabled — silently skip
+  }
+}
 
 const GREETING: Msg = {
   role: "assistant",
@@ -61,6 +81,7 @@ export function StylistChat({
   const [messages, setMessages] = useState<Msg[]>(() => loadMessages());
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [viewingAffiliate, setViewingAffiliate] = useState<AffiliateProduct | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useImperativeHandle(
@@ -99,16 +120,26 @@ export function StylistChat({
       const wardrobePayload = wardrobe.map(({ imageUrl: _img, ...rest }) => rest);
       const wardrobeStr = JSON.stringify(wardrobePayload);
       const wardrobeIds = wardrobe.map((w) => w.id);
+      const mode = wardrobeMode(wardrobe);
+      const turnsSinceRec = readAffiliateTurns();
+      // 3rd bare turn triggers a forced rec once the wardrobe is complete.
+      const forceAffiliate = mode === "complete" && turnsSinceRec >= 2;
       // One-shot: send only the current user prompt, no prior history (saves tokens).
-      const { reply, suggestion } = await chat({
+      const { reply, suggestion, affiliateItems } = await chat({
         data: {
           messages: [{ role: "user", content }],
           wardrobe: wardrobeStr,
           wardrobeIds,
           env: env as "dev" | "uat" | "prod" | undefined,
+          mode,
+          forceAffiliate,
         },
       });
-      setMessages((m) => [...m, { role: "assistant", content: reply, suggestion }]);
+      const gotRec = (affiliateItems?.length ?? 0) > 0;
+      // Only the "complete" mode uses the counter to force a rec; reset it in
+      // other modes so it can't grow unbounded between complete-mode sessions.
+      writeAffiliateTurns(mode !== "complete" ? 0 : gotRec ? 0 : turnsSinceRec + 1);
+      setMessages((m) => [...m, { role: "assistant", content: reply, suggestion, affiliateItems }]);
     } catch (_err) {
       setMessages((m) => [
         ...m,
@@ -124,13 +155,15 @@ export function StylistChat({
 
   function clearChat() {
     setMessages([GREETING]);
+    writeAffiliateTurns(0);
     toast.success("เคลียร์แชทแล้ว");
   }
 
-  async function saveSuggestion(s: MatchSuggestion) {
+  async function saveSuggestion(s: MatchSuggestion, affiliateItems?: AffiliateProduct[]) {
     await addMatch({
       name: s.name,
       itemIds: s.itemIds,
+      affiliateProductIds: affiliateItems?.map((p) => p.id) ?? [],
       occasion: s.occasion,
       reason: s.reason,
       source: "ai",
@@ -185,10 +218,18 @@ export function StylistChat({
               <SuggestionCard
                 suggestion={m.suggestion}
                 items={wardrobe}
-                onSave={saveSuggestion}
+                onSave={(s) => saveSuggestion(s, m.affiliateItems)}
                 onDismiss={() => dismissSuggestion(i)}
               />
             )}
+            {!m.dismissed &&
+              m.affiliateItems?.map((product) => (
+                <AffiliateItemCard
+                  key={product.id}
+                  item={product}
+                  onView={() => setViewingAffiliate(product)}
+                />
+              ))}
           </div>
         ))}
         {loading && (
@@ -234,6 +275,8 @@ export function StylistChat({
           <Send className="size-4" />
         </button>
       </form>
+
+      <AffiliateItemModal item={viewingAffiliate} onClose={() => setViewingAffiliate(null)} />
     </div>
   );
 }

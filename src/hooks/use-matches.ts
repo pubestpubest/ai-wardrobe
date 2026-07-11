@@ -9,6 +9,7 @@ export const MATCHES_QUERY_KEY = ["matches"];
 export type NewMatch = {
   name: string;
   itemIds: string[];
+  affiliateProductIds?: string[];
   occasion?: string;
   note?: string;
   reason?: string;
@@ -18,6 +19,7 @@ export type NewMatch = {
 export type MatchPatch = {
   name?: string;
   itemIds?: string[];
+  affiliateProductIds?: string[];
   occasion?: string;
   note?: string;
   reason?: string;

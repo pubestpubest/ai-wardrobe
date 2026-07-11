@@ -45,11 +45,14 @@ function keywordScore(keyword: string, text: string): number {
 }
 
 /**
- * Finds the best-matching affiliate product for a wardrobe gap. Filtered by
- * exact category, then scored: a `keyword` (the specific item the stylist has
- * in mind, e.g. "แว่นตา") dominates so a specific request beats generic
- * color/style/formality hints — critical since a coarse category like
- * "accessory" holds bags, glasses, and belts together.
+ * Finds a matching affiliate product for a wardrobe gap. Filtered by exact
+ * category, scored (a `keyword` — the specific item the stylist has in mind,
+ * e.g. "แว่นตา" — dominates so a specific request beats generic
+ * color/style/formality hints, critical since a coarse category like
+ * "accessory" holds bags, glasses, and belts together), then picked at RANDOM
+ * among every row tied for the top score — so asking for the same gap
+ * repeatedly doesn't always return the identical item, while a single strong
+ * signal (a keyword hit, or any hint no one else shares) still wins outright.
  * Returns null if no product matches the category at all.
  */
 export async function findAffiliateProduct({
@@ -68,39 +71,37 @@ export async function findAffiliateProduct({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: rows, error } = await (adminClient().from("affiliate_products" as any) as any)
     .select("*")
-    .eq("category", category)
-    .order("created_at", { ascending: true }); // stable order → deterministic ties
+    .eq("category", category);
   if (error) throw new Error(error.message);
   if (!rows || rows.length === 0) return null;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let best: any = null;
-  let bestScore = -1;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const row of rows as any[]) {
+  const scored = (rows as unknown[]).map((row) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r = row as any;
     let score = 0;
     if (keyword) {
       // Name match is the strongest signal; description is a weaker fallback.
-      score += keywordScore(keyword, row.name) * 2;
-      score += keywordScore(keyword, row.description ?? "");
+      score += keywordScore(keyword, r.name) * 2;
+      score += keywordScore(keyword, r.description ?? "");
     }
-    if (formality && row.formality === formality) score += 3;
-    if (color && typeof row.color === "string") {
-      if (row.color === color || row.color.includes(color) || color.includes(row.color)) {
+    if (formality && r.formality === formality) score += 3;
+    if (color && typeof r.color === "string") {
+      if (r.color === color || r.color.includes(color) || color.includes(r.color)) {
         score += 2;
       }
     }
-    if (style && style.length > 0 && Array.isArray(row.style)) {
-      const overlap = row.style.filter((s: string) => style.includes(s)).length;
+    if (style && style.length > 0 && Array.isArray(r.style)) {
+      const overlap = r.style.filter((s: string) => style.includes(s)).length;
       score += overlap;
     }
-    if (score > bestScore) {
-      bestScore = score;
-      best = row;
-    }
-  }
+    return { row: r, score };
+  });
 
-  return best ? mapRow(best) : null;
+  const bestScore = Math.max(...scored.map((s) => s.score));
+  const candidates = scored.filter((s) => s.score === bestScore).map((s) => s.row);
+  const pick = candidates[Math.floor(Math.random() * candidates.length)];
+
+  return pick ? mapRow(pick) : null;
 }
 
 export const getAffiliateProducts = createServerFn({ method: "POST" })

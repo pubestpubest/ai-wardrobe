@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WardrobeRouteImport } from './routes/wardrobe'
+import { Route as VirtualModelRouteImport } from './routes/virtual-model'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as DiscoverRouteImport } from './routes/discover'
@@ -18,6 +19,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const WardrobeRoute = WardrobeRouteImport.update({
   id: '/wardrobe',
   path: '/wardrobe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VirtualModelRoute = VirtualModelRouteImport.update({
+  id: '/virtual-model',
+  path: '/virtual-model',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -46,6 +52,7 @@ export interface FileRoutesByFullPath {
   '/discover': typeof DiscoverRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/virtual-model': typeof VirtualModelRoute
   '/wardrobe': typeof WardrobeRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/discover': typeof DiscoverRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/virtual-model': typeof VirtualModelRoute
   '/wardrobe': typeof WardrobeRoute
 }
 export interface FileRoutesById {
@@ -61,14 +69,34 @@ export interface FileRoutesById {
   '/discover': typeof DiscoverRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/virtual-model': typeof VirtualModelRoute
   '/wardrobe': typeof WardrobeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/discover' | '/matches' | '/profile' | '/wardrobe'
+  fullPaths:
+    | '/'
+    | '/discover'
+    | '/matches'
+    | '/profile'
+    | '/virtual-model'
+    | '/wardrobe'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/discover' | '/matches' | '/profile' | '/wardrobe'
-  id: '__root__' | '/' | '/discover' | '/matches' | '/profile' | '/wardrobe'
+  to:
+    | '/'
+    | '/discover'
+    | '/matches'
+    | '/profile'
+    | '/virtual-model'
+    | '/wardrobe'
+  id:
+    | '__root__'
+    | '/'
+    | '/discover'
+    | '/matches'
+    | '/profile'
+    | '/virtual-model'
+    | '/wardrobe'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,6 +104,7 @@ export interface RootRouteChildren {
   DiscoverRoute: typeof DiscoverRoute
   MatchesRoute: typeof MatchesRoute
   ProfileRoute: typeof ProfileRoute
+  VirtualModelRoute: typeof VirtualModelRoute
   WardrobeRoute: typeof WardrobeRoute
 }
 
@@ -86,6 +115,13 @@ declare module '@tanstack/react-router' {
       path: '/wardrobe'
       fullPath: '/wardrobe'
       preLoaderRoute: typeof WardrobeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/virtual-model': {
+      id: '/virtual-model'
+      path: '/virtual-model'
+      fullPath: '/virtual-model'
+      preLoaderRoute: typeof VirtualModelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -124,6 +160,7 @@ const rootRouteChildren: RootRouteChildren = {
   DiscoverRoute: DiscoverRoute,
   MatchesRoute: MatchesRoute,
   ProfileRoute: ProfileRoute,
+  VirtualModelRoute: VirtualModelRoute,
   WardrobeRoute: WardrobeRoute,
 }
 export const routeTree = rootRouteImport

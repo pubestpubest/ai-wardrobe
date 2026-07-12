@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Heart } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
@@ -22,6 +22,7 @@ export const Route = (createFileRoute as any)("/matches")({
 });
 
 function MatchesPage() {
+  const navigate = useNavigate();
   const { matches, isLoading, update, remove } = useMatches();
   const { items } = useWardrobe();
   const { affiliateProducts } = useAffiliateProducts();
@@ -53,6 +54,9 @@ function MatchesPage() {
                 items={items}
                 onClick={() => setEditing(m)}
                 onShare={() => setSharing(m)}
+                onTryOn={() =>
+                  navigate({ to: "/virtual-model", search: { tryOn: m.name } as never })
+                }
               />
             ))}
           </div>

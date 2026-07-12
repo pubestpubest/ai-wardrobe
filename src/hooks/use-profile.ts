@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 
 const PROFILE_KEY = "wardrobe.profile";
 
+export type Gender = "" | "male" | "female" | "other";
+
 export type Profile = {
   name: string;
   handle: string;
@@ -9,6 +11,9 @@ export type Profile = {
   bio: string;
   favoriteStyle: string;
   avatarUrl: string;
+  gender: Gender;
+  heightCm: string;
+  weightKg: string;
 };
 
 export const DEFAULT_PROFILE: Profile = {
@@ -18,6 +23,9 @@ export const DEFAULT_PROFILE: Profile = {
   bio: "ชอบสไตล์มินิมอลโทนพาสเทล ❀",
   favoriteStyle: "Minimal · Pastel",
   avatarUrl: "",
+  gender: "",
+  heightCm: "",
+  weightKg: "",
 };
 
 function loadProfile(): Profile {

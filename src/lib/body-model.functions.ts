@@ -1,0 +1,113 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
+const BUCKET = "body-model-images";
+const MOCK_AVATAR_PATH = path.join(process.cwd(), "public/images/model.png");
+
+function adminClient() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase env vars ไม่ได้ตั้งค่า");
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapRow(row: any) {
+  return {
+    id: row.id,
+    heightCm: Number(row.height_cm),
+    weightKg: Number(row.weight_kg),
+    gender: row.gender ?? "",
+    sourceImageUrl: row.source_image_url,
+    avatarImageUrl: row.avatar_image_url,
+    createdAt: row.created_at,
+  };
+}
+
+export type BodyModel = ReturnType<typeof mapRow>;
+
+function parseDataUrl(dataUrl: string): { mimeType: string; data: string } {
+  const match = dataUrl.match(/^data:(image\/(?:jpeg|png|gif|webp));base64,(.+)$/);
+  if (!match) throw new Error("รูปต้องเป็น JPEG, PNG, GIF หรือ WebP");
+  return { mimeType: match[1], data: match[2] };
+}
+
+async function uploadImage(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: any,
+  mimeType: string,
+  bytes: Buffer,
+  ext: string,
+) {
+  const path = `${crypto.randomUUID()}.${ext}`;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (admin.storage.from(BUCKET) as any).upload(path, bytes, {
+    contentType: mimeType,
+    upsert: false,
+  });
+  if (error) throw new Error(`อัปโหลดรูปไม่สำเร็จ: ${error.message}`);
+  const {
+    data: { publicUrl },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } = (admin.storage.from(BUCKET) as any).getPublicUrl(path);
+  return publicUrl as string;
+}
+
+export const getBodyModel = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({}).parse(d))
+  .handler(async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: row, error } = await (adminClient().from("body_models" as any) as any)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return row ? mapRow(row) : null;
+  });
+
+const GenderEnum = z.enum(["male", "female", "other", ""]);
+
+const GenerateBodyModelInput = z.object({
+  scanImageDataUrl: z.string().startsWith("data:image/").max(8_000_000),
+  heightCm: z.number().positive().max(300),
+  weightKg: z.number().positive().max(400),
+  gender: GenderEnum.optional(),
+});
+
+export const generateBodyModel = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => GenerateBodyModelInput.parse(d))
+  .handler(async ({ data }) => {
+    const { mimeType, data: imageData } = parseDataUrl(data.scanImageDataUrl);
+
+    // Mock model: real Gemini avatar generation is disabled for now (blocked on
+    // image-gen quota) — serve the static placeholder in public/images/model.png instead.
+    await new Promise((r) => setTimeout(r, 1500));
+
+    const admin = adminClient();
+    const sourceImageUrl = await uploadImage(
+      admin,
+      mimeType,
+      Buffer.from(imageData, "base64"),
+      "jpg",
+    );
+    const mockAvatarBytes = await readFile(MOCK_AVATAR_PATH);
+    const avatarImageUrl = await uploadImage(admin, "image/png", mockAvatarBytes, "png");
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: row, error } = await (admin.from("body_models" as any) as any)
+      .insert({
+        height_cm: data.heightCm,
+        weight_kg: data.weightKg,
+        gender: data.gender || null,
+        source_image_url: sourceImageUrl,
+        avatar_image_url: avatarImageUrl,
+      })
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    return mapRow(row);
+  });

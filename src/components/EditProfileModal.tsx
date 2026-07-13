@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Camera, Check, Trash2, X } from "lucide-react";
-import type { Profile } from "@/hooks/use-profile";
+import type { Gender, Profile } from "@/hooks/use-profile";
 
 interface Props {
   open: boolean;
@@ -48,6 +48,9 @@ export function EditProfileModal({ open, profile, onClose, onSave }: Props) {
       bio: draft.bio.trim(),
       favoriteStyle: draft.favoriteStyle.trim(),
       avatarUrl: draft.avatarUrl,
+      gender: draft.gender,
+      heightCm: draft.heightCm.trim(),
+      weightKg: draft.weightKg.trim(),
     });
     toast.success("บันทึกโปรไฟล์แล้ว");
     onClose();
@@ -154,6 +157,35 @@ export function EditProfileModal({ open, profile, onClose, onSave }: Props) {
             placeholder="เช่น Minimal · Pastel"
           />
 
+          <p className="text-xs font-semibold text-muted-foreground mt-1">ข้อมูลพื้นฐาน</p>
+          <Select
+            label="เพศ"
+            value={draft.gender}
+            onChange={(v) => setDraft({ ...draft, gender: v as Gender })}
+            options={[
+              { value: "", label: "ไม่ระบุ" },
+              { value: "female", label: "หญิง" },
+              { value: "male", label: "ชาย" },
+              { value: "other", label: "อื่น ๆ" },
+            ]}
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <Field
+              label="ส่วนสูง (ซม.)"
+              value={draft.heightCm}
+              onChange={(v) => setDraft({ ...draft, heightCm: v })}
+              placeholder="เช่น 165"
+              type="number"
+            />
+            <Field
+              label="น้ำหนัก (กก.)"
+              value={draft.weightKg}
+              onChange={(v) => setDraft({ ...draft, weightKg: v })}
+              placeholder="เช่น 55"
+              type="number"
+            />
+          </div>
+
           <button
             onClick={handleSave}
             className="bg-primary text-primary-foreground rounded-full py-3 text-sm font-medium flex items-center justify-center gap-2 mt-2"
@@ -171,21 +203,53 @@ function Field({
   value,
   onChange,
   placeholder,
+  type = "text",
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  type?: string;
 }) {
   return (
     <label className="flex flex-col gap-1">
       <span className="text-xs text-muted-foreground">{label}</span>
       <input
+        type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="bg-muted rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-primary"
       />
+    </label>
+  );
+}
+
+function Select({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="bg-muted rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-primary"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }

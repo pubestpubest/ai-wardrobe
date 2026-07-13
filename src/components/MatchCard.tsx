@@ -1,4 +1,4 @@
-import { Share2, Sparkles } from "lucide-react";
+import { Share2, Sparkles, Wand2 } from "lucide-react";
 import type { Match, WardrobeItem } from "@/lib/wardrobe";
 
 const TONES = ["bg-lilac", "bg-blush", "bg-sky"] as const;
@@ -8,9 +8,10 @@ interface Props {
   items: WardrobeItem[];
   onClick?: () => void;
   onShare?: () => void;
+  onTryOn?: () => void;
 }
 
-export function MatchCard({ match, items, onClick, onShare }: Props) {
+export function MatchCard({ match, items, onClick, onShare, onTryOn }: Props) {
   const byId = new Map(items.map((i) => [i.id, i]));
   const resolved = match.itemIds.map((id) => byId.get(id)).filter(Boolean) as WardrobeItem[];
 
@@ -60,15 +61,26 @@ export function MatchCard({ match, items, onClick, onShare }: Props) {
         </div>
       </button>
 
-      {onShare && (
-        <div className="px-4 pb-4">
-          <button
-            type="button"
-            onClick={onShare}
-            className="w-full h-11 rounded-full bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition"
-          >
-            <Share2 className="size-4" /> แชร์ไปสตอรี่
-          </button>
+      {(onShare || onTryOn) && (
+        <div className="px-4 pb-4 flex gap-2">
+          {onTryOn && (
+            <button
+              type="button"
+              onClick={onTryOn}
+              className="flex-1 h-11 rounded-full bg-lilac text-lilac-foreground text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition"
+            >
+              <Wand2 className="size-4" /> Virtual Try-On
+            </button>
+          )}
+          {onShare && (
+            <button
+              type="button"
+              onClick={onShare}
+              className="flex-1 h-11 rounded-full bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition"
+            >
+              <Share2 className="size-4" /> แชร์ไปสตอรี่
+            </button>
+          )}
         </div>
       )}
     </div>

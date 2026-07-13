@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -11,12 +11,14 @@ import {
   Palette,
   LogOut,
   Pencil,
+  ScanFace,
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { useWardrobe } from "@/hooks/use-wardrobe";
 import { useMatches } from "@/hooks/use-matches";
 import { useProfile } from "@/hooks/use-profile";
+import { useBodyModel } from "@/hooks/use-body-model";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const Route = (createFileRoute as any)("/profile")({
@@ -28,10 +30,17 @@ export const Route = (createFileRoute as any)("/profile")({
 
 const JOINED_LABEL = "เข้าร่วมเมื่อ พฤษภาคม 2026";
 
+const GENDER_LABEL: Record<string, string> = {
+  male: "ชาย",
+  female: "หญิง",
+  other: "อื่น ๆ",
+};
+
 function ProfilePage() {
   const { items } = useWardrobe();
   const { matches } = useMatches();
   const { profile, update } = useProfile();
+  const { bodyModel } = useBodyModel();
   const [editOpen, setEditOpen] = useState(false);
 
   const aiMatchCount = useMemo(() => matches.filter((m) => m.source === "ai").length, [matches]);
@@ -79,6 +88,31 @@ function ProfilePage() {
           </div>
         )}
 
+        {/* Virtual Model */}
+        <div className="rounded-3xl p-4 mb-5 flex items-center gap-3 border-2 border-lilac/60 bg-gradient-to-r from-lilac/10 via-blush/10 to-sky/10">
+          <div className="size-12 rounded-2xl bg-white shadow-sm flex items-center justify-center shrink-0 overflow-hidden">
+            {bodyModel?.avatarImageUrl ? (
+              <img
+                src={bodyModel.avatarImageUrl}
+                alt="Virtual model"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <ScanFace className="size-5 text-lilac-foreground" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold">Virtual Model ของคุณ</p>
+            <p className="text-xs text-muted-foreground truncate">สร้างโมเดล 3D จากตัวคุณเอง</p>
+          </div>
+          <Link
+            to="/virtual-model"
+            className="shrink-0 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition"
+          >
+            {bodyModel ? "ดูโมเดล" : "สร้างโมเดล"}
+          </Link>
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 mb-6">
           <StatCard
@@ -109,6 +143,21 @@ function ProfilePage() {
               <p className="text-sm font-semibold mt-0.5">{profile.favoriteStyle || "—"}</p>
             </div>
             <span className="text-[11px] text-muted-foreground">{JOINED_LABEL}</span>
+          </div>
+        </Section>
+
+        {/* Basic info */}
+        <Section title="ข้อมูลพื้นฐาน">
+          <div className="grid grid-cols-3 gap-3">
+            <BasicInfoCard label="เพศ" value={GENDER_LABEL[profile.gender] ?? "—"} />
+            <BasicInfoCard
+              label="ส่วนสูง"
+              value={profile.heightCm ? `${profile.heightCm} ซม.` : "—"}
+            />
+            <BasicInfoCard
+              label="น้ำหนัก"
+              value={profile.weightKg ? `${profile.weightKg} กก.` : "—"}
+            />
           </div>
         </Section>
 
@@ -157,6 +206,15 @@ function StatCard({
     <div className="bg-white rounded-2xl border border-border/40 shadow-sm px-3 py-4 flex flex-col items-center gap-1.5">
       <div className={`size-9 rounded-full ${tone} flex items-center justify-center`}>{icon}</div>
       <p className="text-xl font-bold leading-none">{value}</p>
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function BasicInfoCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-white rounded-2xl border border-border/40 shadow-sm px-3 py-4 flex flex-col items-center gap-1">
+      <p className="text-sm font-bold leading-none">{value}</p>
       <p className="text-[11px] text-muted-foreground">{label}</p>
     </div>
   );

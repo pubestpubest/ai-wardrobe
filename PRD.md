@@ -295,3 +295,40 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 | ต้นทุน AI API สูง                         | Medium | Cache + จำกัด regenerate/วัน          |
 | ผู้ใช้ขี้เกียจอัปโหลดเสื้อผ้า             | High   | Bulk upload, gamification             |
 | Privacy concerns (รูปเสื้อผ้าส่วนตัว)     | Medium | E2E encryption + clear privacy policy |
+
+---
+
+## 11. Implementation Status (as of 2026-07-12)
+
+> สรุปสิ่งที่ Build ไปแล้วจริงในโค้ด เทียบกับแผนใน PRD นี้ — อ้างอิงจาก commit history และโค้ดปัจจุบันบน branch `feat/voice-to-input`
+
+### 11.1 สร้างด้วย Stack จริง (ต่างจาก 5.1 ที่เสนอไว้)
+
+แอปปัจจุบันเป็น **เว็บแอป (TanStack Start / React SSR)** ไม่ใช่ Mobile App ตามที่ระบุใน 5.1, ใช้ Supabase (Postgres + Storage) แทน custom REST API + S3, และใช้ **Gemini 2.5 Flash** (ผ่าน `AGENT_PLATFORM_API_KEY`) แทน Claude Vision/Claude API สำหรับทั้ง image tagging และ outfit suggestion โหมดผู้ใช้ปัจจุบันเป็น **guest/session-based** (ยังไม่มีระบบ auth เต็มรูปแบบ — มี middleware เตรียมไว้แต่ยังไม่ผูกกับ route)
+
+### 11.2 Feature Status เทียบกับ Section 3
+
+| Feature (PRD)                              | สถานะ         | รายละเอียด                                                                                                                                                              |
+| ------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 3.1 AI Stylist                              | ✅ ทำแล้ว      | `stylistChat` (`stylist.functions.ts`) ส่ง wardrobe JSON + ประวัติแชทให้ Gemini แล้วตอบเป็นภาษาไทย ผ่านหน้า chat (`StylistChat.tsx`) รองรับ **พิมพ์ข้อความ + พูดสั่งด้วยเสียง (voice input)** |
+| 3.2 AI Photo Upload & Auto-tag              | ✅ ทำแล้ว      | `analyzeClothing` (`analyze.functions.ts`) ใช้ Gemini function calling บังคับเรียก `save_clothing_item` เพื่อกรอกหมวดหมู่/สี/สไตล์ ผ่าน `UploadItem.tsx` — ยังไม่มี background removal อัตโนมัติตามที่ระบุใน 3.2 |
+| 3.3 Wardrobe Management                     | ✅ ทำแล้ว (บางส่วน) | ดู/แก้ไข/ลบไอเท็มได้ (`items.functions.ts`, `WardrobeCard.tsx`, `EditItem.tsx`) — ยังไม่มี filter ตามหมวดหมู่/สี/สไตล์, search bar, สถิติการใส่ หรือ mark as donated/to-sell |
+| 3.4 Outfit History & Calendar               | ⚠️ บางส่วน     | มีการ **บันทึกชุด (Save Match)** พร้อมแก้ไข/ลบ/แชร์ (`SaveMatchModal`, `EditMatchModal`, `ShareMatchModal`, `matches.functions.ts`, migration `005_matches.sql`) — ยังไม่มีปฏิทินย้อนหลังแบบเต็มรูปแบบหรือระบบป้องกันใส่ชุดซ้ำ |
+| 3.5 Smart Notifications                     | ❌ ยังไม่ทำ    | ยังไม่มีการแจ้งเตือนตอนเช้าหรือแจ้งเตือนเสื้อผ้าที่ไม่ได้ใส่นาน                                                                                                        |
+
+### 11.3 Feature ที่ Build เพิ่มนอกเหนือแผนเดิมใน PRD
+
+| Feature                         | รายละเอียด                                                                                                                                                   |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Profile & Daily Outfit**       | หน้า Profile (`profile.tsx`, `EditProfileModal.tsx`) เก็บ style preference และแสดงคำแนะนำชุดประจำวัน ผูกกับหน้า Home                                          |
+| **Affiliate Shopping (Discover)** | หน้า "ช้อปปิ้ง" (`discover.tsx`) แนะนำไอเท็มจากร้านค้าพาร์ทเนอร์ ~50 ชิ้นในแคตตาล็อก (`affiliate.functions.ts`, migrations `006`–`008`) โดย AI Stylist จะ match ไอเท็มที่ตู้เสื้อผ้าขาดให้อัตโนมัติเมื่อผู้ใช้ถามหา — ฟีเจอร์นี้ถือเป็นการเริ่ม "แหย่" เข้าใกล้ E-commerce integration ซึ่งเดิมระบุเป็น **Non-Goal (1.4)** ควรทบทวนขอบเขตร่วมกับทีม |
+| **Virtual Try-On / Body Model**  | สแกนรูปร่าง (`BodyScanCamera.tsx`, `body-model.functions.ts`, migration `009_body_model.sql`) แล้วสร้างอวตารลองชุดที่บันทึกไว้ (`virtual-model.tsx`, `try-on.functions.ts`) — ปัจจุบันเป็น **mock** (ใช้รูปสำเร็จรูปจาก `public/images` แทนการ generate จริง เนื่องจากติด quota ของ image-gen model) ฟีเจอร์นี้ใกล้เคียงกับ AR ลองเสื้อที่ระบุเป็น **Non-Goal (1.4)** เช่นกัน — ควรทบทวนขอบเขตร่วมกัน |
+| **Voice Input**                  | พูดสั่ง AI Stylist ได้ผ่าน Web Speech API (`use-speech-to-text.ts`, ปุ่มไมค์ใน `StylistChat.tsx`) รองรับภาษาไทย (`th-TH`)                                       |
+| **DevTools**                     | `DevTools.tsx` — สลับ AI model ระหว่างพัฒนาได้ (ตั้งค่าผ่าน environment ตาม `bf4f600 Refactor AI model handling`)                                              |
+
+### 11.4 Gap เทียบกับ Roadmap (Section 8)
+
+- **Iteration 1–3** (Foundation, AI Auto-tag, AI Stylist) เสร็จสมบูรณ์แล้ว แม้ใช้ Gemini แทน Claude Vision/Claude API
+- **Iteration 4** (UI Polish ด้วย color palette `#d2ccfc`/`#fccce2`/`#cce2fc` + card-based layout) — ยังไม่ได้ตรวจสอบว่าตรงกับ 4.2 เป๊ะหรือไม่ ควร verify กับหน้าจอจริง
+- **Iteration 5** (Outfit history calendar, Smart notifications) — ยังไม่เริ่ม ยกเว้นการบันทึก/แชร์ match แบบพื้นฐาน
+- Background removal (3.2), filter/search/สถิติใน Wardrobe (3.3), และ regenerate limit ≥ 5 ครั้ง/วัน (3.1) — ยังไม่ได้ implement หรือยังไม่ได้ยืนยันว่ามี

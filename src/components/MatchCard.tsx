@@ -1,4 +1,4 @@
-import { Share2, Sparkles, Wand2 } from "lucide-react";
+import { CalendarCheck, Share2, Sparkles, Wand2 } from "lucide-react";
 import type { Match, WardrobeItem } from "@/lib/wardrobe";
 
 const TONES = ["bg-lilac", "bg-blush", "bg-sky"] as const;
@@ -9,9 +9,10 @@ interface Props {
   onClick?: () => void;
   onShare?: () => void;
   onTryOn?: () => void;
+  onWearToday?: (match: Match) => void;
 }
 
-export function MatchCard({ match, items, onClick, onShare, onTryOn }: Props) {
+export function MatchCard({ match, items, onClick, onShare, onTryOn, onWearToday }: Props) {
   const byId = new Map(items.map((i) => [i.id, i]));
   const resolved = match.itemIds.map((id) => byId.get(id)).filter(Boolean) as WardrobeItem[];
 
@@ -61,8 +62,19 @@ export function MatchCard({ match, items, onClick, onShare, onTryOn }: Props) {
         </div>
       </button>
 
-      {(onShare || onTryOn) && (
+      {(onShare || onTryOn || onWearToday) && (
         <div className="px-4 pb-4 flex gap-2">
+          {onWearToday && (
+            <button
+              type="button"
+              onClick={() => onWearToday(match)}
+              title="ใส่ชุดนี้วันนี้"
+              aria-label="ใส่ชุดนี้วันนี้"
+              className="size-11 shrink-0 rounded-full bg-blush text-blush-foreground flex items-center justify-center hover:opacity-90 transition"
+            >
+              <CalendarCheck className="size-4" />
+            </button>
+          )}
           {onTryOn && (
             <button
               type="button"

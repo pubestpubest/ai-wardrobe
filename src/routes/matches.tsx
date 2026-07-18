@@ -5,9 +5,11 @@ import { BottomNav } from "@/components/BottomNav";
 import { MatchCard } from "@/components/MatchCard";
 import { EditMatchModal } from "@/components/EditMatchModal";
 import { ShareMatchModal } from "@/components/ShareMatchModal";
+import { OutfitCalendar } from "@/components/OutfitCalendar";
 import { useMatches } from "@/hooks/use-matches";
 import { useWardrobe } from "@/hooks/use-wardrobe";
 import { useAffiliateProducts } from "@/hooks/use-affiliate-products";
+import { useOutfitWears } from "@/hooks/use-outfit-wears";
 import type { Match } from "@/lib/wardrobe";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,8 +28,10 @@ function MatchesPage() {
   const { matches, isLoading, update, remove } = useMatches();
   const { items } = useWardrobe();
   const { affiliateProducts } = useAffiliateProducts();
+  const { wears, logWear } = useOutfitWears();
   const [editing, setEditing] = useState<Match | null>(null);
   const [sharing, setSharing] = useState<Match | null>(null);
+  const [view, setView] = useState<"list" | "calendar">("list");
 
   const editingAffiliateItems = editing
     ? affiliateProducts.filter((p) => editing.affiliateProductIds.includes(p.id))
@@ -43,7 +47,30 @@ function MatchesPage() {
           </div>
         </header>
 
-        {isLoading ? (
+        <div className="flex bg-muted rounded-full p-1 mb-6 w-fit">
+          <button
+            type="button"
+            onClick={() => setView("list")}
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition ${
+              view === "list" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground"
+            }`}
+          >
+            แมตช์
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("calendar")}
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition ${
+              view === "calendar" ? "bg-white shadow-sm text-foreground" : "text-muted-foreground"
+            }`}
+          >
+            ปฏิทิน
+          </button>
+        </div>
+
+        {view === "calendar" ? (
+          <OutfitCalendar wears={wears} matches={matches} />
+        ) : isLoading ? (
           <div className="py-24 text-center text-sm text-muted-foreground">กำลังโหลด...</div>
         ) : matches.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -57,6 +84,7 @@ function MatchesPage() {
                 onTryOn={() =>
                   navigate({ to: "/virtual-model", search: { tryOn: m.name } as never })
                 }
+                onWearToday={(match) => logWear({ matchId: match.id })}
               />
             ))}
           </div>

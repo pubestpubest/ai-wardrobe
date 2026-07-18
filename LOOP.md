@@ -19,16 +19,16 @@ it runs when invoked, drains the top of the queue, and stops.
 
 ## The pieces
 
-| Piece      | Implementation                                                     | Model              |
-| ---------- | ------------------------------------------------------------------ | ------------------ |
-| Queue      | `PRD.md` §12 — backlog IDs `B01`–`B09`, tier order first           | —                  |
-| Memory     | PRD §11/§12 status + `loops/` docs + Loop Log below (the index)    | —                  |
-| Automation | The skill, invoked manually per loop                                | —                  |
-| Plan check | `/grilling` in the main session — attended, pre-build               | session (Opus+)    |
-| Maker      | Implementer subagent — builds the item                              | **Sonnet**         |
-| Checker    | `/scrutinize` via fresh subagent, post-build                        | **Opus**           |
+| Piece      | Implementation                                                  | Model           |
+| ---------- | --------------------------------------------------------------- | --------------- |
+| Queue      | `PRD.md` §12 — backlog IDs `B01`–`B09`, tier order first        | —               |
+| Memory     | PRD §11/§12 status + `loops/` docs + Loop Log below (the index) | —               |
+| Automation | The skill, invoked manually per loop                            | —               |
+| Plan check | `/grilling` in the main session — attended, pre-build           | session (Opus+) |
+| Maker      | Implementer subagent — builds the item                          | **Sonnet**      |
+| Checker    | `/scrutinize` via fresh subagent, post-build                    | **Opus**        |
 
-Maker and checker are *different models* on purpose — different models miss
+Maker and checker are _different models_ on purpose — different models miss
 different things. The grill can't be a subagent (subagents can't converse
 with the human), so it runs in the main session; keep the session on Opus
 or better.
@@ -52,7 +52,7 @@ or better.
    - `bun run build` succeeds
    - migration applies cleanly on `bun run dev` cold start
    - feature reachable and renders in the app
-   Two failed fix attempts on the same cause → mark ⛔, log, stop, report.
+     Two failed fix attempts on the same cause → mark ⛔, log, stop, report.
 6. **Scrutinize** — a fresh **Opus** subagent runs the `scrutinize` skill
    on the change. The maker never grades itself — and here the checker
    isn't even the same model. Top things to attack: `session_id` scoping
@@ -67,7 +67,7 @@ or better.
    - **Clean (or minors fixed)** → mark ✅ in PRD §12, update §11.2, append
      one line to the Loop Log, commit on `feat/<id>-<slug>`.
      **Do not push, do not open a PR** — the human reviews and pushes.
-   Next invocation starts the next backlog ID at L1.
+     Next invocation starts the next backlog ID at L1.
 
 ## Loop doc template
 
@@ -140,6 +140,7 @@ bug, not before.
 
 <!-- newest first: date | <ID>-L<n> | ✅ done / 🔁 re-loop / ⛔ blocked | one-line note -->
 
+- 2026-07-19 | B05-L1 | ✅ done | Outfit History Calendar — new outfit_wears wear-log + "ใส่ชุดนี้วันนี้" + monthly calendar (toggle on Matches); scrutinize fix-then-ship: UTC→local date blocker + FK cascade→set null fixed
 - 2026-07-19 | B04-L1 | ⏭️ deferred | Profile body measurements — grilled → deferred to B08 (YAGNI; try-on is the only consumer, last + mocked)
 - 2026-07-19 | B07c-L1 | ✅ done | Scope matches + body-model + privatize scan bucket — RLS auth.uid()=user_id, signed URLs, getBodyModel global-latest leak fixed; gate caught a missed bucket consumer (try-on) fixed; scrutinize ship (major = pre-existing storage-write follow-up)
 - 2026-07-19 | B07b-L1 | ✅ done | Scope items to user_id — RLS auth.uid()=user_id, user-scoped client, claimOrphanItems; scrutinize caught + fixed a removeItem IDOR (client-supplied imageUrl); claim land-grab mitigated (first-run-only) + gating flagged

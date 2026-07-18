@@ -53,6 +53,12 @@ export type Match = {
   createdAt: string;
 };
 
+export type OutfitWear = {
+  id: string;
+  matchId: string;
+  wornDate: string;
+};
+
 export type MatchSuggestion = {
   name: string;
   itemIds: string[];

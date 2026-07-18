@@ -24,8 +24,8 @@ invocation — never roll into the next ID after finishing one.
 
 ## Steps (operational notes on LOOP.md "One loop")
 
-1. **Pick** — parse PRD.md §12. Take the topmost item not marked ✅ / ⛔,
-   skipping the "ไม่รวมในลำดับ" group. If an argument names a backlog ID,
+1. **Pick** — parse PRD.md §12. Take the topmost item not marked ✅ / ⛔ / ⏭️
+   (deferred), skipping the "ไม่รวมในลำดับ" group. If an argument names a backlog ID,
    use that instead (refuse if it's already ✅). Loop number `n` = 1 + the
    highest existing `loops/<ID>-L*.md`, so numbering survives across
    sessions. Everything drained → report and stop.

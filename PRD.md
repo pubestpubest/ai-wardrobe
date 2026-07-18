@@ -430,7 +430,7 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 
 ### Tier 2 — ต่อยอดจาก Tier 1 ตรง ๆ, ยาก medium-low
 
-4. **B04 — Profile optional body measurements** (3.9) — ต่อยอดฟอร์ม/schema เดียวกับข้อ 3
+4. **B04 — Profile optional body measurements** ⏭️ (3.9) — **deferred → รวมเข้า B08** (grill 2026-07-19: YAGNI — Virtual Try-On เป็น consumer เดียว, อยู่ท้ายสุด + ยัง mock; height/weight มีอยู่แล้ว) เพิ่มฟิลด์วัดสัดส่วนตอน B08 กำหนดว่าต้องใช้อะไรจริง (loop `B04-L1`)
 5. **B05 — Outfit History Calendar view** (3.4) — ต่อยอดข้อมูล match ที่มีอยู่แล้ว (`005_matches.sql`) ไม่ต้อง schema ใหม่มาก แค่ UI ปฏิทิน + query ตามช่วงวันที่
 
 ### Tier 3 — Medium (ได้ประโยชน์จาก Tier 1 แต่ไม่ blocked)
@@ -447,7 +447,7 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 
 ### Tier 5 — Last (ยากสุดตามที่ตกลง)
 
-8. **B08 — Virtual Try-On** (3.10) — ต้องแก้ quota/เปลี่ยน image-gen model ก่อนถึงจะ generate จริงได้ (ปัจจุบัน mock) ต่อยอดจาก body measurements (Tier 2) และควรอยู่หลัง Authentication (Tier 4)
+8. **B08 — Virtual Try-On** (3.10) — ต้องแก้ quota/เปลี่ยน image-gen model ก่อนถึงจะ generate จริงได้ (ปัจจุบัน mock) และควรอยู่หลัง Authentication (Tier 4). **รวมงาน B04 (optional body measurements) เข้ามาด้วย** — เพิ่มฟิลด์วัดสัดส่วนบน `profiles` (DB-backed จาก B07a) ตามที่ try-on ต้องใช้จริง
 
 ### ไม่รวมในลำดับ (รอการตัดสินใจ)
 

@@ -393,6 +393,7 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 | 3.4 Outfit History & Calendar               | ⚠️ บางส่วน     | มีการ **บันทึกชุด (Save Match)** พร้อมแก้ไข/ลบ/แชร์ (`SaveMatchModal`, `EditMatchModal`, `ShareMatchModal`, `matches.functions.ts`, migration `005_matches.sql`) — ยังไม่มีปฏิทินย้อนหลังแบบเต็มรูปแบบหรือระบบป้องกันใส่ชุดซ้ำ |
 | 3.5 In-App Weather Status                   | ✅ ทำแล้ว      | การ์ดสภาพอากาศในหน้า Home — OpenWeatherMap (`getWeather` server fn, คีย์ `OPENWEATHER_API_KEY` server-side, `lang=th`) + browser geolocation (fallback กรุงเทพฯ) + hint การแต่งตัวแบบ deterministic ไม่ใช้ push/notification (`weather.functions.ts`, `use-weather.ts`, `WeatherCard.tsx`) — loop `B02-L1`. เดิมคือ Smart Notifications ถูกเปลี่ยนสโคปตาม 3.5 |
 | 3.6 Item Tags                               | ✅ ทำแล้ว      | predefined occasion tags (ทำงาน/ลำลอง/ออกเดท/งานทางการ/เที่ยว/ออกกำลังกาย) เลือกแบบ multi-select chips ใน Add/Edit Item + ค้นหาได้ในหน้า Wardrobe (`010_item_tags.sql`, `ITEM_TAGS` ใน `wardrobe.ts`) — loop `B01-L1` |
+| 3.9 Profile — required fields               | ✅ ทำแล้ว (บางส่วน) | บังคับ name/birthdate/gender ผ่าน blocking onboarding gate (`ProfileGate.tsx` ใน `__root`) + `isProfileComplete` + validation ใน `EditProfileModal`; โปรไฟล์ยังเก็บใน localStorage (`use-profile.ts` บน `useSyncExternalStore`) — body measurements (optional) เป็น B04, ย้ายเข้า DB/บัญชีจริงเป็น B07 — loop `B03-L1` |
 
 ### 11.3 Feature ที่ Build เพิ่มนอกเหนือแผนเดิมใน PRD
 
@@ -423,7 +424,7 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 
 1. **B01 — Item Tags** ✅ (3.6) — predefined occasion tags + multi-select chips ใน Add/Edit + ค้นหาใน Wardrobe (loop `B01-L1`, migration `010`)
 2. **B02 — In-App Weather Status** ✅ (3.5) — OpenWeatherMap (คีย์ server-side) + geolocation → การ์ดสภาพอากาศในหน้า Home พร้อม hint การแต่งตัว (loop `B02-L1`, ไม่มี migration)
-3. **B03 — Profile required fields** — name/birthdate/gender (3.9) — เพิ่ม column + form validation
+3. **B03 — Profile required fields** ✅ — name/birthdate/gender (3.9) — blocking onboarding gate ใน `__root` + form validation, โปรไฟล์ยังอยู่ localStorage (loop `B03-L1`, ไม่มี migration)
 
 ### Tier 2 — ต่อยอดจาก Tier 1 ตรง ๆ, ยาก medium-low
 

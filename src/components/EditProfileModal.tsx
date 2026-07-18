@@ -36,9 +36,23 @@ export function EditProfileModal({ open, profile, onClose, onSave }: Props) {
 
   if (!open) return null;
 
+  const today = new Date().toISOString().split("T")[0];
+
   const handleSave = () => {
     if (!draft.name.trim()) {
       toast.error("กรุณาตั้งชื่อ");
+      return;
+    }
+    if (!draft.gender) {
+      toast.error("กรุณาเลือกเพศ");
+      return;
+    }
+    if (!draft.birthdate) {
+      toast.error("กรุณาระบุวันเกิด");
+      return;
+    }
+    if (draft.birthdate > today) {
+      toast.error("วันเกิดไม่ถูกต้อง");
       return;
     }
     onSave({
@@ -49,6 +63,7 @@ export function EditProfileModal({ open, profile, onClose, onSave }: Props) {
       favoriteStyle: draft.favoriteStyle.trim(),
       avatarUrl: draft.avatarUrl,
       gender: draft.gender,
+      birthdate: draft.birthdate,
       heightCm: draft.heightCm.trim(),
       weightKg: draft.weightKg.trim(),
     });
@@ -158,6 +173,16 @@ export function EditProfileModal({ open, profile, onClose, onSave }: Props) {
           />
 
           <p className="text-xs font-semibold text-muted-foreground mt-1">ข้อมูลพื้นฐาน</p>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">วันเกิด</span>
+            <input
+              type="date"
+              max={today}
+              value={draft.birthdate}
+              onChange={(e) => setDraft({ ...draft, birthdate: e.target.value })}
+              className="bg-muted rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-primary"
+            />
+          </label>
           <Select
             label="เพศ"
             value={draft.gender}

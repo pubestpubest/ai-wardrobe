@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
+import { ProfileGate } from "@/components/ProfileGate";
 
 import "../styles.css";
 
@@ -107,6 +108,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
+      <ProfileGate />
       <Toaster richColors position="top-center" />
     </QueryClientProvider>
   );

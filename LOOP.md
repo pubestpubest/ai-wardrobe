@@ -139,5 +139,6 @@ bug, not before.
 
 <!-- newest first: date | <ID>-L<n> | ✅ done / 🔁 re-loop / ⛔ blocked | one-line note -->
 
+- 2026-07-19 | B03-L1 | ✅ done | Profile required fields — blocking onboarding gate (name/birthdate/gender), localStorage; scrutinize ship, 2 minors hardened (default-name AC no-op, stale-greeting → useSyncExternalStore)
 - 2026-07-19 | B02-L1 | ✅ done | In-App Weather Status — OWM (server-side key) + geolocation → Home card + hint; scrutinize ship, 2 nits hardened in place
 - 2026-07-19 | B01-L1 | ✅ done | Item Tags — predefined occasion tags (multi-select chips + search); major finding was a stale PRD wording, reconciled in place

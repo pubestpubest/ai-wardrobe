@@ -70,7 +70,8 @@ function WardrobePage() {
       const matchesSearch =
         item.name.toLowerCase().includes(search.toLowerCase()) ||
         item.color.toLowerCase().includes(search.toLowerCase()) ||
-        item.style.some((s) => s.toLowerCase().includes(search.toLowerCase()));
+        item.style.some((s) => s.toLowerCase().includes(search.toLowerCase())) ||
+        (item.tags ?? []).some((t) => t.toLowerCase().includes(search.toLowerCase()));
       const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });

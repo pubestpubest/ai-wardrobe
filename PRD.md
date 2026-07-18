@@ -1,7 +1,7 @@
 # PRD — Digital Wardrobe with AI Stylist
 
-**Version:** 1.0
-**Date:** 2026-05-16
+**Version:** 1.1
+**Date:** 2026-07-18
 **Owner:** pubestpubest@gmail.com
 **Status:** Draft
 
@@ -79,7 +79,7 @@ Digital Wardrobe เป็นแอปมือถือที่ให้ผู
 **User Flow:**
 
 1. กดปุ่ม ➕ → เลือก "ถ่ายรูป" หรือ "เลือกจากแกลเลอรี"
-2. ระบบลบพื้นหลังอัตโนมัติ (background removal)
+2. ระบบลบพื้นหลังอัตโนมัติ (background removal) — **สถานะ: รอตัดสินใจ (TBD)** ดู Open Questions ข้อ 9.5
 3. AI วิเคราะห์ → กรอกฟิลด์เบื้องต้น:
    - **หมวดหมู่** (เสื้อยืด / กางเกงยีนส์ / เดรส / รองเท้า ฯลฯ)
    - **สี** (สีหลัก + สีรอง พร้อม hex code)
@@ -103,7 +103,7 @@ Digital Wardrobe เป็นแอปมือถือที่ให้ผู
 **Sub-features:**
 
 - กรองตามหมวดหมู่ / สี / สไตล์
-- ค้นหา (search bar)
+- ค้นหา (search bar) — ค้นจากหมวดหมู่/สี/สไตล์ และ tag โอกาสการใช้งาน (predefined, ดู 3.6 Item Tags)
 - สถิติ: เสื้อผ้าทั้งหมด, ใช้บ่อยที่สุด, ไม่ได้ใส่นานสุด
 - Mark as "donated" / "to-sell"
 
@@ -115,14 +115,90 @@ Digital Wardrobe เป็นแอปมือถือที่ให้ผู
 
 - กด "ใส่วันนี้" จากชุดที่ AI แนะนำ
 - ดูชุดที่เคยใส่ในวันที่ผ่านมา
+- **Calendar view รายเดือน** — เห็นชุดที่ใส่แต่ละวันแบบปฏิทิน (ยืนยันความต้องการ 2026-07-18 — ยังไม่เริ่ม build)
 - ป้องกันใส่ชุดซ้ำในระยะเวลาใกล้กัน
 
 ---
 
-### 3.5 Feature: Smart Notifications (P2)
+### 3.5 Feature: In-App Weather Status (P1)
 
-- แจ้งเตือนตอนเช้า: "วันนี้ฝนตก แนะนำเสื้อแขนยาว + รองเท้ากันน้ำ"
-- แจ้งเตือนเสื้อผ้าที่ไม่ได้ใส่นาน
+> **อัปเดต 2026-07-18:** เดิมเป็น "Smart Notifications" (push notification) — ตัดออกจากสโคป ตัดสินใจแสดงสภาพอากาศเป็นสถานะภายในแอปแทน ไม่ต้องมี push/notification permission หรือ background job
+
+**Description:** แสดงสภาพอากาศปัจจุบันของ location ผู้ใช้เป็นการ์ดสถานะในหน้า Home (เช่น "วันนี้ฝนตก แนะนำเสื้อแขนยาว") เพื่อประกอบการตัดสินใจเลือกชุด
+
+**Acceptance Criteria:**
+
+- ดึงสภาพอากาศตาม location ปัจจุบัน แสดงผลในหน้า Home
+- ไม่ต้องขอ notification permission ใด ๆ
+
+---
+
+### 3.6 Feature: Item Tags (P1)
+
+**Description:** เพิ่ม tag แบบ **ชุดที่กำหนดไว้ล่วงหน้า (predefined)** ต่อไอเท็ม — เป็นแท็ก "โอกาสการใช้งาน" (ทำงาน / ลำลอง / ออกเดท / งานทางการ / เที่ยว / ออกกำลังกาย) เพิ่มมิติที่ orthogonal กับหมวดหมู่/สี/สไตล์ (จงใจไม่ทำเป็น free-form เพื่อเลี่ยงการซ้ำซ้อนกับฟิลด์ `style` ที่เป็น free-form อยู่แล้ว — ตัดสินใจในขั้นตอน grill ของ loop B01) เพื่อรองรับการค้นหาที่ยืดหยุ่นขึ้น
+
+**User Flow:**
+
+1. เลือก/ยกเลิก tag (multi-select chips) ได้จากหน้า Add Item หรือ Edit Item
+2. Tag ใช้ค้นหาในหน้า Wardrobe (3.3)
+
+**Acceptance Criteria:**
+
+- เลือก/ยกเลิก tag จากชุดที่กำหนดไว้ได้หลายอันต่อไอเท็ม
+- ค้นหาไอเท็มจาก tag ได้ในหน้า Wardrobe
+
+---
+
+### 3.7 Feature: Affiliate Shopping — UI Polish (P1)
+
+**Description:** ปรับปรุง UI หน้า "ช้อปปิ้ง" (Discover — สร้างเพิ่มนอกแผนเดิม ดู 11.3) ให้ใช้งานง่ายขึ้น
+
+> **หมายเหตุ:** ฟีเจอร์นี้แหย่เข้าใกล้ Non-Goal "E-commerce integration" (1.4) — ทีมรับทราบแล้วและตัดสินใจเดินหน้าปรับ UI ต่อ
+
+**Sub-features:**
+
+- กรองตามหมวดหมู่ (categories)
+- กรองตามร้านค้า (store)
+- ค้นหา (search bar)
+
+---
+
+### 3.8 Feature: Authentication (P1)
+
+**Description:** เพิ่มระบบสมัคร/เข้าสู่ระบบจริง แทนที่ guest/session-based ปัจจุบัน (`session_id` ใน localStorage) โดยผูก `requireSupabaseAuth` middleware ที่มีอยู่แล้ว (`auth-middleware.ts`) เข้ากับ routes จริง
+
+**Acceptance Criteria:**
+
+- Sign up / log in / log out
+- ข้อมูล guest session เดิม (items, matches, profile, body model) ย้ายเข้าบัญชีจริงได้เมื่อสมัคร
+- RLS policy ผูกกลับกับ `user_id` แทนการเปิดกว้างแบบ guest mode (ย้อนกลับ migration 003)
+
+---
+
+### 3.9 Feature: Profile — Identity & Body Measurements (P0/P1)
+
+**Required fields:**
+
+- ชื่อ (name)
+- วันเกิด (birthdate)
+- เพศ (gender)
+
+**Optional fields:**
+
+- สัดส่วนร่างกาย (body measurements) — เตรียมไว้สำหรับ Virtual Try-On (3.10) ไม่บังคับกรอกตอนนี้
+
+**Acceptance Criteria:**
+
+- บังคับกรอก name/birthdate/gender ก่อนใช้งานฟีเจอร์หลัก (flow — onboarding vs. gate ทีหลัง ต้องตกลงกับทีม)
+- ฟิลด์ body measurement เป็น optional แก้ไขทีหลังได้
+
+---
+
+### 3.10 Feature: Virtual Try-On (P2 — Deferred, Last)
+
+**Description:** ลองชุดผ่านอวตารจากรูปร่างที่สแกน — มีอยู่แล้วบางส่วน (ดู 11.3 "Virtual Try-On / Body Model") ปัจจุบันเป็น **mock** (รูปสำเร็จรูป ไม่ generate จริง เพราะติด quota image-gen model)
+
+> **หมายเหตุ 2026-07-18:** จัดเป็นงานลำดับสุดท้ายเพราะยากที่สุด (ต้องแก้ quota/เปลี่ยน image-gen model ก่อนถึงจะ generate จริงได้) — ดู Section 12 สำหรับลำดับความสำคัญรวม
 
 ---
 
@@ -284,6 +360,7 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 2. รองรับ offline mode ไหม?
 3. ขายแบบ Freemium (free 50 ชิ้น) หรือ Subscription เต็มรูปแบบ?
 4. ต้องการ onboarding flow แบบ style quiz หรือไม่?
+5. Background removal (3.2) — ทำเมื่อไหร่ และใช้ vendor ไหน (remove.bg / U²-Net / อื่น ๆ)? รอตัดสินใจ (2026-07-18)
 
 ---
 
@@ -315,6 +392,7 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 | 3.3 Wardrobe Management                     | ✅ ทำแล้ว (บางส่วน) | ดู/แก้ไข/ลบไอเท็มได้ (`items.functions.ts`, `WardrobeCard.tsx`, `EditItem.tsx`) — ยังไม่มี filter ตามหมวดหมู่/สี/สไตล์, search bar, สถิติการใส่ หรือ mark as donated/to-sell |
 | 3.4 Outfit History & Calendar               | ⚠️ บางส่วน     | มีการ **บันทึกชุด (Save Match)** พร้อมแก้ไข/ลบ/แชร์ (`SaveMatchModal`, `EditMatchModal`, `ShareMatchModal`, `matches.functions.ts`, migration `005_matches.sql`) — ยังไม่มีปฏิทินย้อนหลังแบบเต็มรูปแบบหรือระบบป้องกันใส่ชุดซ้ำ |
 | 3.5 Smart Notifications                     | ❌ ยังไม่ทำ    | ยังไม่มีการแจ้งเตือนตอนเช้าหรือแจ้งเตือนเสื้อผ้าที่ไม่ได้ใส่นาน                                                                                                        |
+| 3.6 Item Tags                               | ✅ ทำแล้ว      | predefined occasion tags (ทำงาน/ลำลอง/ออกเดท/งานทางการ/เที่ยว/ออกกำลังกาย) เลือกแบบ multi-select chips ใน Add/Edit Item + ค้นหาได้ในหน้า Wardrobe (`010_item_tags.sql`, `ITEM_TAGS` ใน `wardrobe.ts`) — loop `B01-L1` |
 
 ### 11.3 Feature ที่ Build เพิ่มนอกเหนือแผนเดิมใน PRD
 
@@ -330,5 +408,40 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 
 - **Iteration 1–3** (Foundation, AI Auto-tag, AI Stylist) เสร็จสมบูรณ์แล้ว แม้ใช้ Gemini แทน Claude Vision/Claude API
 - **Iteration 4** (UI Polish ด้วย color palette `#d2ccfc`/`#fccce2`/`#cce2fc` + card-based layout) — ยังไม่ได้ตรวจสอบว่าตรงกับ 4.2 เป๊ะหรือไม่ ควร verify กับหน้าจอจริง
-- **Iteration 5** (Outfit history calendar, Smart notifications) — ยังไม่เริ่ม ยกเว้นการบันทึก/แชร์ match แบบพื้นฐาน
+- **Iteration 5** (Outfit history calendar, Smart notifications) — Smart Notifications เปลี่ยนเป็น In-App Weather Status แล้ว (ดู 3.5), calendar view ยังไม่เริ่ม ยกเว้นการบันทึก/แชร์ match แบบพื้นฐาน
 - Background removal (3.2), filter/search/สถิติใน Wardrobe (3.3), และ regenerate limit ≥ 5 ครั้ง/วัน (3.1) — ยังไม่ได้ implement หรือยังไม่ได้ยืนยันว่ามี
+
+---
+
+## 12. Updated Roadmap — Backlog เรียงตาม Dependency & Difficulty (as of 2026-07-18)
+
+> แทนที่ลำดับความสำคัญเดิมใน Section 8 สำหรับงานที่ยังไม่เริ่ม เรียงจาก dependency น้อย/ง่ายสุดไปมาก/ยากสุด Virtual Try-On ถูกจัดไว้ท้ายสุดตามที่ตกลง (ยากสุด) Background removal (3.2) ไม่รวมในลำดับนี้ — รอตัดสินใจ (Open Question 9.5)
+>
+> แต่ละ backlog มี ID (`B01`–`B09`) ใช้อ้างอิงใน `LOOP.md` และ loop docs (`loops/<ID>-L<n>.md`)
+
+### Tier 1 — Quick wins (ไม่มี dependency, ง่าย)
+
+1. **B01 — Item Tags** ✅ (3.6) — predefined occasion tags + multi-select chips ใน Add/Edit + ค้นหาใน Wardrobe (loop `B01-L1`, migration `010`)
+2. **B02 — In-App Weather Status** (3.5) — ดึง weather API แสดงการ์ดในหน้า Home เป็น feature เดี่ยว
+3. **B03 — Profile required fields** — name/birthdate/gender (3.9) — เพิ่ม column + form validation
+
+### Tier 2 — ต่อยอดจาก Tier 1 ตรง ๆ, ยาก medium-low
+
+4. **B04 — Profile optional body measurements** (3.9) — ต่อยอดฟอร์ม/schema เดียวกับข้อ 3
+5. **B05 — Outfit History Calendar view** (3.4) — ต่อยอดข้อมูล match ที่มีอยู่แล้ว (`005_matches.sql`) ไม่ต้อง schema ใหม่มาก แค่ UI ปฏิทิน + query ตามช่วงวันที่
+
+### Tier 3 — Medium (ได้ประโยชน์จาก Tier 1 แต่ไม่ blocked)
+
+6. **B06 — Affiliate Shopping UI Polish** (3.7) — categories/store filter/search บน catalog ที่มีอยู่แล้ว (`006`–`008`); ใช้ tag taxonomy จากข้อ 1 ช่วยให้ category สอดคล้องกับ wardrobe
+
+### Tier 4 — High difficulty, foundational (ไม่ blocked แต่เสี่ยงสูง)
+
+7. **B07 — Authentication** (3.8) — เปลี่ยนจาก guest/session-based เป็นบัญชีจริง ต้อง migrate ข้อมูล guest (items/matches/profile/body model) + กลับ RLS เป็น per-user (ย้อน migration 003) ทำก่อน Virtual Try-On เพราะข้อมูลสแกนร่างกายควรอยู่ใต้บัญชีจริง ไม่ใช่ guest session
+
+### Tier 5 — Last (ยากสุดตามที่ตกลง)
+
+8. **B08 — Virtual Try-On** (3.10) — ต้องแก้ quota/เปลี่ยน image-gen model ก่อนถึงจะ generate จริงได้ (ปัจจุบัน mock) ต่อยอดจาก body measurements (Tier 2) และควรอยู่หลัง Authentication (Tier 4)
+
+### ไม่รวมในลำดับ (รอการตัดสินใจ)
+
+- **B09 — Background removal** (3.2) — ดู Open Question 9.5

@@ -4,6 +4,7 @@ export type WardrobeItem = {
   category: "top" | "bottom" | "outerwear" | "shoes" | "dress" | "accessory";
   color: string;
   style: string[];
+  tags?: string[];
   formality: "casual" | "smart-casual" | "formal";
   emoji: string;
   imageUrl?: string;
@@ -11,6 +12,15 @@ export type WardrobeItem = {
   lastWorn?: string | null;
   createdAt?: string;
 };
+
+export const ITEM_TAGS = [
+  "ทำงาน",
+  "ลำลอง",
+  "ออกเดท",
+  "งานทางการ",
+  "เที่ยว",
+  "ออกกำลังกาย",
+] as const;
 
 export type MatchSource = "manual" | "ai";
 

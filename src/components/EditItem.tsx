@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Trash2, X } from "lucide-react";
+import { ITEM_TAGS } from "@/lib/wardrobe";
 import type { StoredItem } from "@/hooks/use-wardrobe";
 
 const CATEGORIES = ["top", "bottom", "outerwear", "shoes", "dress", "accessory"] as const;
@@ -85,6 +86,35 @@ export function EditItem({
               })
             }
           />
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">แท็ก</span>
+            <div className="flex flex-wrap gap-2">
+              {ITEM_TAGS.map((tag) => {
+                const selected = draft.tags?.includes(tag) ?? false;
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() =>
+                      setDraft({
+                        ...draft,
+                        tags: selected
+                          ? (draft.tags ?? []).filter((t) => t !== tag)
+                          : [...(draft.tags ?? []), tag],
+                      })
+                    }
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
+                      selected
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground border border-border/40 hover:bg-border"
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="flex gap-2 mt-2">
             {onDelete && (

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Loader2, Upload, X, Check, Sparkles } from "lucide-react";
 import { analyzeClothing } from "@/lib/analyze.functions";
 import { uploadWardrobeImage } from "@/lib/upload.functions";
+import { ITEM_TAGS } from "@/lib/wardrobe";
 import type { StoredItem } from "@/hooks/use-wardrobe";
 
 const MAX_DIM = 1024;
@@ -16,6 +17,7 @@ const EMPTY_DRAFT: Draft = {
   category: "top",
   formality: "casual",
   style: [],
+  tags: [],
   emoji: "👕",
 };
 
@@ -76,7 +78,7 @@ export function UploadItem({
       const result = await analyze({
         data: { imageDataUrl: preview, env: env as "dev" | "uat" | "prod" | undefined },
       });
-      setDraft(result);
+      setDraft({ ...result, tags: draft?.tags ?? [] });
       toast.success("AI วิเคราะห์เสร็จแล้ว");
     } catch (e) {
       console.error(e);
@@ -195,6 +197,35 @@ export function UploadItem({
                 })
               }
             />
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">แท็ก</span>
+              <div className="flex flex-wrap gap-2">
+                {ITEM_TAGS.map((tag) => {
+                  const selected = draft.tags?.includes(tag) ?? false;
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() =>
+                        setDraft({
+                          ...draft,
+                          tags: selected
+                            ? (draft.tags ?? []).filter((t) => t !== tag)
+                            : [...(draft.tags ?? []), tag],
+                        })
+                      }
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
+                        selected
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground border border-border/40 hover:bg-border"
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <button
               onClick={save}
               disabled={saving}

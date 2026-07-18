@@ -452,3 +452,18 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 ### ไม่รวมในลำดับ (รอการตัดสินใจ)
 
 - **B09 — Background removal** (3.2) — ดู Open Question 9.5
+
+---
+
+## 13. Action Items — Follow-ups & Tech Debt
+
+> Cross-cutting deferrals surfaced by the loop scrutinize passes (not feature backlog). Newest first.
+
+| ID | Item | Source | Priority | Notes |
+| --- | --- | --- | --- | --- |
+| **AUTH-1** | Enable **email auto-confirm** in the Supabase dashboard, then smoke-test signup→login→logout live | B07a-L1 | **High** | Auth doesn't work end-to-end until this dashboard toggle; register currently dead-ends at "confirm your email" |
+| **SEC-1** | Owner-scope storage **INSERT/DELETE** policies on `body-model-images` **and** `wardrobe-images` (currently `bucket_id`-only → anon key can blind upload/delete) | B07c-L1 | Medium | Reads are now private; writes/deletes still open. Not data theft (no list policy, random UUIDs) but junk-upload/DoS |
+| **SEC-2** | Privatize the **`wardrobe-images`** bucket + signed URLs (item photos are world-readable by URL today) | B07b-L1 | Medium | Same signed-URL treatment as B07c body-scan bucket |
+| **AUTH-2** | Decide `claimOrphans` **multi-user gating** (admin allowlist / one-shot migration / accept for solo) | B07b-L1 | Low | Mitigated to first-run-per-account (button hidden once you own items) |
+| **DX-1** | Add **`tsc` to the gate** + fix pre-existing type errors (`ShareMatchModal.tsx` null guards, `server.ts` needs `@types/bun`) | B07b-L1 | Low | `bun run build` (Vite) doesn't type-check, so real type errors slip through |
+

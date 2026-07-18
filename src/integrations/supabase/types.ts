@@ -20,6 +20,7 @@ export type Database = {
           last_worn: string | null;
           name: string;
           style: string[];
+          tags: string[];
           user_id: string;
           wear_count: number;
         };
@@ -34,6 +35,7 @@ export type Database = {
           last_worn?: string | null;
           name: string;
           style?: string[];
+          tags?: string[];
           user_id: string;
           wear_count?: number;
         };
@@ -48,6 +50,7 @@ export type Database = {
           last_worn?: string | null;
           name?: string;
           style?: string[];
+          tags?: string[];
           user_id?: string;
           wear_count?: number;
         };

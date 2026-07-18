@@ -1,24 +1,36 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { getItems, saveItem, removeItem, wearItem, updateItem } from "@/lib/items.functions";
+import {
+  getItems,
+  saveItem,
+  removeItem,
+  wearItem,
+  updateItem,
+  claimOrphanItems,
+} from "@/lib/items.functions";
 import type { WardrobeItem } from "@/lib/wardrobe";
+import { useAuth } from "@/hooks/use-auth";
 
 export type StoredItem = WardrobeItem;
 
 export const WARDROBE_QUERY_KEY = ["wardrobe"];
 
 export function useWardrobe() {
+  const { session } = useAuth();
   const qc = useQueryClient();
 
   const fetchFn = useServerFn(getItems);
   const saveFn = useServerFn(saveItem);
   const removeFn = useServerFn(removeItem);
   const wearFn = useServerFn(wearItem);
+  const claimOrphansFn = useServerFn(claimOrphanItems);
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: WARDROBE_QUERY_KEY,
+    // key scoped to the user so account switch can't serve a stale wardrobe
+    queryKey: [...WARDROBE_QUERY_KEY, session?.user?.id],
     queryFn: () => fetchFn({ data: {} }),
+    enabled: !!session,
     staleTime: 30_000,
   });
 
@@ -60,6 +72,15 @@ export function useWardrobe() {
     onError: (err) => toast.error(`แก้ไขไม่สำเร็จ: ${(err as Error).message}`),
   });
 
+  const claimOrphansMutation = useMutation({
+    mutationFn: () => claimOrphansFn({ data: {} }),
+    onSuccess: ({ claimed }) => {
+      invalidate();
+      toast.success(`อ้างสิทธิ์ไอเท็มเดิม ${claimed} ชิ้นแล้ว`);
+    },
+    onError: (err) => toast.error(`อ้างสิทธิ์ไม่สำเร็จ: ${(err as Error).message}`),
+  });
+
   return {
     items,
     isLoading,
@@ -68,5 +89,6 @@ export function useWardrobe() {
     update: (id: string, patch: Partial<StoredItem>) => updateMutation.mutate({ id, patch }),
     remove: (id: string, imageUrl?: string) => deleteMutation.mutate({ id, imageUrl }),
     markWorn: (id: string) => wearMutation.mutate(id),
+    claimOrphans: () => claimOrphansMutation.mutate(),
   };
 }

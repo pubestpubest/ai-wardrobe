@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { WardrobeItem } from "./wardrobe";
 
 function adminClient() {
@@ -31,9 +32,10 @@ function mapRow(row: any): WardrobeItem {
 // ─── Fetch all items ──────────────────────────────────────────────────────────
 
 export const getItems = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({}).parse(d))
-  .handler(async () => {
-    const { data: rows, error } = await adminClient()
+  .handler(async ({ context }) => {
+    const { data: rows, error } = await context.supabase
       .from("items")
       .select("*")
       .order("created_at", { ascending: false });
@@ -58,21 +60,21 @@ const ItemInputSchema = z.object({
 });
 
 export const saveItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => ItemInputSchema.parse(d))
-  .handler(async ({ data }) => {
-    const { error } = await adminClient()
-      .from("items")
-      .insert({
-        id: data.item.id,
-        name: data.item.name,
-        category: data.item.category,
-        color: data.item.color,
-        style: data.item.style,
-        tags: data.item.tags ?? [],
-        formality: data.item.formality,
-        emoji: data.item.emoji,
-        image_url: data.item.imageUrl ?? null,
-      });
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("items").insert({
+      id: data.item.id,
+      user_id: context.userId,
+      name: data.item.name,
+      category: data.item.category,
+      color: data.item.color,
+      style: data.item.style,
+      tags: data.item.tags ?? [],
+      formality: data.item.formality,
+      emoji: data.item.emoji,
+      image_url: data.item.imageUrl ?? null,
+    });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -80,6 +82,7 @@ export const saveItem = createServerFn({ method: "POST" })
 // ─── Delete an item (also removes image from storage) ────────────────────────
 
 export const updateItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
     z
       .object({
@@ -97,14 +100,14 @@ export const updateItem = createServerFn({ method: "POST" })
       })
       .parse(d),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = { ...data.patch };
     if (updateData.imageUrl !== undefined) {
       updateData.image_url = updateData.imageUrl;
       delete updateData.imageUrl;
     }
-    const { error } = await adminClient().from("items").update(updateData).eq("id", data.id);
+    const { error } = await context.supabase.from("items").update(updateData).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -112,31 +115,40 @@ export const updateItem = createServerFn({ method: "POST" })
 // ─── Delete an item (also removes image from storage) ────────────────────────
 
 export const removeItem = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
-    z.object({ id: z.string(), imageUrl: z.string().optional() }).parse(d),
-  )
-  .handler(async ({ data }) => {
-    const admin = adminClient();
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    // Derive the image path from the caller's OWN row (RLS-scoped) — never trust a
+    // client-supplied URL, or a user could delete another user's storage object.
+    const { data: row } = await context.supabase
+      .from("items")
+      .select("image_url")
+      .eq("id", data.id)
+      .maybeSingle();
 
-    if (data.imageUrl) {
-      const url = new URL(data.imageUrl);
-      const path = url.pathname.split("/object/public/wardrobe-images/")[1];
-      if (path) await admin.storage.from("wardrobe-images").remove([path]);
-    }
-
-    const { error } = await admin.from("items").delete().eq("id", data.id);
+    const { error } = await context.supabase.from("items").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+
+    if (row?.image_url) {
+      const path = new URL(row.image_url).pathname.split("/object/public/wardrobe-images/")[1];
+      // Storage removal needs the service-role client (bucket policy is out of scope here).
+      if (path) await adminClient().storage.from("wardrobe-images").remove([path]);
+    }
     return { ok: true };
   });
 
 // ─── Increment wear count ─────────────────────────────────────────────────────
 
 export const wearItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
-  .handler(async ({ data }) => {
-    const admin = adminClient();
-    const { data: row } = await admin.from("items").select("wear_count").eq("id", data.id).single();
-    const { error } = await admin
+  .handler(async ({ data, context }) => {
+    const { data: row } = await context.supabase
+      .from("items")
+      .select("wear_count")
+      .eq("id", data.id)
+      .single();
+    const { error } = await context.supabase
       .from("items")
       .update({
         wear_count: (row?.wear_count ?? 0) + 1,
@@ -145,4 +157,20 @@ export const wearItem = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+// ─── One-time: claim pre-auth (NULL user_id) items ────────────────────────────
+
+export const claimOrphanItems = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({}).parse(d))
+  .handler(async ({ context }) => {
+    // RLS hides NULL-user rows from the user-scoped client — service role required here.
+    const { data: rows, error } = await adminClient()
+      .from("items")
+      .update({ user_id: context.userId })
+      .is("user_id", null)
+      .select("id");
+    if (error) throw new Error(error.message);
+    return { claimed: rows?.length ?? 0 };
   });

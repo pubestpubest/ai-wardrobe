@@ -39,7 +39,7 @@ const GENDER_LABEL: Record<string, string> = {
 };
 
 function ProfilePage() {
-  const { items } = useWardrobe();
+  const { items, claimOrphans } = useWardrobe();
   const { matches } = useMatches();
   const { profile, update } = useProfile();
   const { bodyModel } = useBodyModel();
@@ -179,9 +179,20 @@ function ProfilePage() {
           <SettingRow icon={<Globe className="size-4" />} label="ภาษา" hint="ไทย" onClick={soon} />
         </Section>
 
+        {/* Reclaim pre-auth items — only meaningful for a fresh account with an
+            empty wardrobe, so hidden once you own items (limits the first-come grab). */}
+        {items.length === 0 && (
+          <button
+            onClick={() => claimOrphans()}
+            className="w-full mt-5 flex items-center justify-center gap-2 bg-white border border-border/40 text-foreground/80 rounded-2xl py-3 text-sm font-semibold hover:bg-muted transition"
+          >
+            <Shirt className="size-4" /> อ้างสิทธิ์ไอเท็มเดิม
+          </button>
+        )}
+
         <button
           onClick={handleLogout}
-          className="w-full mt-5 flex items-center justify-center gap-2 bg-destructive/10 text-destructive rounded-2xl py-3 text-sm font-semibold hover:bg-destructive/15 transition"
+          className="w-full mt-3 flex items-center justify-center gap-2 bg-destructive/10 text-destructive rounded-2xl py-3 text-sm font-semibold hover:bg-destructive/15 transition"
         >
           <LogOut className="size-4" /> ออกจากระบบ
         </button>

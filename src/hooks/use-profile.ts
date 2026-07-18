@@ -1,6 +1,8 @@
-import { useSyncExternalStore } from "react";
-
-const PROFILE_KEY = "wardrobe.profile";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { getProfile, upsertProfile } from "@/lib/profile.functions";
+import { useAuth } from "@/hooks/use-auth";
 
 export type Gender = "" | "male" | "female" | "other";
 
@@ -19,10 +21,10 @@ export type Profile = {
 
 export const DEFAULT_PROFILE: Profile = {
   name: "",
-  handle: "@pubest",
-  email: "pubestpubest@gmail.com",
-  bio: "ชอบสไตล์มินิมอลโทนพาสเทล ❀",
-  favoriteStyle: "Minimal · Pastel",
+  handle: "",
+  email: "",
+  bio: "",
+  favoriteStyle: "",
   avatarUrl: "",
   gender: "",
   birthdate: "",
@@ -36,52 +38,31 @@ export function isProfileComplete(p: Profile): boolean {
   return !Number.isNaN(d.getTime()) && d <= new Date();
 }
 
-function readProfile(): Profile {
-  if (typeof window === "undefined") return DEFAULT_PROFILE;
-  try {
-    const raw = window.localStorage.getItem(PROFILE_KEY);
-    if (!raw) return DEFAULT_PROFILE;
-    return { ...DEFAULT_PROFILE, ...(JSON.parse(raw) as Partial<Profile>) };
-  } catch {
-    return DEFAULT_PROFILE;
-  }
-}
-
-// ponytail: module-level shared store so every useProfile() instance stays in
-// sync (a gate write shows up in the home greeting without a reload). Single
-// tab only — add a `storage` listener if cross-tab sync is ever needed.
-let current: Profile | null = null;
-const listeners = new Set<() => void>();
-
-function getSnapshot(): Profile {
-  if (current === null) current = readProfile();
-  return current;
-}
-
-function getServerSnapshot(): Profile {
-  return DEFAULT_PROFILE;
-}
-
-function subscribe(cb: () => void): () => void {
-  listeners.add(cb);
-  return () => listeners.delete(cb);
-}
-
-function writeProfile(next: Profile) {
-  current = next;
-  try {
-    window.localStorage.setItem(PROFILE_KEY, JSON.stringify(next));
-  } catch {
-    // storage full / disabled — silently skip
-  }
-  listeners.forEach((l) => l());
-}
+export const PROFILE_QUERY_KEY = ["profile"];
 
 export function useProfile() {
-  const profile = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const { session } = useAuth();
+  const qc = useQueryClient();
+
+  const fetchFn = useServerFn(getProfile);
+  const upsertFn = useServerFn(upsertProfile);
+
+  const { data, isLoading } = useQuery({
+    // key scoped to the user so account switch can't serve a stale profile
+    queryKey: [...PROFILE_QUERY_KEY, session?.user?.id],
+    queryFn: () => fetchFn({ data: {} }),
+    enabled: !!session,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (patch: Partial<Profile>) => upsertFn({ data: patch }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: PROFILE_QUERY_KEY }),
+    onError: (err) => toast.error(`บันทึกโปรไฟล์ไม่สำเร็จ: ${(err as Error).message}`),
+  });
 
   return {
-    profile,
-    update: (patch: Partial<Profile>) => writeProfile({ ...getSnapshot(), ...patch }),
+    profile: data ?? DEFAULT_PROFILE,
+    update: (patch: Partial<Profile>) => updateMutation.mutate(patch),
+    isLoading,
   };
 }

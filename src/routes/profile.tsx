@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Sparkles,
@@ -19,6 +20,7 @@ import { useWardrobe } from "@/hooks/use-wardrobe";
 import { useMatches } from "@/hooks/use-matches";
 import { useProfile } from "@/hooks/use-profile";
 import { useBodyModel } from "@/hooks/use-body-model";
+import { useAuth } from "@/hooks/use-auth";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const Route = (createFileRoute as any)("/profile")({
@@ -41,11 +43,20 @@ function ProfilePage() {
   const { matches } = useMatches();
   const { profile, update } = useProfile();
   const { bodyModel } = useBodyModel();
+  const { signOut } = useAuth();
+  const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
 
   const aiMatchCount = useMemo(() => matches.filter((m) => m.source === "ai").length, [matches]);
 
   const soon = () => toast.info("ฟีเจอร์นี้กำลังจะมาเร็ว ๆ นี้");
+
+  const handleLogout = async () => {
+    await signOut();
+    localStorage.removeItem("wardrobe.chat");
+    localStorage.removeItem("wardrobe.profile");
+    queryClient.clear();
+  };
 
   return (
     <div className="min-h-screen pb-28 bg-[#FDFCFD]">
@@ -169,7 +180,7 @@ function ProfilePage() {
         </Section>
 
         <button
-          onClick={soon}
+          onClick={handleLogout}
           className="w-full mt-5 flex items-center justify-center gap-2 bg-destructive/10 text-destructive rounded-2xl py-3 text-sm font-semibold hover:bg-destructive/15 transition"
         >
           <LogOut className="size-4" /> ออกจากระบบ

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { isProfileComplete, useProfile } from "@/hooks/use-profile";
 import type { Gender, Profile } from "@/hooks/use-profile";
+import { useAuth } from "@/hooks/use-auth";
 
 export function ProfileGate() {
-  const { profile, update } = useProfile();
+  const { session, loading: authLoading } = useAuth();
+  const { profile, update, isLoading } = useProfile();
   const [mounted, setMounted] = useState(false);
   const [draft, setDraft] = useState<Profile>(profile);
 
@@ -14,6 +16,10 @@ export function ProfileGate() {
   }, [profile]);
 
   if (!mounted) return null;
+  // don't evaluate onboarding until auth resolves + a session exists
+  // (query is disabled pre-session, so isLoading is false in that window)
+  if (authLoading || !session) return null;
+  if (isLoading) return null;
   if (isProfileComplete(profile)) return null;
 
   const today = new Date().toISOString().split("T")[0];

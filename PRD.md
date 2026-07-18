@@ -165,13 +165,14 @@ Digital Wardrobe เป็นแอปมือถือที่ให้ผู
 
 ### 3.8 Feature: Authentication (P1)
 
-**Description:** เพิ่มระบบสมัคร/เข้าสู่ระบบจริง แทนที่ guest/session-based ปัจจุบัน (`session_id` ใน localStorage) โดยผูก `requireSupabaseAuth` middleware ที่มีอยู่แล้ว (`auth-middleware.ts`) เข้ากับ routes จริง
+**Description:** เพิ่มระบบสมัคร/เข้าสู่ระบบจริง (Supabase Auth, email + 6-digit PIN — PIN ใช้เป็น password ของ Supabase) แทน guest mode ปัจจุบัน — ปัจจุบันข้อมูลทุกอย่างเป็น **global pool** ใช้ service-role bypass RLS (ดู 11.x) โดยผูก `requireSupabaseAuth` middleware + client token-attacher ที่มีอยู่แล้ว (ตอนนี้เป็น dead code) เข้ากับ server functions จริง และเปลี่ยนไปใช้ user-scoped client + RLS `auth.uid() = user_id` — แตกงานเป็น B07a–d (ดู §12)
 
 **Acceptance Criteria:**
 
-- Sign up / log in / log out
-- ข้อมูล guest session เดิม (items, matches, profile, body model) ย้ายเข้าบัญชีจริงได้เมื่อสมัคร
-- RLS policy ผูกกลับกับ `user_id` แทนการเปิดกว้างแบบ guest mode (ย้อนกลับ migration 003)
+- Sign up / log in / log out (email + 6-digit PIN)
+- server functions ของข้อมูลผู้ใช้ (items/matches/body-model/profile) ใช้ user-scoped client + RLS ผูกกับ `user_id` (ย้อน RLS แบบเปิดใน migration 003)
+- ข้อมูล global pool เดิม (ไม่มี owner attribution เพราะ `session_id` ถูก drop ใน 004) → **claim-all เข้า seed account** (บัญชีแรกที่สมัคร) — ไม่ใช่ migrate แบบ per-guest (เป็นไปไม่ได้)
+- profile ย้ายจาก localStorage → ตาราง `profiles` ต่อบัญชี; logout เคลียร์ `wardrobe.chat` / `wardrobe.profile` ใน localStorage
 
 ---
 
@@ -393,7 +394,8 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 | 3.4 Outfit History & Calendar               | ⚠️ บางส่วน     | มีการ **บันทึกชุด (Save Match)** พร้อมแก้ไข/ลบ/แชร์ (`SaveMatchModal`, `EditMatchModal`, `ShareMatchModal`, `matches.functions.ts`, migration `005_matches.sql`) — ยังไม่มีปฏิทินย้อนหลังแบบเต็มรูปแบบหรือระบบป้องกันใส่ชุดซ้ำ |
 | 3.5 In-App Weather Status                   | ✅ ทำแล้ว      | การ์ดสภาพอากาศในหน้า Home — OpenWeatherMap (`getWeather` server fn, คีย์ `OPENWEATHER_API_KEY` server-side, `lang=th`) + browser geolocation (fallback กรุงเทพฯ) + hint การแต่งตัวแบบ deterministic ไม่ใช้ push/notification (`weather.functions.ts`, `use-weather.ts`, `WeatherCard.tsx`) — loop `B02-L1`. เดิมคือ Smart Notifications ถูกเปลี่ยนสโคปตาม 3.5 |
 | 3.6 Item Tags                               | ✅ ทำแล้ว      | predefined occasion tags (ทำงาน/ลำลอง/ออกเดท/งานทางการ/เที่ยว/ออกกำลังกาย) เลือกแบบ multi-select chips ใน Add/Edit Item + ค้นหาได้ในหน้า Wardrobe (`010_item_tags.sql`, `ITEM_TAGS` ใน `wardrobe.ts`) — loop `B01-L1` |
-| 3.9 Profile — required fields               | ✅ ทำแล้ว (บางส่วน) | บังคับ name/birthdate/gender ผ่าน blocking onboarding gate (`ProfileGate.tsx` ใน `__root`) + `isProfileComplete` + validation ใน `EditProfileModal`; โปรไฟล์ยังเก็บใน localStorage (`use-profile.ts` บน `useSyncExternalStore`) — body measurements (optional) เป็น B04, ย้ายเข้า DB/บัญชีจริงเป็น B07 — loop `B03-L1` |
+| 3.9 Profile — required fields               | ✅ ทำแล้ว (บางส่วน) | บังคับ name/birthdate/gender ผ่าน blocking onboarding gate (`ProfileGate.tsx` ใน `__root`) + `isProfileComplete` + validation ใน `EditProfileModal`; **โปรไฟล์ย้ายเข้า DB ต่อบัญชีแล้วใน B07a** (ตาราง `profiles` + RLS, `use-profile.ts` บน TanStack Query) — body measurements (optional) เป็น B04 — loop `B03-L1`, `B07a-L1` |
+| 3.8 Authentication (B07a)                   | ✅ ทำแล้ว (บางส่วน) | identity foundation: Supabase Auth email + 6-digit PIN (register/login/logout, `use-auth.ts` + `AuthGate.tsx`), auth gate ใน `__root`, ผูก `attachSupabaseAuth`/`requireSupabaseAuth`, ตาราง `profiles` + RLS `auth.uid()=user_id` (user-scoped client) — items/matches/body ยัง global (B07b/c), quota เป็น B07d; **pending: เปิด email auto-confirm ใน Supabase + smoke test** — loop `B07a-L1` |
 
 ### 11.3 Feature ที่ Build เพิ่มนอกเหนือแผนเดิมใน PRD
 
@@ -437,7 +439,11 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 
 ### Tier 4 — High difficulty, foundational (ไม่ blocked แต่เสี่ยงสูง)
 
-7. **B07 — Authentication** (3.8) — เปลี่ยนจาก guest/session-based เป็นบัญชีจริง ต้อง migrate ข้อมูล guest (items/matches/profile/body model) + กลับ RLS เป็น per-user (ย้อน migration 003) ทำก่อน Virtual Try-On เพราะข้อมูลสแกนร่างกายควรอยู่ใต้บัญชีจริง ไม่ใช่ guest session
+7. **B07 — Authentication** (3.8) — แตกเป็น 4 loop ย่อย (ตัดสินใจจาก grill 2026-07-19): identity ก่อน แล้ว scope ข้อมูลทีละตาราง · Supabase Auth (email + 6-digit PIN) · user-scoped client + RLS `auth.uid()=user_id` (service-role เหลือเฉพาะ admin ops) · guest pool เดิม claim-all → seed account (บัญชีแรกที่สมัคร; per-guest migrate เป็นไปไม่ได้เพราะ session_id ถูก drop ใน 004) · ทำก่อน Virtual Try-On เพราะ scan ร่างกายควรอยู่ใต้บัญชีจริง
+   - **B07a — Auth identity foundation** ✅ (loop `B07a-L1`, migration `011`; pending: เปิด email auto-confirm ใน Supabase + smoke test สมัคร/เข้าสู่ระบบจริง) — register/login/logout + auth gate ใน `__root` (unauth→login, authed+incomplete→onboarding gate เดิม, else→app) + ผูก middleware/attacher ใน `start.ts` + ตาราง `profiles` (ย้ายโปรไฟล์ localStorage → DB ต่อยอด B03) พิสูจน์ path token→RLS ครบวง
+   - **B07b — Scope items → user_id** — `saveItem` เขียน `user_id`, item fns ใช้ user-scoped client + RLS, backfill items เดิม → seed account, เพิ่ม owner check (แก้ delete/update ที่ key ด้วย id อย่างเดียว)
+   - **B07c — Scope matches + body-model** — pattern เดียวกันกับ `matches` + `body_models` + ปิด bucket รูปสแกนร่างที่เป็น public + แก้ `getBodyModel` ที่คืน scan ล่าสุดให้ทุกคน (live exposure)
+   - **B07d — Per-user quota** — จำกัด AI call ต่อวันต่อผู้ใช้ (§3.1 regenerate / §10 cost); grill ตัวเลขแยกตอนถึง
 
 ### Tier 5 — Last (ยากสุดตามที่ตกลง)
 

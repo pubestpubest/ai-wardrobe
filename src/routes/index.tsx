@@ -12,6 +12,7 @@ import { useAiEnv, type AiEnv } from "@/hooks/use-ai-env";
 import { useProfile } from "@/hooks/use-profile";
 import { EditItem } from "@/components/EditItem";
 import { WardrobeUpgradeCard } from "@/components/WardrobeUpgradeCard";
+import { WeatherCard } from "@/components/WeatherCard";
 import { useAffiliateProducts } from "@/hooks/use-affiliate-products";
 import { pickRandomOutfit } from "@/lib/daily-pick";
 
@@ -98,6 +99,8 @@ function Index() {
             </button>
           </div>
         </header>
+
+        <WeatherCard />
 
         {/* Hero stat card */}
         <Link

@@ -391,7 +391,7 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 | 3.2 AI Photo Upload & Auto-tag              | ✅ ทำแล้ว      | `analyzeClothing` (`analyze.functions.ts`) ใช้ Gemini function calling บังคับเรียก `save_clothing_item` เพื่อกรอกหมวดหมู่/สี/สไตล์ ผ่าน `UploadItem.tsx` — ยังไม่มี background removal อัตโนมัติตามที่ระบุใน 3.2 |
 | 3.3 Wardrobe Management                     | ✅ ทำแล้ว (บางส่วน) | ดู/แก้ไข/ลบไอเท็มได้ (`items.functions.ts`, `WardrobeCard.tsx`, `EditItem.tsx`) — ยังไม่มี filter ตามหมวดหมู่/สี/สไตล์, search bar, สถิติการใส่ หรือ mark as donated/to-sell |
 | 3.4 Outfit History & Calendar               | ⚠️ บางส่วน     | มีการ **บันทึกชุด (Save Match)** พร้อมแก้ไข/ลบ/แชร์ (`SaveMatchModal`, `EditMatchModal`, `ShareMatchModal`, `matches.functions.ts`, migration `005_matches.sql`) — ยังไม่มีปฏิทินย้อนหลังแบบเต็มรูปแบบหรือระบบป้องกันใส่ชุดซ้ำ |
-| 3.5 Smart Notifications                     | ❌ ยังไม่ทำ    | ยังไม่มีการแจ้งเตือนตอนเช้าหรือแจ้งเตือนเสื้อผ้าที่ไม่ได้ใส่นาน                                                                                                        |
+| 3.5 In-App Weather Status                   | ✅ ทำแล้ว      | การ์ดสภาพอากาศในหน้า Home — OpenWeatherMap (`getWeather` server fn, คีย์ `OPENWEATHER_API_KEY` server-side, `lang=th`) + browser geolocation (fallback กรุงเทพฯ) + hint การแต่งตัวแบบ deterministic ไม่ใช้ push/notification (`weather.functions.ts`, `use-weather.ts`, `WeatherCard.tsx`) — loop `B02-L1`. เดิมคือ Smart Notifications ถูกเปลี่ยนสโคปตาม 3.5 |
 | 3.6 Item Tags                               | ✅ ทำแล้ว      | predefined occasion tags (ทำงาน/ลำลอง/ออกเดท/งานทางการ/เที่ยว/ออกกำลังกาย) เลือกแบบ multi-select chips ใน Add/Edit Item + ค้นหาได้ในหน้า Wardrobe (`010_item_tags.sql`, `ITEM_TAGS` ใน `wardrobe.ts`) — loop `B01-L1` |
 
 ### 11.3 Feature ที่ Build เพิ่มนอกเหนือแผนเดิมใน PRD
@@ -422,7 +422,7 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 ### Tier 1 — Quick wins (ไม่มี dependency, ง่าย)
 
 1. **B01 — Item Tags** ✅ (3.6) — predefined occasion tags + multi-select chips ใน Add/Edit + ค้นหาใน Wardrobe (loop `B01-L1`, migration `010`)
-2. **B02 — In-App Weather Status** (3.5) — ดึง weather API แสดงการ์ดในหน้า Home เป็น feature เดี่ยว
+2. **B02 — In-App Weather Status** ✅ (3.5) — OpenWeatherMap (คีย์ server-side) + geolocation → การ์ดสภาพอากาศในหน้า Home พร้อม hint การแต่งตัว (loop `B02-L1`, ไม่มี migration)
 3. **B03 — Profile required fields** — name/birthdate/gender (3.9) — เพิ่ม column + form validation
 
 ### Tier 2 — ต่อยอดจาก Tier 1 ตรง ๆ, ยาก medium-low

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const BUCKET = "body-model-images";
 const MOCK_AVATAR_PATH = path.join(process.cwd(), "public/images/model.png");
@@ -49,24 +50,50 @@ async function uploadImage(
     upsert: false,
   });
   if (error) throw new Error(`อัปโหลดรูปไม่สำเร็จ: ${error.message}`);
-  const {
-    data: { publicUrl },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } = (admin.storage.from(BUCKET) as any).getPublicUrl(path);
-  return publicUrl as string;
+  return path;
+}
+
+// Bucket is private — resolve a stored value (bare path, or a legacy full
+// public URL) to a short-lived signed URL. Never throws: a missing file
+// shouldn't break the card, it should just render without an image.
+async function signedUrl(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: any,
+  storedValue: string,
+): Promise<string> {
+  const marker = `${BUCKET}/`;
+  const idx = storedValue.indexOf(marker);
+  const objectPath = idx >= 0 ? storedValue.slice(idx + marker.length) : storedValue;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (admin.storage.from(BUCKET) as any).createSignedUrl(
+    objectPath,
+    3600,
+  );
+  if (error || !data) return "";
+  return data.signedUrl as string;
 }
 
 export const getBodyModel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({}).parse(d))
-  .handler(async () => {
+  .handler(async ({ context }) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: row, error } = await (adminClient().from("body_models" as any) as any)
+    const { data: row, error } = await (context.supabase.from("body_models" as any) as any)
       .select("*")
+      .eq("user_id", context.userId)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return row ? mapRow(row) : null;
+    if (!row) return null;
+
+    const admin = adminClient();
+    const model = mapRow(row);
+    return {
+      ...model,
+      sourceImageUrl: await signedUrl(admin, model.sourceImageUrl),
+      avatarImageUrl: await signedUrl(admin, model.avatarImageUrl),
+    };
   });
 
 const GenderEnum = z.enum(["male", "female", "other", ""]);
@@ -79,35 +106,39 @@ const GenerateBodyModelInput = z.object({
 });
 
 export const generateBodyModel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => GenerateBodyModelInput.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { mimeType, data: imageData } = parseDataUrl(data.scanImageDataUrl);
 
     // Mock model: real Gemini avatar generation is disabled for now (blocked on
     // image-gen quota) — serve the static placeholder in public/images/model.png instead.
     await new Promise((r) => setTimeout(r, 1500));
 
+    // Storage is a service-role op (bucket policy is out of scope here).
     const admin = adminClient();
-    const sourceImageUrl = await uploadImage(
-      admin,
-      mimeType,
-      Buffer.from(imageData, "base64"),
-      "jpg",
-    );
+    const sourcePath = await uploadImage(admin, mimeType, Buffer.from(imageData, "base64"), "jpg");
     const mockAvatarBytes = await readFile(MOCK_AVATAR_PATH);
-    const avatarImageUrl = await uploadImage(admin, "image/png", mockAvatarBytes, "png");
+    const avatarPath = await uploadImage(admin, "image/png", mockAvatarBytes, "png");
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: row, error } = await (admin.from("body_models" as any) as any)
+    const { data: row, error } = await (context.supabase.from("body_models" as any) as any)
       .insert({
+        user_id: context.userId,
         height_cm: data.heightCm,
         weight_kg: data.weightKg,
         gender: data.gender || null,
-        source_image_url: sourceImageUrl,
-        avatar_image_url: avatarImageUrl,
+        source_image_url: sourcePath,
+        avatar_image_url: avatarPath,
       })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
-    return mapRow(row);
+
+    const model = mapRow(row);
+    return {
+      ...model,
+      sourceImageUrl: await signedUrl(admin, model.sourceImageUrl),
+      avatarImageUrl: await signedUrl(admin, model.avatarImageUrl),
+    };
   });

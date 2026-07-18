@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { getMatches, saveMatch, updateMatch, removeMatch } from "@/lib/matches.functions";
 import type { Match, MatchSource } from "@/lib/wardrobe";
+import { useAuth } from "@/hooks/use-auth";
 
 export const MATCHES_QUERY_KEY = ["matches"];
 
@@ -26,6 +27,7 @@ export type MatchPatch = {
 };
 
 export function useMatches() {
+  const { session } = useAuth();
   const qc = useQueryClient();
 
   const fetchFn = useServerFn(getMatches);
@@ -34,8 +36,10 @@ export function useMatches() {
   const removeFn = useServerFn(removeMatch);
 
   const { data: matches = [], isLoading } = useQuery<Match[]>({
-    queryKey: MATCHES_QUERY_KEY,
+    // key scoped to the user so account switch can't serve stale matches
+    queryKey: [...MATCHES_QUERY_KEY, session?.user?.id],
     queryFn: () => fetchFn({ data: {} }),
+    enabled: !!session,
     staleTime: 30_000,
   });
 

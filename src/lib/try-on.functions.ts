@@ -42,9 +42,11 @@ export const tryOnOutfit = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(`อัปโหลดรูปไม่สำเร็จ: ${error.message}`);
 
-    const {
-      data: { publicUrl },
-    } = admin.storage.from(BUCKET).getPublicUrl(objectPath);
+    // Bucket is private (B07c) — hand back a time-limited signed URL, not a public one.
+    const { data: signed, error: signError } = await admin.storage
+      .from(BUCKET)
+      .createSignedUrl(objectPath, 3600);
+    if (signError) throw new Error(`สร้างลิงก์รูปไม่สำเร็จ: ${signError.message}`);
 
-    return { imageUrl: publicUrl };
+    return { imageUrl: signed.signedUrl };
   });

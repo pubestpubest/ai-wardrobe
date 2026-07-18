@@ -139,6 +139,7 @@ bug, not before.
 
 <!-- newest first: date | <ID>-L<n> | ✅ done / 🔁 re-loop / ⛔ blocked | one-line note -->
 
+- 2026-07-19 | B07c-L1 | ✅ done | Scope matches + body-model + privatize scan bucket — RLS auth.uid()=user_id, signed URLs, getBodyModel global-latest leak fixed; gate caught a missed bucket consumer (try-on) fixed; scrutinize ship (major = pre-existing storage-write follow-up)
 - 2026-07-19 | B07b-L1 | ✅ done | Scope items to user_id — RLS auth.uid()=user_id, user-scoped client, claimOrphanItems; scrutinize caught + fixed a removeItem IDOR (client-supplied imageUrl); claim land-grab mitigated (first-run-only) + gating flagged
 - 2026-07-19 | B07a-L1 | ✅ done | Auth identity foundation — Supabase email+6-digit-PIN, auth gate, profiles table + RLS (profile off localStorage → DB); gate caught an SSR regression (fixed), scrutinize fix-then-ship (query-key user-scoping + gate window fixed); ⚠️ pending human: Supabase email auto-confirm + live smoke test
 - 2026-07-19 | B03-L1 | ✅ done | Profile required fields — blocking onboarding gate (name/birthdate/gender), localStorage; scrutinize ship, 2 minors hardened (default-name AC no-op, stale-greeting → useSyncExternalStore)

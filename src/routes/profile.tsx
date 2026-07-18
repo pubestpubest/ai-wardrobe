@@ -186,7 +186,7 @@ function ProfilePage() {
             onClick={() => claimOrphans()}
             className="w-full mt-5 flex items-center justify-center gap-2 bg-white border border-border/40 text-foreground/80 rounded-2xl py-3 text-sm font-semibold hover:bg-muted transition"
           >
-            <Shirt className="size-4" /> อ้างสิทธิ์ไอเท็มเดิม
+            <Shirt className="size-4" /> อ้างสิทธิ์ข้อมูลเดิม
           </button>
         )}
 

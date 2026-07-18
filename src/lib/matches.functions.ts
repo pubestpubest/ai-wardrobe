@@ -1,14 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { createClient } from "@supabase/supabase-js";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Match } from "./wardrobe";
-
-function adminClient() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("Supabase env vars ไม่ได้ตั้งค่า");
-  return createClient(url, key, { auth: { persistSession: false } });
-}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapRow(row: any): Match {
@@ -26,10 +19,11 @@ function mapRow(row: any): Match {
 }
 
 export const getMatches = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({}).parse(d))
-  .handler(async () => {
+  .handler(async ({ context }) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: rows, error } = await (adminClient().from("matches" as any) as any)
+    const { data: rows, error } = await (context.supabase.from("matches" as any) as any)
       .select("*")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -49,11 +43,13 @@ const SaveMatchInput = z.object({
 });
 
 export const saveMatch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => SaveMatchInput.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: rows, error } = await (adminClient().from("matches" as any) as any)
+    const { data: rows, error } = await (context.supabase.from("matches" as any) as any)
       .insert({
+        user_id: context.userId,
         name: data.match.name,
         item_ids: data.match.itemIds,
         affiliate_product_ids: data.match.affiliateProductIds,
@@ -81,8 +77,9 @@ const UpdateMatchInput = z.object({
 });
 
 export const updateMatch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => UpdateMatchInput.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = {};
     if (data.patch.name !== undefined) updateData.name = data.patch.name;
@@ -97,7 +94,7 @@ export const updateMatch = createServerFn({ method: "POST" })
       updateData.reason = data.patch.reason.trim() ? data.patch.reason.trim() : null;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (adminClient().from("matches" as any) as any)
+    const { error } = await (context.supabase.from("matches" as any) as any)
       .update(updateData)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
@@ -105,10 +102,11 @@ export const updateMatch = createServerFn({ method: "POST" })
   });
 
 export const removeMatch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (adminClient().from("matches" as any) as any)
+    const { error } = await (context.supabase.from("matches" as any) as any)
       .delete()
       .eq("id", data.id);
     if (error) throw new Error(error.message);

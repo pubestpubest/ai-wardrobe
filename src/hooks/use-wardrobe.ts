@@ -7,10 +7,12 @@ import {
   removeItem,
   wearItem,
   updateItem,
-  claimOrphanItems,
+  claimOrphans,
 } from "@/lib/items.functions";
 import type { WardrobeItem } from "@/lib/wardrobe";
 import { useAuth } from "@/hooks/use-auth";
+import { MATCHES_QUERY_KEY } from "@/hooks/use-matches";
+import { BODY_MODEL_QUERY_KEY } from "@/hooks/use-body-model";
 
 export type StoredItem = WardrobeItem;
 
@@ -24,7 +26,7 @@ export function useWardrobe() {
   const saveFn = useServerFn(saveItem);
   const removeFn = useServerFn(removeItem);
   const wearFn = useServerFn(wearItem);
-  const claimOrphansFn = useServerFn(claimOrphanItems);
+  const claimOrphansFn = useServerFn(claimOrphans);
 
   const { data: items = [], isLoading } = useQuery({
     // key scoped to the user so account switch can't serve a stale wardrobe
@@ -74,9 +76,12 @@ export function useWardrobe() {
 
   const claimOrphansMutation = useMutation({
     mutationFn: () => claimOrphansFn({ data: {} }),
-    onSuccess: ({ claimed }) => {
+    onSuccess: ({ items: claimedItems, matches, bodyModels }) => {
       invalidate();
-      toast.success(`อ้างสิทธิ์ไอเท็มเดิม ${claimed} ชิ้นแล้ว`);
+      qc.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
+      qc.invalidateQueries({ queryKey: BODY_MODEL_QUERY_KEY });
+      const total = claimedItems + matches + bodyModels;
+      toast.success(`อ้างสิทธิ์ข้อมูลเดิม ${total} รายการแล้ว`);
     },
     onError: (err) => toast.error(`อ้างสิทธิ์ไม่สำเร็จ: ${(err as Error).message}`),
   });

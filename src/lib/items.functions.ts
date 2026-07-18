@@ -159,18 +159,40 @@ export const wearItem = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// ─── One-time: claim pre-auth (NULL user_id) items ────────────────────────────
+// ─── One-time: claim pre-auth (NULL user_id) rows across items/matches/body_models ──
 
-export const claimOrphanItems = createServerFn({ method: "POST" })
+export const claimOrphans = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({}).parse(d))
   .handler(async ({ context }) => {
     // RLS hides NULL-user rows from the user-scoped client — service role required here.
-    const { data: rows, error } = await adminClient()
+    const admin = adminClient();
+
+    const { data: items, error: itemsError } = await admin
       .from("items")
       .update({ user_id: context.userId })
       .is("user_id", null)
       .select("id");
-    if (error) throw new Error(error.message);
-    return { claimed: rows?.length ?? 0 };
+    if (itemsError) throw new Error(itemsError.message);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: matches, error: matchesError } = await (admin.from("matches" as any) as any)
+      .update({ user_id: context.userId })
+      .is("user_id", null)
+      .select("id");
+    if (matchesError) throw new Error(matchesError.message);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const bodyModelsTable = admin.from("body_models" as any) as any;
+    const { data: bodyModels, error: bodyModelsError } = await bodyModelsTable
+      .update({ user_id: context.userId })
+      .is("user_id", null)
+      .select("id");
+    if (bodyModelsError) throw new Error(bodyModelsError.message);
+
+    return {
+      items: items?.length ?? 0,
+      matches: matches?.length ?? 0,
+      bodyModels: bodyModels?.length ?? 0,
+    };
   });

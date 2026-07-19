@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { AffiliateProduct, WardrobeItem } from "./wardrobe";
 
 function adminClient() {
@@ -9,6 +10,35 @@ function adminClient() {
   if (!url || !key) throw new Error("Supabase env vars ไม่ได้ตั้งค่า");
   return createClient(url, key, { auth: { persistSession: false } });
 }
+
+// Authorization boundary for every affiliate_products write: writes go through
+// the service-role client (bypasses RLS), so this check — not a DB policy —
+// is what keeps non-admins from mutating the catalog. Empty/unset
+// ADMIN_EMAILS means nobody is admin (fail closed).
+function assertAdmin(context: { claims?: { email?: string } }): void {
+  const allowlist = new Set(
+    (process.env.ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  );
+  const email = context.claims?.email?.toLowerCase();
+  if (!email || !allowlist.has(email)) {
+    throw new Error("ต้องเป็นผู้ดูแลระบบ");
+  }
+}
+
+export const amIAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({}).parse(d))
+  .handler(async ({ context }): Promise<{ isAdmin: boolean }> => {
+    try {
+      assertAdmin(context);
+      return { isAdmin: true };
+    } catch {
+      return { isAdmin: false };
+    }
+  });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapRow(row: any): AffiliateProduct {
@@ -113,4 +143,101 @@ export const getAffiliateProducts = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (rows ?? []).map(mapRow);
+  });
+
+// http(s) only — these strings render as <a href>/<img src> for every viewer,
+// so an admin-entered javascript:/data: scheme would be stored-XSS.
+const httpUrl = z
+  .string()
+  .url()
+  .refine((u) => /^https?:\/\//i.test(u), { message: "ต้องเป็นลิงก์ http(s)" });
+
+const AffiliateProductFields = z.object({
+  name: z.string().min(1),
+  category: z.enum(["top", "bottom", "outerwear", "shoes", "dress", "accessory"]),
+  color: z.string().optional(),
+  style: z.array(z.string()).default([]),
+  formality: z.enum(["casual", "smart-casual", "formal"]),
+  price: z.number(),
+  size: z.string().optional(),
+  store: z.string().min(1),
+  platform: z.string().min(1),
+  emoji: z.string().min(1),
+  imageUrl: httpUrl.optional(),
+  description: z.string().optional(),
+  affiliateUrl: httpUrl,
+});
+
+export const createAffiliateProduct = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ product: AffiliateProductFields }).parse(d))
+  .handler(async ({ data, context }): Promise<AffiliateProduct> => {
+    assertAdmin(context);
+    const p = data.product;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: row, error } = await (adminClient().from("affiliate_products" as any) as any)
+      .insert({
+        name: p.name,
+        category: p.category,
+        color: p.color ?? null,
+        style: p.style,
+        formality: p.formality,
+        price: p.price,
+        size: p.size ?? null,
+        store: p.store,
+        platform: p.platform,
+        emoji: p.emoji,
+        image_url: p.imageUrl ?? null,
+        description: p.description ?? null,
+        affiliate_url: p.affiliateUrl,
+      })
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    return mapRow(row);
+  });
+
+export const updateAffiliateProduct = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string(), patch: AffiliateProductFields.partial() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    assertAdmin(context);
+    const p = data.patch;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: any = {};
+    if (p.name !== undefined) updateData.name = p.name;
+    if (p.category !== undefined) updateData.category = p.category;
+    if (p.color !== undefined) updateData.color = p.color || null;
+    if (p.style !== undefined) updateData.style = p.style;
+    if (p.formality !== undefined) updateData.formality = p.formality;
+    if (p.price !== undefined) updateData.price = p.price;
+    if (p.size !== undefined) updateData.size = p.size || null;
+    if (p.store !== undefined) updateData.store = p.store;
+    if (p.platform !== undefined) updateData.platform = p.platform;
+    if (p.emoji !== undefined) updateData.emoji = p.emoji;
+    if (p.imageUrl !== undefined) updateData.image_url = p.imageUrl || null;
+    if (p.description !== undefined) updateData.description = p.description || null;
+    if (p.affiliateUrl !== undefined) updateData.affiliate_url = p.affiliateUrl;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (adminClient().from("affiliate_products" as any) as any)
+      .update(updateData)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteAffiliateProduct = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    assertAdmin(context);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (adminClient().from("affiliate_products" as any) as any)
+      .delete()
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });

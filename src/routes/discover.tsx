@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { Search, ShoppingBag } from "lucide-react";
+import { Pencil, Plus, Search, ShoppingBag } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { AffiliateItemModal } from "@/components/AffiliateItemModal";
+import { AffiliateEditModal } from "@/components/AffiliateEditModal";
 import { useAffiliateProducts } from "@/hooks/use-affiliate-products";
 import { Input } from "@/components/ui/input";
 import { CATEGORY_LABELS, type AffiliateProduct } from "@/lib/wardrobe";
@@ -31,8 +32,10 @@ export const Route = (createFileRoute as any)("/discover")({
 });
 
 function DiscoverPage() {
-  const { affiliateProducts, isLoading } = useAffiliateProducts();
+  const { affiliateProducts, isLoading, isAdmin } = useAffiliateProducts();
   const [viewing, setViewing] = useState<AffiliateProduct | null>(null);
+  const [editing, setEditing] = useState<AffiliateProduct | null>(null);
+  const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [store, setStore] = useState("all");
@@ -70,6 +73,14 @@ function DiscoverPage() {
               {isLoading ? "กำลังโหลด…" : `${filtered.length} รายการจากร้านค้าพาร์ทเนอร์`}
             </p>
           </div>
+          {isAdmin && (
+            <button
+              onClick={() => setAdding(true)}
+              className="px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5 shrink-0"
+            >
+              <Plus className="size-4" /> เพิ่มไอเท็ม
+            </button>
+          )}
         </header>
 
         {/* Search Bar */}
@@ -124,11 +135,31 @@ function DiscoverPage() {
           filtered.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {filtered.map((p, i) => (
-                <button
+                <div
                   key={p.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setViewing(p)}
-                  className="text-left bg-white rounded-2xl border border-border/40 shadow-sm p-3 flex flex-col gap-2 transition hover:shadow-md"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setViewing(p);
+                    }
+                  }}
+                  className="relative text-left bg-white rounded-2xl border border-border/40 shadow-sm p-3 flex flex-col gap-2 transition hover:shadow-md cursor-pointer"
                 >
+                  {isAdmin && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditing(p);
+                      }}
+                      className="absolute top-2 right-2 z-10 size-8 rounded-full bg-white/90 shadow-md flex items-center justify-center"
+                      aria-label="แก้ไข"
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
+                  )}
                   <div
                     className={`aspect-square rounded-xl ${TONES[i % 3]} flex items-center justify-center overflow-hidden`}
                   >
@@ -145,7 +176,7 @@ function DiscoverPage() {
                   <p className="text-[11px] text-muted-foreground truncate">
                     {p.store} · {p.platform}
                   </p>
-                </button>
+                </div>
               ))}
             </div>
           ) : (
@@ -178,6 +209,16 @@ function DiscoverPage() {
 
       <BottomNav />
       <AffiliateItemModal item={viewing} onClose={() => setViewing(null)} />
+      {isAdmin && (
+        <AffiliateEditModal
+          product={editing}
+          open={editing !== null || adding}
+          onClose={() => {
+            setEditing(null);
+            setAdding(false);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { FunctionCallingConfigMode, GoogleGenAI, Type } from "@google/genai";
 import { withRetry } from "./retry";
 import { enforceAiQuota } from "./ai-quota";
+import { AI_LIMITS } from "./wardrobe";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const API_KEYS: Record<string, string | undefined> = {
@@ -29,7 +30,7 @@ export const analyzeClothing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => InputSchema.parse(d))
   .handler(async ({ data, context }) => {
-    await enforceAiQuota(context.supabase, "analyze", 20);
+    await enforceAiQuota(context.supabase, "analyze", AI_LIMITS.analyze);
 
     const apiKey = API_KEYS[data.env ?? "prod"];
     if (!apiKey) throw new Error(`API key สำหรับ env "${data.env ?? "prod"}" ไม่ได้ตั้งค่า`);

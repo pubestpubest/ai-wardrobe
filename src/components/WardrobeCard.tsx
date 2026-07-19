@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import type { WardrobeItem } from "@/lib/wardrobe";
+import { TAG_COLORS, type WardrobeItem } from "@/lib/wardrobe";
 
 const TONE = {
   lilac: "bg-lilac text-lilac-foreground",
@@ -59,7 +59,7 @@ export function WardrobeCard({ item, tone, onClick, selectable, selected }: Prop
             {tags.slice(0, 2).map((t) => (
               <span
                 key={t}
-                className="text-[9px] font-semibold bg-white/75 backdrop-blur-sm text-foreground/80 rounded-full px-2 py-0.5 shadow-sm"
+                className={`text-[9px] font-semibold ${TAG_COLORS[t] ?? "bg-white/75"} backdrop-blur-sm text-foreground/80 rounded-full px-2 py-0.5 shadow-sm`}
               >
                 {t}
               </span>

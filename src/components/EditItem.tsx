@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Trash2, X } from "lucide-react";
-import { ITEM_TAGS } from "@/lib/wardrobe";
+import { ITEM_TAGS, TAG_COLORS } from "@/lib/wardrobe";
 import type { StoredItem } from "@/hooks/use-wardrobe";
 
 const CATEGORIES = ["top", "bottom", "outerwear", "shoes", "dress", "accessory"] as const;
@@ -51,7 +51,7 @@ export function EditItem({
               {draft.tags.map((t) => (
                 <span
                   key={t}
-                  className="text-[11px] font-medium bg-white/85 backdrop-blur-sm text-foreground rounded-full px-2.5 py-1 shadow-sm"
+                  className={`text-[11px] font-medium ${TAG_COLORS[t] ?? "bg-white/85"} backdrop-blur-sm text-foreground rounded-full px-2.5 py-1 shadow-sm`}
                 >
                   {t}
                 </span>

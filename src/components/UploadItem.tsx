@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Loader2, Upload, X, Check, Sparkles, Eraser, Undo2 } from "lucide-react";
 import { analyzeClothing } from "@/lib/analyze.functions";
 import { uploadWardrobeImage } from "@/lib/upload.functions";
-import { ITEM_TAGS } from "@/lib/wardrobe";
+import { ITEM_TAGS, TAG_COLORS } from "@/lib/wardrobe";
 import type { StoredItem } from "@/hooks/use-wardrobe";
 
 const MAX_DIM = 1024;
@@ -206,7 +206,7 @@ export function UploadItem({
                 {draft.tags.map((t) => (
                   <span
                     key={t}
-                    className="text-[11px] font-medium bg-white/85 backdrop-blur-sm text-foreground rounded-full px-2.5 py-1 shadow-sm"
+                    className={`text-[11px] font-medium ${TAG_COLORS[t] ?? "bg-white/85"} backdrop-blur-sm text-foreground rounded-full px-2.5 py-1 shadow-sm`}
                   >
                     {t}
                   </span>

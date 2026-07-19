@@ -22,6 +22,19 @@ export const ITEM_TAGS = [
   "ออกกำลังกาย",
 ] as const;
 
+// Pastel chip background per tag (used for the tag chips shown over item images).
+export const TAG_COLORS: Record<string, string> = {
+  ทำงาน: "bg-[#cce2fc]/90", // blue
+  ลำลอง: "bg-[#cdebd6]/90", // green
+  ออกเดท: "bg-[#fccce2]/90", // pink
+  งานทางการ: "bg-[#d8d2fb]/90", // lilac
+  เที่ยว: "bg-[#ffe0c2]/90", // peach
+  ออกกำลังกาย: "bg-[#f4e6a8]/90", // yellow
+};
+
+// Daily per-user AI call limits — mirrored by the server quota checks and shown in the UI.
+export const AI_LIMITS = { chat: 30, analyze: 20 } as const;
+
 export type MatchSource = "manual" | "ai";
 
 export type AffiliateProduct = {

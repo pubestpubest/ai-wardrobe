@@ -3,7 +3,12 @@ import { z } from "zod";
 import { FunctionCallingConfigMode, GoogleGenAI, Type } from "@google/genai";
 import { withRetry } from "./retry";
 import { enforceAiQuota } from "./ai-quota";
-import type { AffiliateProduct, MatchSuggestion, WardrobeItem } from "./wardrobe";
+import {
+  AI_LIMITS,
+  type AffiliateProduct,
+  type MatchSuggestion,
+  type WardrobeItem,
+} from "./wardrobe";
 import { findAffiliateProduct } from "./affiliate.functions";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -46,7 +51,7 @@ export const matchChat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => InputSchema.parse(d))
   .handler(async ({ data, context }): Promise<MatchChatResult> => {
-    await enforceAiQuota(context.supabase, "chat", 30);
+    await enforceAiQuota(context.supabase, "chat", AI_LIMITS.chat);
 
     const apiKey = API_KEYS[data.env ?? "prod"];
     if (!apiKey) throw new Error(`API key สำหรับ env "${data.env ?? "prod"}" ไม่ได้ตั้งค่า`);

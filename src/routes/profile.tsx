@@ -21,6 +21,7 @@ import { useMatches } from "@/hooks/use-matches";
 import { useProfile } from "@/hooks/use-profile";
 import { useBodyModel } from "@/hooks/use-body-model";
 import { useAuth } from "@/hooks/use-auth";
+import { useAiUsage } from "@/hooks/use-ai-usage";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const Route = (createFileRoute as any)("/profile")({
@@ -44,6 +45,7 @@ function ProfilePage() {
   const { profile, update } = useProfile();
   const { bodyModel } = useBodyModel();
   const { signOut } = useAuth();
+  const aiUsage = useAiUsage();
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
 
@@ -146,6 +148,22 @@ function ProfilePage() {
           />
         </div>
 
+        {/* AI quota today */}
+        <Section title="โควตา AI วันนี้">
+          <div className="grid grid-cols-2 gap-3">
+            <QuotaCard
+              label="AI สไตลิสต์"
+              remaining={aiUsage.chat.remaining}
+              limit={aiUsage.chat.limit}
+            />
+            <QuotaCard
+              label="ออโต้แท็ก"
+              remaining={aiUsage.analyze.remaining}
+              limit={aiUsage.analyze.limit}
+            />
+          </div>
+        </Section>
+
         {/* Favorite style */}
         <Section title="สไตล์ที่ชอบ">
           <div className="flex items-center justify-between p-4 rounded-2xl bg-white border border-border/40">
@@ -209,6 +227,27 @@ function ProfilePage() {
         onClose={() => setEditOpen(false)}
         onSave={update}
       />
+    </div>
+  );
+}
+
+function QuotaCard({
+  label,
+  remaining,
+  limit,
+}: {
+  label: string;
+  remaining: number;
+  limit: number;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-border/40 shadow-sm px-4 py-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-0.5">
+        <span className="text-lg font-bold">{remaining}</span>
+        <span className="text-xs text-muted-foreground font-medium"> / {limit} ครั้ง</span>
+      </p>
+      <p className="text-[10px] text-muted-foreground mt-0.5">เหลือวันนี้</p>
     </div>
   );
 }

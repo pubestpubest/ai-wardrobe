@@ -27,7 +27,7 @@ export function EditItem({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4">
-      <div className="bg-background rounded-3xl w-full max-w-md p-5 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-background rounded-3xl w-full max-w-md p-5 flex flex-col gap-4 max-h-[90dvh] overflow-y-auto">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold">แก้ไขไอเท็ม</h2>
           <button
@@ -38,15 +38,27 @@ export function EditItem({
           </button>
         </div>
 
-        {draft.imageUrl ? (
-          <div className="rounded-2xl overflow-hidden bg-muted aspect-square">
+        <div className="relative rounded-2xl overflow-hidden bg-muted aspect-square">
+          {draft.imageUrl ? (
             <img src={draft.imageUrl} alt={draft.name} className="w-full h-full object-cover" />
-          </div>
-        ) : (
-          <div className="rounded-2xl bg-muted aspect-square flex items-center justify-center text-6xl">
-            {draft.emoji}
-          </div>
-        )}
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-6xl">
+              {draft.emoji}
+            </div>
+          )}
+          {draft.tags && draft.tags.length > 0 && (
+            <div className="absolute bottom-2 left-2 right-2 flex flex-wrap gap-1.5">
+              {draft.tags.map((t) => (
+                <span
+                  key={t}
+                  className="text-[11px] font-medium bg-white/85 backdrop-blur-sm text-foreground rounded-full px-2.5 py-1 shadow-sm"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="flex flex-col gap-3">
           <Field

@@ -24,7 +24,7 @@ export function ItemDetail({ item, onClose, onDelete, onWear }: Props) {
       <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={onClose} />
 
       {/* Bottom sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-background shadow-2xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+      <div className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-background shadow-2xl max-h-[90dvh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 rounded-full bg-border" />

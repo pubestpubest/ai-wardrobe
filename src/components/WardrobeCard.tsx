@@ -16,6 +16,7 @@ interface Props {
 }
 
 export function WardrobeCard({ item, tone, onClick, selectable, selected }: Props) {
+  const tags = item.tags ?? [];
   return (
     <div className="group cursor-pointer" onClick={onClick}>
       <div
@@ -51,6 +52,23 @@ export function WardrobeCard({ item, tone, onClick, selectable, selected }: Prop
         {!selectable && (item.wearCount ?? 0) > 0 && (
           <div className="absolute top-4 left-4 px-2 py-1 bg-white/40 backdrop-blur-md rounded-full border border-white/40">
             <span className="text-[10px] font-bold text-foreground/70">×{item.wearCount}</span>
+          </div>
+        )}
+        {tags.length > 0 && (
+          <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-1">
+            {tags.slice(0, 2).map((t) => (
+              <span
+                key={t}
+                className="text-[9px] font-semibold bg-white/75 backdrop-blur-sm text-foreground/80 rounded-full px-2 py-0.5 shadow-sm"
+              >
+                {t}
+              </span>
+            ))}
+            {tags.length > 2 && (
+              <span className="text-[9px] font-semibold bg-white/75 backdrop-blur-sm text-foreground/80 rounded-full px-2 py-0.5 shadow-sm">
+                +{tags.length - 2}
+              </span>
+            )}
           </div>
         )}
       </div>

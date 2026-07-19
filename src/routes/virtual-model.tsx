@@ -123,7 +123,7 @@ function VirtualModelPage() {
   if (step === "result" && activeImage) {
     return (
       <div className="fixed inset-0 z-40 bg-black flex items-center justify-center sm:p-6">
-        <div className="relative w-full h-full bg-neutral-400 sm:max-w-md sm:h-auto sm:aspect-[9/19.5] sm:max-h-[90vh] sm:rounded-[2.5rem] sm:overflow-hidden sm:ring-1 sm:ring-white/10 sm:shadow-2xl">
+        <div className="relative w-full h-full bg-neutral-400 sm:max-w-md sm:h-auto sm:aspect-[9/19.5] sm:max-h-[90dvh] sm:rounded-[2.5rem] sm:overflow-hidden sm:ring-1 sm:ring-white/10 sm:shadow-2xl">
           <img
             src={activeImage}
             alt="Virtual model"

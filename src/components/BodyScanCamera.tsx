@@ -79,7 +79,7 @@ export function BodyScanCamera({
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex items-center justify-center sm:p-6">
-      <div className="w-full h-full flex flex-col sm:max-w-md sm:aspect-[9/19.5] sm:max-h-[90vh] sm:rounded-[2.5rem] sm:overflow-hidden sm:ring-1 sm:ring-white/10 sm:shadow-2xl sm:bg-black">
+      <div className="w-full h-full flex flex-col sm:max-w-md sm:aspect-[9/19.5] sm:max-h-[90dvh] sm:rounded-[2.5rem] sm:overflow-hidden sm:ring-1 sm:ring-white/10 sm:shadow-2xl sm:bg-black">
         <div className="flex items-center justify-between p-4">
           <button
             onClick={() => {

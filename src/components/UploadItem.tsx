@@ -200,7 +200,7 @@ export function UploadItem({
             className="relative rounded-2xl overflow-hidden bg-muted aspect-square"
             style={isCutout ? CHECKERBOARD_STYLE : undefined}
           >
-            <img src={preview} alt="preview" className="w-full h-full object-cover" />
+            <img src={preview} alt="preview" className="w-full h-full object-contain" />
             {draft?.tags && draft.tags.length > 0 && (
               <div className="absolute bottom-2 left-2 right-2 flex flex-wrap gap-1.5">
                 {draft.tags.map((t) => (

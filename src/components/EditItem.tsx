@@ -40,7 +40,7 @@ export function EditItem({
 
         <div className="relative rounded-2xl overflow-hidden bg-muted aspect-square">
           {draft.imageUrl ? (
-            <img src={draft.imageUrl} alt={draft.name} className="w-full h-full object-cover" />
+            <img src={draft.imageUrl} alt={draft.name} className="w-full h-full object-contain" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-6xl">
               {draft.emoji}

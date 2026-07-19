@@ -140,6 +140,7 @@ bug, not before.
 
 <!-- newest first: date | <ID>-L<n> | ✅ done / 🔁 re-loop / ⛔ blocked | one-line note -->
 
+- 2026-07-19 | B09-L1 | ✅ done | Background removal — @imgly client-side (free, on-device) + opt-in preview/revert in UploadItem; resolves Open Q 9.5; scrutinize fix-then-ship (stale-cutout leak on mid-removal close + button-on-cutout fixed)
 - 2026-07-19 | B07d-L1 | ✅ done | Per-user AI quota — ai_usage table + atomic bump_ai_usage (chat 30/day, auto-tag 20/day), hard block; scrutinize ship-after-smoke-test, chat-bubble + anon-grant nits fixed. **Completes B07a–d**
 - 2026-07-19 | B06-L1 | ✅ done | Affiliate Shopping UI Polish — client-side category chips + brand dropdown + search on Discover; thorough grill (store=brand-only, no platform); scrutinize ship, load-flash nit fixed
 - 2026-07-19 | B05-L1 | ✅ done | Outfit History Calendar — new outfit_wears wear-log + "ใส่ชุดนี้วันนี้" + monthly calendar (toggle on Matches); scrutinize fix-then-ship: UTC→local date blocker + FK cascade→set null fixed

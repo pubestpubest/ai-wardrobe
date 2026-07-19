@@ -17,8 +17,9 @@ export const uploadWardrobeImage = createServerFn({ method: "POST" })
 
     const [header, base64] = data.imageDataUrl.split(",");
     const mimeType = header.match(/:(.*?);/)?.[1] ?? "image/jpeg";
+    const ext = mimeType === "image/png" ? "png" : "jpg";
     const bytes = Buffer.from(base64, "base64");
-    const path = `${crypto.randomUUID()}.jpg`;
+    const path = `${crypto.randomUUID()}.${ext}`;
 
     const admin = createClient(url, key, { auth: { persistSession: false } });
     const { error } = await admin.storage.from(BUCKET).upload(path, bytes, {

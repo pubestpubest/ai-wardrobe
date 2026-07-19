@@ -79,7 +79,7 @@ Digital Wardrobe เป็นแอปมือถือที่ให้ผู
 **User Flow:**
 
 1. กดปุ่ม ➕ → เลือก "ถ่ายรูป" หรือ "เลือกจากแกลเลอรี"
-2. ระบบลบพื้นหลังอัตโนมัติ (background removal) — **สถานะ: รอตัดสินใจ (TBD)** ดู Open Questions ข้อ 9.5
+2. ลบพื้นหลัง (background removal) — **✅ ทำแล้ว (B09)**: ปุ่ม "ลบพื้นหลัง" แบบ opt-in ใน UploadItem ใช้ `@imgly/background-removal` ทำงานบน browser (client-side, ฟรี) + preview ให้ผู้ใช้เลือกเก็บ cutout หรือรูปเดิม
 3. AI วิเคราะห์ → กรอกฟิลด์เบื้องต้น:
    - **หมวดหมู่** (เสื้อยืด / กางเกงยีนส์ / เดรส / รองเท้า ฯลฯ)
    - **สี** (สีหลัก + สีรอง พร้อม hex code)
@@ -361,7 +361,7 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 2. รองรับ offline mode ไหม?
 3. ขายแบบ Freemium (free 50 ชิ้น) หรือ Subscription เต็มรูปแบบ?
 4. ต้องการ onboarding flow แบบ style quiz หรือไม่?
-5. Background removal (3.2) — ทำเมื่อไหร่ และใช้ vendor ไหน (remove.bg / U²-Net / อื่น ๆ)? รอตัดสินใจ (2026-07-18)
+5. Background removal (3.2) — **ตัดสินใจแล้ว (2026-07-19, loop B09):** `@imgly/background-removal` client-side (ฟรี, on-device, AGPL) + preview-and-revert UX แทน remove.bg/U²-Net (grill: preview-and-reject ต้องฟรีต่อครั้ง → client-side ชนะ)
 
 ---
 
@@ -389,7 +389,7 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 | Feature (PRD)                  | สถานะ               | รายละเอียด                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | ------------------------------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 3.1 AI Stylist                 | ✅ ทำแล้ว           | `stylistChat` (`stylist.functions.ts`) ส่ง wardrobe JSON + ประวัติแชทให้ Gemini แล้วตอบเป็นภาษาไทย ผ่านหน้า chat (`StylistChat.tsx`) รองรับ **พิมพ์ข้อความ + พูดสั่งด้วยเสียง (voice input)**                                                                                                                                                                                                                                                              |
-| 3.2 AI Photo Upload & Auto-tag | ✅ ทำแล้ว           | `analyzeClothing` (`analyze.functions.ts`) ใช้ Gemini function calling บังคับเรียก `save_clothing_item` เพื่อกรอกหมวดหมู่/สี/สไตล์ ผ่าน `UploadItem.tsx` — ยังไม่มี background removal อัตโนมัติตามที่ระบุใน 3.2                                                                                                                                                                                                                                           |
+| 3.2 AI Photo Upload & Auto-tag | ✅ ทำแล้ว           | `analyzeClothing` (`analyze.functions.ts`) ใช้ Gemini function calling บังคับเรียก `save_clothing_item` เพื่อกรอกหมวดหมู่/สี/สไตล์ ผ่าน `UploadItem.tsx` + **B09: ลบพื้นหลังแบบ opt-in** (`@imgly/background-removal` client-side + preview/revert) — loop `B09-L1` |
 | 3.3 Wardrobe Management        | ✅ ทำแล้ว (บางส่วน) | ดู/แก้ไข/ลบไอเท็มได้ (`items.functions.ts`, `WardrobeCard.tsx`, `EditItem.tsx`) — ยังไม่มี filter ตามหมวดหมู่/สี/สไตล์, search bar, สถิติการใส่ หรือ mark as donated/to-sell                                                                                                                                                                                                                                                                               |
 | 3.4 Outfit History & Calendar  | ✅ ทำแล้ว (บางส่วน)   | **บันทึกชุด (Save Match)** + **ปฏิทินประวัติการใส่** (B05): wear-log `outfit_wears` (migration `014`) + ปุ่ม "ใส่ชุดนี้วันนี้" + `OutfitCalendar` (toggle ในหน้า Matches) — ยังไม่มีระบบป้องกันใส่ชุดซ้ำ (defer) — loop `B05-L1` |
 | 3.5 In-App Weather Status      | ✅ ทำแล้ว           | การ์ดสภาพอากาศในหน้า Home — OpenWeatherMap (`getWeather` server fn, คีย์ `OPENWEATHER_API_KEY` server-side, `lang=th`) + browser geolocation (fallback กรุงเทพฯ) + hint การแต่งตัวแบบ deterministic ไม่ใช้ push/notification (`weather.functions.ts`, `use-weather.ts`, `WeatherCard.tsx`) — loop `B02-L1`. เดิมคือ Smart Notifications ถูกเปลี่ยนสโคปตาม 3.5                                                                                              |
@@ -451,7 +451,7 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 
 ### ไม่รวมในลำดับ (รอการตัดสินใจ)
 
-- **B09 — Background removal** (3.2) — ดู Open Question 9.5
+- **B09 — Background removal** ✅ (3.2) (loop `B09-L1`) — `@imgly/background-removal` client-side (ฟรี, on-device) + opt-in preview/revert ใน UploadItem; resolves Open Question 9.5
 
 ---
 

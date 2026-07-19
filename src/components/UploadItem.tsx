@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Upload, X, Check, Sparkles } from "lucide-react";
+import { Loader2, Upload, X, Check, Sparkles, Eraser, Undo2 } from "lucide-react";
 import { analyzeClothing } from "@/lib/analyze.functions";
 import { uploadWardrobeImage } from "@/lib/upload.functions";
 import { ITEM_TAGS } from "@/lib/wardrobe";
@@ -34,6 +34,21 @@ async function fileToCompressedDataUrl(file: File): Promise<string> {
   return canvas.toDataURL("image/jpeg", 0.85);
 }
 
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error ?? new Error("อ่านผลลัพธ์ไม่สำเร็จ"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+const CHECKERBOARD_STYLE = {
+  backgroundImage:
+    "conic-gradient(#d4d4d8 90deg, transparent 90deg 180deg, #d4d4d8 180deg 270deg, transparent 270deg)",
+  backgroundSize: "16px 16px",
+};
+
 export function UploadItem({
   open,
   onClose,
@@ -48,22 +63,36 @@ export function UploadItem({
   const analyze = useServerFn(analyzeClothing);
   const upload = useServerFn(uploadWardrobeImage);
   const fileRef = useRef<HTMLInputElement>(null);
+  // Bumped whenever the target image changes/resets; async handlers capture it
+  // and bail if it changed mid-await (e.g. modal closed during bg removal) —
+  // otherwise a late result leaks a stale cutout into the next upload.
+  const genRef = useRef(0);
   const [preview, setPreview] = useState<string | null>(null);
+  const [original, setOriginal] = useState<string | null>(null);
+  const [isCutout, setIsCutout] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [bgRemoving, setBgRemoving] = useState(false);
   const [saving, setSaving] = useState(false);
 
   function reset() {
+    genRef.current++;
     setPreview(null);
+    setOriginal(null);
+    setIsCutout(false);
     setDraft(null);
     setAiLoading(false);
+    setBgRemoving(false);
     setSaving(false);
   }
 
   async function handleFile(file: File) {
+    genRef.current++;
     try {
       const dataUrl = await fileToCompressedDataUrl(file);
       setPreview(dataUrl);
+      setOriginal(null);
+      setIsCutout(false);
       setDraft(EMPTY_DRAFT);
     } catch (e) {
       console.error(e);
@@ -71,20 +100,50 @@ export function UploadItem({
     }
   }
 
+  async function removeBg() {
+    if (!preview || bgRemoving) return;
+    const gen = genRef.current;
+    setBgRemoving(true);
+    try {
+      const { removeBackground } = await import("@imgly/background-removal");
+      const blob = await removeBackground(preview);
+      const dataUrl = await blobToDataUrl(blob);
+      if (genRef.current !== gen) return; // modal reset / image swapped mid-removal — drop the result
+      setOriginal((o) => o ?? preview);
+      setPreview(dataUrl);
+      setIsCutout(true);
+    } catch (e) {
+      if (genRef.current !== gen) return; // stale failure after reset — don't toast
+      console.error(e);
+      toast.error(`ลบพื้นหลังไม่สำเร็จ: ${(e as Error).message}`);
+    } finally {
+      if (genRef.current === gen) setBgRemoving(false);
+    }
+  }
+
+  function revertToOriginal() {
+    if (!original) return;
+    setPreview(original);
+    setIsCutout(false);
+  }
+
   async function fillWithAI() {
     if (!preview || aiLoading) return;
+    const gen = genRef.current;
     setAiLoading(true);
     try {
       const result = await analyze({
         data: { imageDataUrl: preview, env: env as "dev" | "uat" | "prod" | undefined },
       });
+      if (genRef.current !== gen) return; // modal reset / image swapped mid-analysis — drop the result
       setDraft({ ...result, tags: draft?.tags ?? [] });
       toast.success("AI วิเคราะห์เสร็จแล้ว");
     } catch (e) {
+      if (genRef.current !== gen) return;
       console.error(e);
       toast.error(`AI วิเคราะห์ไม่สำเร็จ: ${(e as Error).message}`);
     } finally {
-      setAiLoading(false);
+      if (genRef.current === gen) setAiLoading(false);
     }
   }
 
@@ -137,29 +196,69 @@ export function UploadItem({
         )}
 
         {preview && (
-          <div className="rounded-2xl overflow-hidden bg-muted aspect-square">
+          <div
+            className="rounded-2xl overflow-hidden bg-muted aspect-square"
+            style={isCutout ? CHECKERBOARD_STYLE : undefined}
+          >
             <img src={preview} alt="preview" className="w-full h-full object-cover" />
+          </div>
+        )}
+
+        {preview && (
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <button
+                onClick={fillWithAI}
+                disabled={aiLoading || bgRemoving}
+                className="flex-1 rounded-2xl bg-sky text-sky-foreground py-3 px-4 text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition disabled:opacity-60 shadow-sm"
+              >
+                {aiLoading ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" /> AI กำลังวิเคราะห์...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="size-4" /> ให้ AI ช่วยกรอก
+                  </>
+                )}
+              </button>
+
+              {!isCutout && (
+                <button
+                  onClick={removeBg}
+                  disabled={aiLoading || bgRemoving}
+                  className="flex-1 rounded-2xl bg-lilac text-lilac-foreground py-3 px-4 text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition disabled:opacity-60 shadow-sm"
+                >
+                  {bgRemoving ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Eraser className="size-4" /> ลบพื้นหลัง
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {bgRemoving && (
+              <p className="text-xs text-muted-foreground text-center">
+                กำลังลบพื้นหลัง… (โหลดโมเดลครั้งแรกอาจใช้เวลาสักครู่)
+              </p>
+            )}
+
+            {isCutout && original && !bgRemoving && (
+              <button
+                onClick={revertToOriginal}
+                className="self-center text-xs text-muted-foreground underline flex items-center gap-1 hover:text-foreground transition"
+              >
+                <Undo2 className="size-3" /> ใช้รูปเดิม
+              </button>
+            )}
           </div>
         )}
 
         {draft && (
           <div className="flex flex-col gap-3">
-            <button
-              onClick={fillWithAI}
-              disabled={aiLoading}
-              className="w-full rounded-2xl bg-sky text-sky-foreground py-3 px-4 text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition disabled:opacity-60 shadow-sm"
-            >
-              {aiLoading ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" /> AI กำลังวิเคราะห์...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="size-4" /> ให้ AI ช่วยกรอก
-                </>
-              )}
-            </button>
-
             <Field
               label="ชื่อ"
               value={draft.name}

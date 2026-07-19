@@ -2,8 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { FunctionCallingConfigMode, GoogleGenAI, Type } from "@google/genai";
 import { withRetry } from "./retry";
+import { enforceAiQuota } from "./ai-quota";
 import type { AffiliateProduct, MatchSuggestion, WardrobeItem } from "./wardrobe";
 import { findAffiliateProduct } from "./affiliate.functions";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const MessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -41,8 +43,11 @@ const VALID_CATEGORIES: WardrobeItem["category"][] = [
 ];
 
 export const matchChat = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => InputSchema.parse(d))
-  .handler(async ({ data }): Promise<MatchChatResult> => {
+  .handler(async ({ data, context }): Promise<MatchChatResult> => {
+    await enforceAiQuota(context.supabase, "chat", 30);
+
     const apiKey = API_KEYS[data.env ?? "prod"];
     if (!apiKey) throw new Error(`API key สำหรับ env "${data.env ?? "prod"}" ไม่ได้ตั้งค่า`);
 

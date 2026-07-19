@@ -147,12 +147,15 @@ export function StylistChat({
       // other modes so it can't grow unbounded between complete-mode sessions.
       writeAffiliateTurns(mode !== "complete" ? 0 : gotRec ? 0 : turnsSinceRec + 1);
       setMessages((m) => [...m, { role: "assistant", content: reply, suggestion, affiliateItems }]);
-    } catch (_err) {
+    } catch (err) {
+      toast.error((err as Error).message);
       setMessages((m) => [
         ...m,
         {
           role: "assistant",
-          content: `ขออภัยค่ะ เกิดข้อผิดพลาด: ขณะนี้ระบบมีผู้ใช้งานจำนวนมาก กรุณาลองใหม่อีกครั้งภายหลัง`,
+          // Show the real error (e.g. the quota message) rather than a generic
+          // "system busy" that contradicts the toast.
+          content: `ขออภัยค่ะ ${(err as Error).message}`,
         },
       ]);
     } finally {

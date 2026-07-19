@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { FunctionCallingConfigMode, GoogleGenAI, Type } from "@google/genai";
 import { withRetry } from "./retry";
+import { enforceAiQuota } from "./ai-quota";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const API_KEYS: Record<string, string | undefined> = {
   dev: process.env.AGENT_PLATFORM_API_KEY_DEV,
@@ -24,8 +26,11 @@ function parseDataUrl(dataUrl: string): { mimeType: string; data: string } {
 }
 
 export const analyzeClothing = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => InputSchema.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await enforceAiQuota(context.supabase, "analyze", 20);
+
     const apiKey = API_KEYS[data.env ?? "prod"];
     if (!apiKey) throw new Error(`API key สำหรับ env "${data.env ?? "prod"}" ไม่ได้ตั้งค่า`);
 

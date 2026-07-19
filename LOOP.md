@@ -140,6 +140,7 @@ bug, not before.
 
 <!-- newest first: date | <ID>-L<n> | ✅ done / 🔁 re-loop / ⛔ blocked | one-line note -->
 
+- 2026-07-19 | B06-L1 | ✅ done | Affiliate Shopping UI Polish — client-side category chips + brand dropdown + search on Discover; thorough grill (store=brand-only, no platform); scrutinize ship, load-flash nit fixed
 - 2026-07-19 | B05-L1 | ✅ done | Outfit History Calendar — new outfit_wears wear-log + "ใส่ชุดนี้วันนี้" + monthly calendar (toggle on Matches); scrutinize fix-then-ship: UTC→local date blocker + FK cascade→set null fixed
 - 2026-07-19 | B04-L1 | ⏭️ deferred | Profile body measurements — grilled → deferred to B08 (YAGNI; try-on is the only consumer, last + mocked)
 - 2026-07-19 | B07c-L1 | ✅ done | Scope matches + body-model + privatize scan bucket — RLS auth.uid()=user_id, signed URLs, getBodyModel global-latest leak fixed; gate caught a missed bucket consumer (try-on) fixed; scrutinize ship (major = pre-existing storage-write follow-up)

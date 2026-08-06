@@ -23,6 +23,8 @@ WORKDIR /app
 
 COPY --from=builder /app/dist /app/dist
 COPY --from=builder /app/node_modules /app/node_modules
+# Mock body-model/try-on server fns read static PNGs from public/images at runtime.
+COPY --from=builder /app/public /app/public
 COPY prod.ts .
 
 ENV NODE_ENV=production

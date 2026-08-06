@@ -11,7 +11,7 @@ it runs when invoked, drains the top of the queue, and stops.
 
 ## Naming
 
-- **Backlog ID**: `B01`–`B09`, assigned in PRD §12. Queue order = tier order.
+- **Backlog ID**: `B01`–`B10`, assigned in PRD §12. Queue order = tier order.
 - **Loop number**: `L1` = first attempt at a backlog item; `L2`, `L3`… = each
   re-loop triggered by scrutinize findings on the same item.
 - **Loop doc**: `loops/<ID>-L<n>.md` — one per loop, e.g. `loops/B01-L1.md`,
@@ -21,7 +21,7 @@ it runs when invoked, drains the top of the queue, and stops.
 
 | Piece      | Implementation                                                  | Model           |
 | ---------- | --------------------------------------------------------------- | --------------- |
-| Queue      | `PRD.md` §12 — backlog IDs `B01`–`B09`, tier order first        | —               |
+| Queue      | `PRD.md` §12 — backlog IDs `B01`–`B10`, tier order first        | —               |
 | Memory     | PRD §11/§12 status + `loops/` docs + Loop Log below (the index) | —               |
 | Automation | The skill, invoked manually per loop                            | —               |
 | Plan check | `/grilling` in the main session — attended, pre-build           | session (Opus+) |
@@ -100,8 +100,8 @@ lint ✅/❌ · build ✅/❌ · migration ✅/❌ · renders ✅/❌
 
 ## Guardrails
 
-- **Never** touch auth, RLS policies, or migration `003` reversal without an
-  explicit human go — B07 is Tier 4; it doesn't get drained casually.
+- **Never** touch auth or RLS policies without an explicit human go. B07 shipped
+  the foundation (`011`–`013`, `015`); changing it now breaks every scoped table.
 - **Never** run destructive migrations (DROP, data-losing ALTER) without an
   explicit human go.
 - Product decisions beyond the PRD (naming, UX flow, scope additions) →
@@ -139,6 +139,10 @@ bug, not before.
 ## Loop Log
 
 <!-- newest first: date | <ID>-L<n> | ✅ done / 🔁 re-loop / ⛔ blocked | one-line note -->
+
+_Queue state (2026-08-06): everything drained except **B08 — Virtual Try-On**.
+Commits after B10 (poster page, docker/UI fixes) were direct work, not loops —
+no Loop Log rows for them by design._
 
 - 2026-07-19 | B10-L1 | ✅ done | Affiliate catalog admin editor — CRUD gated by env ADMIN_EMAILS allowlist (fail-closed), edit modal + live image preview; grill ruled out scraping; scrutinize fix-then-ship (URL-scheme XSS + button-nesting fixed; email-claim trust = ADMIN-1 deploy precondition)
 - 2026-07-19 | B09-L1 | ✅ done | Background removal — @imgly client-side (free, on-device) + opt-in preview/revert in UploadItem; resolves Open Q 9.5; scrutinize fix-then-ship (stale-cutout leak on mid-removal close + button-on-cutout fixed)

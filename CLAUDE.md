@@ -7,8 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 bun install          # install dependencies
 bun run dev          # run migrations then start dev server (http://localhost:3000)
-bun run build        # production build → .output/
-bun run start        # serve production build (after build)
+bun run build        # production build → dist/ (no type-check — see PRD §13 DX-1)
+bun run start        # serve production build via prod.ts (after build)
 bun run lint         # ESLint
 bun run format       # Prettier
 ```
@@ -27,26 +27,29 @@ supabase gen types typescript --project-id <project-ref> > src/integrations/supa
 
 **Data flow:**
 
-1. `useWardrobe` hook (`src/hooks/use-wardrobe.ts`) wraps TanStack Query + server functions for all CRUD on wardrobe items. It uses a `session_id` stored in `localStorage` (guest mode — no auth yet) to scope items per browser.
-2. Items are stored in Supabase (`items` table). Images go to the `wardrobe-images` Supabase Storage bucket.
-3. AI analysis (`analyzeClothing` in `analyze.functions.ts`) sends the image to Gemini 2.5 Flash with forced function calling — the model must call `save_clothing_item` to return structured tags.
-4. AI stylist (`stylistChat` in `stylist.functions.ts`) takes the full wardrobe JSON + chat history and returns a Thai-language outfit suggestion via Gemini.
+1. `useWardrobe` hook (`src/hooks/use-wardrobe.ts`) wraps TanStack Query + server functions for all CRUD on wardrobe items. Scoping is by the authenticated `user_id` — query keys are user-scoped, and RLS (`auth.uid() = user_id`) enforces it server-side. The old guest `session_id` is gone (added in `003`, dropped in `004`).
+2. Items are stored in Supabase (`items` table). Item photos go to the public `wardrobe-images` bucket; body-scan photos go to the private `body-model-images` bucket and are read through signed URLs.
+3. AI analysis (`analyzeClothing` in `analyze.functions.ts`) sends the image to `gemini-3.1-flash-lite` with forced function calling — the model must call `save_clothing_item` to return structured tags.
+4. AI stylist (`matchChat` in `match-chat.functions.ts`, UI in `StylistChat.tsx`) takes the full wardrobe JSON + chat history and returns a Thai-language outfit suggestion, and can surface affiliate items for gaps in the wardrobe.
+5. Both AI server functions are behind `requireSupabaseAuth` and a per-user daily quota (`enforceAiQuota` → atomic `bump_ai_usage`; limits in `AI_LIMITS`, `src/lib/wardrobe.ts`).
 
 **Migrations** (`supabase/migrations/`) — SQL files run automatically at server cold start via `runMigrations()` in `src/lib/migrate.server.ts`. Tracking table is `public._migrations`. Each `.sql` file runs exactly once. Add new numbered files to ship schema changes.
 
-**Auth state** — currently guest/session-based (migration `003_guest_mode.sql` made `user_id` nullable and opened RLS). `requireSupabaseAuth` middleware exists in `src/integrations/supabase/auth-middleware.ts` but is not yet wired to routes.
+**Auth** — Supabase email + 6-digit PIN (B07a–d). `src/start.ts` wires the auth attacher into the request pipeline; `requireSupabaseAuth` (`src/integrations/supabase/auth-middleware.ts`) is applied as middleware on server functions and hands the handler a user-scoped Supabase client in `context.supabase`. Use that client for user data so RLS applies — the service-role client is for admin ops and storage only. `__root.tsx` gates the app: unauthenticated → `AuthGate`, authenticated but incomplete profile → `ProfileGate`. Requires **email auto-confirm** enabled in the Supabase dashboard (PRD §13 `AUTH-1`).
 
-**Server entry** — `src/server.ts` wraps the TanStack SSR handler and normalizes h3's swallowed 500 errors (which return `{"unhandled":true,"message":"HTTPError"}` instead of throwing) into branded error pages.
+**Server entry** — `src/server.ts` wraps the TanStack SSR handler and normalizes h3's swallowed 500 errors (which return `{"unhandled":true,"message":"HTTPError"}` instead of throwing) into branded error pages. In production `prod.ts` sits in front: it serves `dist/client` off disk (the hashed bundle plus everything copied from `public/`, including `/poster`) and falls through to SSR on a miss.
 
 ## Key environment variables
 
-| Variable                                              | Purpose                                                       |
-| ----------------------------------------------------- | ------------------------------------------------------------- |
-| `AGENT_PLATFORM_API_KEY`                              | Google AI (Gemini) API key                                    |
-| `DATABASE_URL`                                        | Supabase transaction pooler URI — needed for migrations       |
-| `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY`           | Server-side Supabase client                                   |
-| `SUPABASE_SERVICE_ROLE_KEY`                           | Admin client for storage uploads and item CRUD (bypasses RLS) |
-| `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` | Browser-side Supabase client                                  |
+| Variable                                    | Purpose                                                                                                                    |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `AGENT_PLATFORM_API_KEY_{DEV,UAT,PROD}`     | Gemini key per env, picked by the DevTools switcher; `PROD` is the default and falls back to bare `AGENT_PLATFORM_API_KEY` |
+| `DATABASE_URL`                              | Supabase transaction pooler URI — needed for migrations                                                                    |
+| `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` | Server-side Supabase client                                                                                                |
+| `SUPABASE_SERVICE_ROLE_KEY`                 | Admin client for storage uploads and admin CRUD (bypasses RLS)                                                             |
+| `OPENWEATHER_API_KEY`                       | OpenWeatherMap, server-side only — Home weather card                                                                       |
+| `ADMIN_EMAILS`                              | Comma-separated allowlist for the affiliate catalog editor (fail-closed)                                                   |
+| `VITE_SUPABASE_*`                           | Browser-side Supabase client — **inlined at build time**, so they must be set for `bun run build`, not just at runtime     |
 
 ## Development workflow (per global CLAUDE.md)
 

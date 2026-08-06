@@ -1,7 +1,7 @@
 # PRD — Digital Wardrobe with AI Stylist
 
-**Version:** 1.1
-**Date:** 2026-07-18
+**Version:** 1.2
+**Date:** 2026-08-06 (§11–§13 refreshed; §1–§10 are the original proposal, kept as the baseline §11 measures against)
 **Owner:** pubestpubest@gmail.com
 **Status:** Draft
 
@@ -115,7 +115,7 @@ Digital Wardrobe เป็นแอปมือถือที่ให้ผู
 
 - กด "ใส่วันนี้" จากชุดที่ AI แนะนำ
 - ดูชุดที่เคยใส่ในวันที่ผ่านมา
-- **Calendar view รายเดือน** — เห็นชุดที่ใส่แต่ละวันแบบปฏิทิน (ยืนยันความต้องการ 2026-07-18 — ยังไม่เริ่ม build)
+- **Calendar view รายเดือน** — เห็นชุดที่ใส่แต่ละวันแบบปฏิทิน — **✅ ทำแล้ว (B05)**: `outfit_wears` + `OutfitCalendar` (toggle ในหน้า Matches)
 - ป้องกันใส่ชุดซ้ำในระยะเวลาใกล้กัน
 
 ---
@@ -164,6 +164,8 @@ Digital Wardrobe เป็นแอปมือถือที่ให้ผู
 ---
 
 ### 3.8 Feature: Authentication (P1)
+
+> **✅ ทำแล้ว (B07a–d)** — ย่อหน้าด้านล่างเขียนไว้ตอนยังเป็น guest mode จึงบรรยายสภาพ "ก่อนทำ" เก็บไว้เป็น baseline; สถานะจริงดู §11.2 และ §12 (ค้างเฉพาะ AUTH-1 ใน §13)
 
 **Description:** เพิ่มระบบสมัคร/เข้าสู่ระบบจริง (Supabase Auth, email + 6-digit PIN — PIN ใช้เป็น password ของ Supabase) แทน guest mode ปัจจุบัน — ปัจจุบันข้อมูลทุกอย่างเป็น **global pool** ใช้ service-role bypass RLS (ดู 11.x) โดยผูก `requireSupabaseAuth` middleware + client token-attacher ที่มีอยู่แล้ว (ตอนนี้เป็น dead code) เข้ากับ server functions จริง และเปลี่ยนไปใช้ user-scoped client + RLS `auth.uid() = user_id` — แตกงานเป็น B07a–d (ดู §12)
 
@@ -376,21 +378,23 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 
 ---
 
-## 11. Implementation Status (as of 2026-07-12)
+## 11. Implementation Status (as of 2026-08-06)
 
-> สรุปสิ่งที่ Build ไปแล้วจริงในโค้ด เทียบกับแผนใน PRD นี้ — อ้างอิงจาก commit history และโค้ดปัจจุบันบน branch `feat/voice-to-input`
+> สรุปสิ่งที่ Build ไปแล้วจริงในโค้ด เทียบกับแผนใน PRD นี้ — อ้างอิงจาก commit history และโค้ดปัจจุบันบน `main`
 
 ### 11.1 สร้างด้วย Stack จริง (ต่างจาก 5.1 ที่เสนอไว้)
 
-แอปปัจจุบันเป็น **เว็บแอป (TanStack Start / React SSR)** ไม่ใช่ Mobile App ตามที่ระบุใน 5.1, ใช้ Supabase (Postgres + Storage) แทน custom REST API + S3, และใช้ **Gemini 2.5 Flash** (ผ่าน `AGENT_PLATFORM_API_KEY`) แทน Claude Vision/Claude API สำหรับทั้ง image tagging และ outfit suggestion โหมดผู้ใช้ปัจจุบันเป็น **guest/session-based** (ยังไม่มีระบบ auth เต็มรูปแบบ — มี middleware เตรียมไว้แต่ยังไม่ผูกกับ route)
+แอปปัจจุบันเป็น **เว็บแอป (TanStack Start / React SSR)** ไม่ใช่ Mobile App ตามที่ระบุใน 5.1, ใช้ Supabase (Postgres + Storage + **Auth**) แทน custom REST API + S3, และใช้ **Gemini (`gemini-3.1-flash-lite`)** แทน Claude Vision/Claude API สำหรับทั้ง image tagging และ outfit suggestion — คีย์แยกต่อ environment (`AGENT_PLATFORM_API_KEY_DEV/UAT/PROD`, สลับผ่าน DevTools) โหมดผู้ใช้ปัจจุบันเป็น **บัญชีจริง** (Supabase email + 6-digit PIN, auth gate ใน `__root`, RLS `auth.uid()=user_id` ทุกตารางผู้ใช้) — guest/session mode เดิมถูกถอดออกแล้ว (`session_id` เพิ่มใน `003` แล้ว drop ใน `004`)
+
+Deploy: Docker image (`Dockerfile` + `prod.ts` static-file server หน้า SSR handler) build/push อัตโนมัติผ่าน GitHub Actions → DockerHub → deploy webhook
 
 ### 11.2 Feature Status เทียบกับ Section 3
 
 | Feature (PRD)                  | สถานะ               | รายละเอียด                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ------------------------------ | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 3.1 AI Stylist                 | ✅ ทำแล้ว           | `stylistChat` (`stylist.functions.ts`) ส่ง wardrobe JSON + ประวัติแชทให้ Gemini แล้วตอบเป็นภาษาไทย ผ่านหน้า chat (`StylistChat.tsx`) รองรับ **พิมพ์ข้อความ + พูดสั่งด้วยเสียง (voice input)**                                                                                                                                                                                                                                           |
+| 3.1 AI Stylist                 | ✅ ทำแล้ว           | `matchChat` (`match-chat.functions.ts`) ส่ง wardrobe JSON + ประวัติแชทให้ Gemini แล้วตอบเป็นภาษาไทย ผ่านหน้า chat (`StylistChat.tsx`) รองรับ **พิมพ์ข้อความ + พูดสั่งด้วยเสียง (voice input)** และแนะนำไอเท็ม affiliate เมื่อตู้เสื้อผ้าขาด; มี daily quota ต่อผู้ใช้ (B07d) แสดงโควตาคงเหลือในหน้าแชท                                                                                                                                  |
 | 3.2 AI Photo Upload & Auto-tag | ✅ ทำแล้ว           | `analyzeClothing` (`analyze.functions.ts`) ใช้ Gemini function calling บังคับเรียก `save_clothing_item` เพื่อกรอกหมวดหมู่/สี/สไตล์ ผ่าน `UploadItem.tsx` + **B09: ลบพื้นหลังแบบ opt-in** (`@imgly/background-removal` client-side + preview/revert) — loop `B09-L1`                                                                                                                                                                     |
-| 3.3 Wardrobe Management        | ✅ ทำแล้ว (บางส่วน) | ดู/แก้ไข/ลบไอเท็มได้ (`items.functions.ts`, `WardrobeCard.tsx`, `EditItem.tsx`) — ยังไม่มี filter ตามหมวดหมู่/สี/สไตล์, search bar, สถิติการใส่ หรือ mark as donated/to-sell                                                                                                                                                                                                                                                            |
+| 3.3 Wardrobe Management        | ✅ ทำแล้ว (บางส่วน) | ดู/แก้ไข/ลบไอเท็มได้ (`items.functions.ts`, `WardrobeCard.tsx`, `EditItem.tsx`) + **search** (ชื่อ/สี/สไตล์/tags) และ **filter ตามหมวดหมู่** ใน `wardrobe.tsx` + tag chips สีพาสเทลต่อ tag — ยังไม่มี filter ตามสี/สไตล์, สถิติการใส่ (มี `wearItem` แต่ไม่มีหน้าสถิติ) หรือ mark as donated/to-sell                                                                                                                                    |
 | 3.4 Outfit History & Calendar  | ✅ ทำแล้ว (บางส่วน) | **บันทึกชุด (Save Match)** + **ปฏิทินประวัติการใส่** (B05): wear-log `outfit_wears` (migration `014`) + ปุ่ม "ใส่ชุดนี้วันนี้" + `OutfitCalendar` (toggle ในหน้า Matches) — ยังไม่มีระบบป้องกันใส่ชุดซ้ำ (defer) — loop `B05-L1`                                                                                                                                                                                                        |
 | 3.5 In-App Weather Status      | ✅ ทำแล้ว           | การ์ดสภาพอากาศในหน้า Home — OpenWeatherMap (`getWeather` server fn, คีย์ `OPENWEATHER_API_KEY` server-side, `lang=th`) + browser geolocation (fallback กรุงเทพฯ) + hint การแต่งตัวแบบ deterministic ไม่ใช้ push/notification (`weather.functions.ts`, `use-weather.ts`, `WeatherCard.tsx`) — loop `B02-L1`. เดิมคือ Smart Notifications ถูกเปลี่ยนสโคปตาม 3.5                                                                           |
 | 3.6 Item Tags                  | ✅ ทำแล้ว           | predefined occasion tags (ทำงาน/ลำลอง/ออกเดท/งานทางการ/เที่ยว/ออกกำลังกาย) เลือกแบบ multi-select chips ใน Add/Edit Item + ค้นหาได้ในหน้า Wardrobe (`010_item_tags.sql`, `ITEM_TAGS` ใน `wardrobe.ts`) — loop `B01-L1`                                                                                                                                                                                                                   |
@@ -405,22 +409,25 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 | **Affiliate Shopping (Discover)** | หน้า "ช้อปปิ้ง" (`discover.tsx`) แนะนำไอเท็มจากร้านค้าพาร์ทเนอร์ ~50 ชิ้นในแคตตาล็อก (`affiliate.functions.ts`, migrations `006`–`008`) โดย AI Stylist จะ match ไอเท็มที่ตู้เสื้อผ้าขาดให้อัตโนมัติเมื่อผู้ใช้ถามหา + **B06: filter หมวดหมู่/แบรนด์ + search** (loop `B06-L1`) — ฟีเจอร์นี้ถือเป็นการเริ่ม "แหย่" เข้าใกล้ E-commerce integration ซึ่งเดิมระบุเป็น **Non-Goal (1.4)** ควรทบทวนขอบเขตร่วมกับทีม |
 | **Virtual Try-On / Body Model**   | สแกนรูปร่าง (`BodyScanCamera.tsx`, `body-model.functions.ts`, migration `009_body_model.sql`) แล้วสร้างอวตารลองชุดที่บันทึกไว้ (`virtual-model.tsx`, `try-on.functions.ts`) — ปัจจุบันเป็น **mock** (ใช้รูปสำเร็จรูปจาก `public/images` แทนการ generate จริง เนื่องจากติด quota ของ image-gen model) ฟีเจอร์นี้ใกล้เคียงกับ AR ลองเสื้อที่ระบุเป็น **Non-Goal (1.4)** เช่นกัน — ควรทบทวนขอบเขตร่วมกัน          |
 | **Voice Input**                   | พูดสั่ง AI Stylist ได้ผ่าน Web Speech API (`use-speech-to-text.ts`, ปุ่มไมค์ใน `StylistChat.tsx`) รองรับภาษาไทย (`th-TH`)                                                                                                                                                                                                                                                                                      |
-| **DevTools**                      | `DevTools.tsx` — สลับ AI model ระหว่างพัฒนาได้ (ตั้งค่าผ่าน environment ตาม `bf4f600 Refactor AI model handling`)                                                                                                                                                                                                                                                                                              |
+| **DevTools**                      | `DevTools.tsx` + `use-ai-env.ts` — สลับ **API environment** ของ Gemini (Dev / UAT / Prod, default Prod) ระหว่างพัฒนา จำค่าไว้ใน localStorage แล้วส่ง `env` ไปให้ server fn เลือกคีย์ `AGENT_PLATFORM_API_KEY_*`                                                                                                                                                                                                |
+| **Digital Poster**                | หน้าโปสเตอร์ประชาสัมพันธ์แบบ standalone ที่ `/poster` — เป็นไฟล์ static `public/poster/index.html` (มี reveal animation, ambient layers, hover states) เสิร์ฟผ่าน `prod.ts` **ไม่ใช่ TanStack route** จึงไม่ผูกกับ auth gate                                                                                                                                                                                   |
 
 ### 11.4 Gap เทียบกับ Roadmap (Section 8)
 
 - **Iteration 1–3** (Foundation, AI Auto-tag, AI Stylist) เสร็จสมบูรณ์แล้ว แม้ใช้ Gemini แทน Claude Vision/Claude API
-- **Iteration 4** (UI Polish ด้วย color palette `#d2ccfc`/`#fccce2`/`#cce2fc` + card-based layout) — ยังไม่ได้ตรวจสอบว่าตรงกับ 4.2 เป๊ะหรือไม่ ควร verify กับหน้าจอจริง
-- **Iteration 5** (Outfit history calendar, Smart notifications) — Smart Notifications เปลี่ยนเป็น In-App Weather Status แล้ว (ดู 3.5), calendar view ยังไม่เริ่ม ยกเว้นการบันทึก/แชร์ match แบบพื้นฐาน
-- Background removal (3.2), filter/search/สถิติใน Wardrobe (3.3), และ regenerate limit ≥ 5 ครั้ง/วัน (3.1) — ยังไม่ได้ implement หรือยังไม่ได้ยืนยันว่ามี
+- **Iteration 4** (UI Polish ด้วย color palette `#d2ccfc`/`#fccce2`/`#cce2fc` + card-based layout) — ผ่านรอบ polish หลายรอบแล้ว (tag chips พาสเทลต่อ tag, mobile modal scroll, item preview แบบ `object-contain`) แต่ยังไม่ได้ verify ว่าตรงกับ 4.2 เป๊ะหรือไม่
+- **Iteration 5** (Outfit history calendar, Smart notifications) — Smart Notifications เปลี่ยนเป็น In-App Weather Status แล้ว (ดู 3.5); **calendar view เสร็จแล้วใน B05** (`outfit_wears` + `OutfitCalendar`)
+- **Background removal (3.2) เสร็จแล้วใน B09**, search/filter ใน Wardrobe (3.3) เสร็จแล้ว, และ AI rate limit เสร็จแล้วใน **B07d** (chat 30/วัน, auto-tag 20/วัน — เข้มกว่า "regenerate ≥ 5 ครั้ง/วัน" ใน 3.1) — คงเหลือใน 3.3: สถิติการใส่, mark as donated/to-sell
 
 ---
 
-## 12. Updated Roadmap — Backlog เรียงตาม Dependency & Difficulty (as of 2026-07-18)
+## 12. Updated Roadmap — Backlog เรียงตาม Dependency & Difficulty (as of 2026-08-06)
 
-> แทนที่ลำดับความสำคัญเดิมใน Section 8 สำหรับงานที่ยังไม่เริ่ม เรียงจาก dependency น้อย/ง่ายสุดไปมาก/ยากสุด Virtual Try-On ถูกจัดไว้ท้ายสุดตามที่ตกลง (ยากสุด) Background removal (3.2) ไม่รวมในลำดับนี้ — รอตัดสินใจ (Open Question 9.5)
+> แทนที่ลำดับความสำคัญเดิมใน Section 8 สำหรับงานที่ยังไม่เริ่ม เรียงจาก dependency น้อย/ง่ายสุดไปมาก/ยากสุด Virtual Try-On ถูกจัดไว้ท้ายสุดตามที่ตกลง (ยากสุด)
 >
-> แต่ละ backlog มี ID (`B01`–`B09`) ใช้อ้างอิงใน `LOOP.md` และ loop docs (`loops/<ID>-L<n>.md`)
+> แต่ละ backlog มี ID (`B01`–`B10`) ใช้อ้างอิงใน `LOOP.md` และ loop docs (`loops/<ID>-L<n>.md`)
+>
+> **สถานะคิว:** B01–B03, B05–B07, B09, B10 ✅ · B04 ⏭️ (รวมเข้า B08) · **เหลือ B08 — Virtual Try-On (Tier 5) เป็นรายการเดียวในคิว** ส่วนงานที่ค้างนอกคิวอยู่ใน §13
 
 ### Tier 1 — Quick wins (ไม่มี dependency, ง่าย)
 
@@ -440,7 +447,7 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 
 ### Tier 4 — High difficulty, foundational (ไม่ blocked แต่เสี่ยงสูง)
 
-7. **B07 — Authentication** ✅ (3.8) (B07a–d เสร็จครบ; **pending human: AUTH-1 email auto-confirm + smoke tests** ดู §13) — แตกเป็น 4 loop ย่อย (ตัดสินใจจาก grill 2026-07-19): identity ก่อน แล้ว scope ข้อมูลทีละตาราง · Supabase Auth (email + 6-digit PIN) · user-scoped client + RLS `auth.uid()=user_id` (service-role เหลือเฉพาะ admin ops) · guest pool เดิม claim-all → seed account (บัญชีแรกที่สมัคร; per-guest migrate เป็นไปไม่ได้เพราะ session_id ถูก drop ใน 004) · ทำก่อน Virtual Try-On เพราะ scan ร่างกายควรอยู่ใต้บัญชีจริง
+8. **B07 — Authentication** ✅ (3.8) (B07a–d เสร็จครบ; **pending human: AUTH-1 email auto-confirm + smoke tests** ดู §13) — แตกเป็น 4 loop ย่อย (ตัดสินใจจาก grill 2026-07-19): identity ก่อน แล้ว scope ข้อมูลทีละตาราง · Supabase Auth (email + 6-digit PIN) · user-scoped client + RLS `auth.uid()=user_id` (service-role เหลือเฉพาะ admin ops) · guest pool เดิม claim-all → seed account (บัญชีแรกที่สมัคร; per-guest migrate เป็นไปไม่ได้เพราะ session_id ถูก drop ใน 004) · ทำก่อน Virtual Try-On เพราะ scan ร่างกายควรอยู่ใต้บัญชีจริง
    - **B07a — Auth identity foundation** ✅ (loop `B07a-L1`, migration `011`; pending: เปิด email auto-confirm ใน Supabase + smoke test สมัคร/เข้าสู่ระบบจริง) — register/login/logout + auth gate ใน `__root` (unauth→login, authed+incomplete→onboarding gate เดิม, else→app) + ผูก middleware/attacher ใน `start.ts` + ตาราง `profiles` (ย้ายโปรไฟล์ localStorage → DB ต่อยอด B03) พิสูจน์ path token→RLS ครบวง
    - **B07b — Scope items → user_id** ✅ (loop `B07b-L1`, migration `012`) — item fns ใช้ user-scoped client + RLS `auth.uid()=user_id`, `saveItem` เขียน `user_id`, owner check ผ่าน RLS (แก้ id-only delete + IDOR ตอน removeItem), backfill via `claimOrphanItems` (ปุ่มใน profile, one-time); **ค้าง: ตัดสินใจ gate การ claim สำหรับ multi-user** (ดู loop doc)
    - **B07c — Scope matches + body-model** ✅ (loop `B07c-L1`, migration `013`) — RLS `auth.uid()=user_id` บน matches + body_models (user-scoped client), แก้ `getBodyModel` global-latest leak, ปิด bucket รูปสแกนเป็น private + signed URLs (รวม `try-on.functions`), claimOrphans ครอบคลุม 3 ตาราง; **follow-up: owner-scope storage write/delete ทั้งสอง bucket, privatize `wardrobe-images`**
@@ -448,9 +455,9 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 
 ### Tier 5 — Last (ยากสุดตามที่ตกลง)
 
-8. **B08 — Virtual Try-On** (3.10) — ต้องแก้ quota/เปลี่ยน image-gen model ก่อนถึงจะ generate จริงได้ (ปัจจุบัน mock) และควรอยู่หลัง Authentication (Tier 4). **รวมงาน B04 (optional body measurements) เข้ามาด้วย** — เพิ่มฟิลด์วัดสัดส่วนบน `profiles` (DB-backed จาก B07a) ตามที่ try-on ต้องใช้จริง
+9. **B08 — Virtual Try-On** (3.10) — ต้องแก้ quota/เปลี่ยน image-gen model ก่อนถึงจะ generate จริงได้ (ปัจจุบัน mock) และควรอยู่หลัง Authentication (Tier 4). **รวมงาน B04 (optional body measurements) เข้ามาด้วย** — เพิ่มฟิลด์วัดสัดส่วนบน `profiles` (DB-backed จาก B07a) ตามที่ try-on ต้องใช้จริง
 
-### ไม่รวมในลำดับ (รอการตัดสินใจ)
+### ไม่รวมในลำดับ (ตัดสินใจแล้ว)
 
 - **B09 — Background removal** ✅ (3.2) (loop `B09-L1`) — `@imgly/background-removal` client-side (ฟรี, on-device) + opt-in preview/revert ใน UploadItem; resolves Open Question 9.5
 
@@ -460,12 +467,12 @@ Outfit { id, user_id, item_ids[], occasion, weather, worn_date, feedback }
 
 > Cross-cutting deferrals surfaced by the loop scrutinize passes (not feature backlog). Newest first.
 
-| ID          | Item                                                                                                                                                            | Source  | Priority | Notes                                                                                                               |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
-| **AUTH-1**  | Enable **email auto-confirm** in the Supabase dashboard, then smoke-test signup→login→logout live                                                               | B07a-L1 | **High** | Auth doesn't work end-to-end until this dashboard toggle; register currently dead-ends at "confirm your email"      |
-| **QUOTA-1** | Live smoke-test the AI quota: 31 stylist chats / 21 auto-tags → the 31st/21st blocks with the Thai toast, no `permission denied`                                | B07d-L1 | Medium   | Static analysis + precedent say the RPC grants work; needs one real logged-in run (depends on AUTH-1)               |
-| **ADMIN-1** | Admin editor (B10) trusts the JWT email claim: enable Supabase **email confirmation** + **pre-register** every `ADMIN_EMAILS` account before go-live, else admin-email squatting is possible | B10-L1 | **High** | Deploy precondition, not a code fix; ties to AUTH-1 (auto-confirm). Also set `ADMIN_EMAILS` in `.env` |
-| **SEC-1**   | Owner-scope storage **INSERT/DELETE** policies on `body-model-images` **and** `wardrobe-images` (currently `bucket_id`-only → anon key can blind upload/delete) | B07c-L1 | Medium   | Reads are now private; writes/deletes still open. Not data theft (no list policy, random UUIDs) but junk-upload/DoS |
-| **SEC-2**   | Privatize the **`wardrobe-images`** bucket + signed URLs (item photos are world-readable by URL today)                                                          | B07b-L1 | Medium   | Same signed-URL treatment as B07c body-scan bucket                                                                  |
-| **AUTH-2**  | Decide `claimOrphans` **multi-user gating** (admin allowlist / one-shot migration / accept for solo)                                                            | B07b-L1 | Low      | Mitigated to first-run-per-account (button hidden once you own items)                                               |
-| **DX-1**    | Add **`tsc` to the gate** + fix pre-existing type errors (`ShareMatchModal.tsx` null guards, `server.ts` needs `@types/bun`)                                    | B07b-L1 | Low      | `bun run build` (Vite) doesn't type-check, so real type errors slip through                                         |
+| ID          | Item                                                                                                                                                                                         | Source  | Priority | Notes                                                                                                               |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
+| **AUTH-1**  | Enable **email auto-confirm** in the Supabase dashboard, then smoke-test signup→login→logout live                                                                                            | B07a-L1 | **High** | Auth doesn't work end-to-end until this dashboard toggle; register currently dead-ends at "confirm your email"      |
+| **QUOTA-1** | Live smoke-test the AI quota: 31 stylist chats / 21 auto-tags → the 31st/21st blocks with the Thai toast, no `permission denied`                                                             | B07d-L1 | Medium   | Static analysis + precedent say the RPC grants work; needs one real logged-in run (depends on AUTH-1)               |
+| **ADMIN-1** | Admin editor (B10) trusts the JWT email claim: enable Supabase **email confirmation** + **pre-register** every `ADMIN_EMAILS` account before go-live, else admin-email squatting is possible | B10-L1  | **High** | Deploy precondition, not a code fix; ties to AUTH-1 (auto-confirm). Also set `ADMIN_EMAILS` in `.env`               |
+| **SEC-1**   | Owner-scope storage **INSERT/DELETE** policies on `body-model-images` **and** `wardrobe-images` (currently `bucket_id`-only → anon key can blind upload/delete)                              | B07c-L1 | Medium   | Reads are now private; writes/deletes still open. Not data theft (no list policy, random UUIDs) but junk-upload/DoS |
+| **SEC-2**   | Privatize the **`wardrobe-images`** bucket + signed URLs (item photos are world-readable by URL today)                                                                                       | B07b-L1 | Medium   | Same signed-URL treatment as B07c body-scan bucket                                                                  |
+| **AUTH-2**  | Decide `claimOrphans` **multi-user gating** (admin allowlist / one-shot migration / accept for solo)                                                                                         | B07b-L1 | Low      | Mitigated to first-run-per-account (button hidden once you own items)                                               |
+| **DX-1**    | Add **`tsc` to the gate** + fix pre-existing type errors (`ShareMatchModal.tsx` null guards, `server.ts` needs `@types/bun`)                                                                 | B07b-L1 | Low      | `bun run build` (Vite) doesn't type-check, so real type errors slip through                                         |

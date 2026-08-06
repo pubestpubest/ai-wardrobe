@@ -38,29 +38,21 @@ function DiscoverPage() {
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
-  const [store, setStore] = useState("all");
-
-  const stores = useMemo(
-    () => [...new Set(affiliateProducts.map((p) => p.store))].sort(),
-    [affiliateProducts],
-  );
 
   const filtered = useMemo(() => {
     const q = norm(search);
     return affiliateProducts.filter((p) => {
       const matchesSearch = !q || norm(p.name).includes(q) || norm(p.description ?? "").includes(q);
       const matchesCategory = category === "all" || p.category === category;
-      const matchesStore = store === "all" || p.store === store;
-      return matchesSearch && matchesCategory && matchesStore;
+      return matchesSearch && matchesCategory;
     });
-  }, [affiliateProducts, search, category, store]);
+  }, [affiliateProducts, search, category]);
 
-  const hasFilters = search !== "" || category !== "all" || store !== "all";
+  const hasFilters = search !== "" || category !== "all";
 
   const clearFilters = () => {
     setSearch("");
     setCategory("all");
-    setStore("all");
   };
 
   return (
@@ -97,7 +89,7 @@ function DiscoverPage() {
         </div>
 
         {/* Categories */}
-        <div className="flex gap-3 overflow-x-auto pb-6 scrollbar-none -mx-5 px-5 mb-2">
+        <div className="flex gap-3 overflow-x-auto pb-6 scrollbar-none -mx-5 px-5 mb-6">
           {CATEGORIES.map((cat) => (
             <button
               key={cat.id}
@@ -111,22 +103,6 @@ function DiscoverPage() {
               {cat.label}
             </button>
           ))}
-        </div>
-
-        {/* Store filter */}
-        <div className="flex justify-end mb-6">
-          <select
-            value={store}
-            onChange={(e) => setStore(e.target.value)}
-            className="bg-muted rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-primary"
-          >
-            <option value="all">ทั้งหมด</option>
-            {stores.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
         </div>
 
         {isLoading ? (

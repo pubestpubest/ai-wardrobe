@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
-import { Search, Plus, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { Search, Plus, Sparkles, X } from "lucide-react";
 import { WardrobeCard } from "@/components/WardrobeCard";
 import { BottomNav } from "@/components/BottomNav";
 import { UploadItem } from "@/components/UploadItem";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { EditItem } from "@/components/EditItem";
 import { SaveMatchModal } from "@/components/SaveMatchModal";
 import { useMatches } from "@/hooks/use-matches";
+import { CATEGORY_LABELS } from "@/lib/wardrobe";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const Route = (createFileRoute as any)("/wardrobe")({
@@ -23,23 +24,18 @@ export const Route = (createFileRoute as any)("/wardrobe")({
 });
 
 const CATEGORIES = [
-  { id: "all", label: "All" },
-  { id: "top", label: "Tops" },
-  { id: "bottom", label: "Bottoms" },
-  { id: "shoes", label: "Shoes" },
-  { id: "outerwear", label: "Outerwear" },
-  { id: "dress", label: "Dresses" },
-  { id: "accessory", label: "Accessories" },
+  { id: "all", label: "ทั้งหมด" },
+  ...(Object.keys(CATEGORY_LABELS) as (keyof typeof CATEGORY_LABELS)[]).map((id) => ({
+    id,
+    label: CATEGORY_LABELS[id],
+  })),
 ];
-
-type SortKey = "newest" | "most-worn" | "name";
 
 function WardrobePage() {
   const { items, add, update, remove } = useWardrobe();
   const { add: addMatch } = useMatches();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [sort, setSort] = useState<SortKey>("newest");
   const [uploadOpen, setUploadOpen] = useState(false);
   const [editing, setEditing] = useState<StoredItem | null>(null);
   const [selectMode, setSelectMode] = useState(false);
@@ -66,7 +62,7 @@ function WardrobePage() {
   );
 
   const filteredItems = useMemo(() => {
-    const list = items.filter((item) => {
+    return items.filter((item) => {
       const matchesSearch =
         item.name.toLowerCase().includes(search.toLowerCase()) ||
         item.color.toLowerCase().includes(search.toLowerCase()) ||
@@ -75,12 +71,7 @@ function WardrobePage() {
       const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
-    return [...list].sort((a, b) => {
-      if (sort === "most-worn") return (b.wearCount ?? 0) - (a.wearCount ?? 0);
-      if (sort === "name") return a.name.localeCompare(b.name, "th");
-      return 0;
-    });
-  }, [items, search, selectedCategory, sort]);
+  }, [items, search, selectedCategory]);
 
   const tones = ["lilac", "blush", "sky"] as const;
 
@@ -136,20 +127,6 @@ function WardrobePage() {
             placeholder="ค้นหาเสื้อผ้า..."
             className="pl-10 h-12 bg-white border-none shadow-sm rounded-2xl focus-visible:ring-lilac/50"
           />
-          <button
-            onClick={() =>
-              setSort((s) => (s === "newest" ? "most-worn" : s === "most-worn" ? "name" : "newest"))
-            }
-            className="absolute right-3 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center bg-muted rounded-lg text-muted-foreground"
-            title={sort}
-          >
-            <span className="relative flex items-center justify-center">
-              <SlidersHorizontal className="size-4" />
-              {sort !== "newest" && (
-                <span className="absolute -top-1 -right-1 size-1.5 rounded-full bg-primary" />
-              )}
-            </span>
-          </button>
         </div>
 
         {/* Categories */}

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
-import { Bell, Search, Sparkles, Plus } from "lucide-react";
+import { Sparkles, Plus } from "lucide-react";
 import { WardrobeCard } from "@/components/WardrobeCard";
 import { StylistChat, type StylistChatHandle } from "@/components/StylistChat";
 import { UploadItem } from "@/components/UploadItem";
@@ -89,15 +89,6 @@ function Index() {
               <h1 className="text-base font-semibold leading-tight">{profile.name} ✨</h1>
             </button>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="size-10 rounded-full bg-white shadow-sm flex items-center justify-center">
-              <Search className="size-4" />
-            </button>
-            <button className="size-10 rounded-full bg-white shadow-sm flex items-center justify-center relative">
-              <Bell className="size-4" />
-              <span className="absolute top-2 right-2 size-2 rounded-full bg-blush" />
-            </button>
-          </div>
         </header>
 
         <WeatherCard />
@@ -110,9 +101,9 @@ function Index() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Sparkles className="size-4" />
-              <span className="text-sm font-medium">Outfit Today</span>
+              <span className="text-sm font-medium">ชุดวันนี้</span>
             </div>
-            <span className="text-[11px] font-semibold bg-white/50 rounded-full px-2.5 py-0.5">
+            <span className="text-sm font-semibold bg-white/60 rounded-full px-4 py-2">
               ดูตู้ทั้งหมด →
             </span>
           </div>
@@ -122,9 +113,9 @@ function Index() {
               <p className="text-xs mt-2 opacity-70">ไอเท็มในตู้</p>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">
-              <Stat label="Tops" value={items.filter((i) => i.category === "top").length} />
-              <Stat label="Bottoms" value={items.filter((i) => i.category === "bottom").length} />
-              <Stat label="Shoes" value={items.filter((i) => i.category === "shoes").length} />
+              <Stat label="เสื้อ" value={items.filter((i) => i.category === "top").length} />
+              <Stat label="กางเกง" value={items.filter((i) => i.category === "bottom").length} />
+              <Stat label="รองเท้า" value={items.filter((i) => i.category === "shoes").length} />
             </div>
           </div>
         </Link>

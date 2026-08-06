@@ -1,19 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import {
-  Sparkles,
-  Shirt,
-  Heart,
-  ChevronRight,
-  Bell,
-  Globe,
-  Palette,
-  LogOut,
-  Pencil,
-  ScanFace,
-} from "lucide-react";
+import { Sparkles, Shirt, Heart, LogOut, Pencil, ScanFace } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { useWardrobe } from "@/hooks/use-wardrobe";
@@ -50,8 +38,6 @@ function ProfilePage() {
   const [editOpen, setEditOpen] = useState(false);
 
   const aiMatchCount = useMemo(() => matches.filter((m) => m.source === "ai").length, [matches]);
-
-  const soon = () => toast.info("ฟีเจอร์นี้กำลังจะมาเร็ว ๆ นี้");
 
   const handleLogout = async () => {
     await signOut();
@@ -190,13 +176,6 @@ function ProfilePage() {
           </div>
         </Section>
 
-        {/* Settings list */}
-        <Section title="การตั้งค่า">
-          <SettingRow icon={<Bell className="size-4" />} label="การแจ้งเตือน" onClick={soon} />
-          <SettingRow icon={<Palette className="size-4" />} label="ธีมและสีหลัก" onClick={soon} />
-          <SettingRow icon={<Globe className="size-4" />} label="ภาษา" hint="ไทย" onClick={soon} />
-        </Section>
-
         {/* Reclaim pre-auth items — only meaningful for a fresh account with an
             empty wardrobe, so hidden once you own items (limits the first-come grab). */}
         {items.length === 0 && (
@@ -289,31 +268,5 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       </p>
       <div className="flex flex-col gap-2">{children}</div>
     </div>
-  );
-}
-
-function SettingRow({
-  icon,
-  label,
-  hint,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  hint?: string;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-3 p-4 rounded-2xl bg-white border border-border/40 hover:bg-muted/40 transition text-left"
-    >
-      <div className="size-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
-        {icon}
-      </div>
-      <span className="flex-1 text-sm font-medium">{label}</span>
-      {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
-      <ChevronRight className="size-4 text-muted-foreground" />
-    </button>
   );
 }

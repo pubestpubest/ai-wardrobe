@@ -15,7 +15,7 @@
   body {
     margin: 0; min-height: 100vh;
     font-family: 'Bai Jamjuree', system-ui, sans-serif; color: #2B2438;
-    background: linear-gradient(180deg, #FDFCFD 0%, #FDFBFD 34%, #F7F1FA 72%, #F1E9F7 100%);
+    background: linear-gradient(130deg, #FDFCFD, #F7F2FC, #FDF5F9, #F3F7FD, #F8F4FC, #FDFCFD);
     background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
   }
@@ -36,18 +36,17 @@
 
   /* ── hero ── */
   .hero { display: flex; align-items: center; gap: clamp(16px, 3vw, 28px); flex-wrap: wrap }
-  .hero > div { flex: 1 1 340px; display: flex; flex-direction: column; gap: 14px }
+  .hero > div:not(.logo-wrap) { flex: 1 1 340px; display: flex; flex-direction: column; gap: 14px }
   h1 { margin: 0; font-size: clamp(30px, 5.4vw, 44px); line-height: 1.2; font-weight: 700; letter-spacing: -.02em }
   h1 span { color: #7B5BC7 }
   .lede { display: flex; align-items: center; gap: 12px; flex-wrap: wrap }
   .pill { background: #7B5BC7; color: #fff; padding: 10px 22px; border-radius: 999px; font-size: 15px; font-weight: 600; white-space: nowrap; box-shadow: 0 8px 24px -12px rgba(120,90,180,.6) }
   .lede p { margin: 0; font-size: 15px; color: #6B5F80; font-weight: 500; max-width: 340px; line-height: 1.55 }
-  .logo { flex: none; width: clamp(104px, 16vw, 148px); aspect-ratio: 1; object-fit: contain; display: block; filter: drop-shadow(0 14px 30px rgba(120,90,180,.35)) }
+  .logo { width: 100%; height: 100%; object-fit: contain; display: block; filter: drop-shadow(0 14px 30px rgba(120,90,180,.35)) }
 
   /* ── real app screenshot ── */
   .shots { display: flex; justify-content: center }
-  /* the screenshot ships on an opaque white plate — multiply drops it into the gradient */
-  .shots img { width: clamp(240px, 42vw, 400px); height: auto; display: block; mix-blend-mode: multiply }
+  .shots img { width: clamp(240px, 42vw, 400px); height: auto; display: block }
   .muted { color: #8B7BA8 }
 
   /* ── features ── */
@@ -81,9 +80,232 @@
   .qr img { width: 156px; height: 156px; object-fit: contain; display: block }
   .cta { display: inline-flex; align-items: center; gap: 8px; background: #7B5BC7; color: #fff; padding: 11px 22px; border-radius: 999px; font-size: 14px; font-weight: 600; box-shadow: 0 10px 26px -14px rgba(120,90,180,.8) }
   footer { text-align: center; font-size: 12px; color: #8B7BA8 }
+
+  /* ══════════ ambient background stage ══════════
+     Four fixed layers behind the content, all pointer-events:none so they
+     never eat a hover or a tap: mesh blobs → floating gadgets → grain → the
+     scroll rail on top. Everything animates transform/opacity only. */
+  .poster { position: relative; z-index: 1 }
+
+  .fx, .gadgets { position: fixed; inset: -70px; z-index: 0; pointer-events: none; overflow: hidden }
+  .fx { will-change: transform }
+  .gadgets { will-change: transform }
+
+  .blob { position: absolute; border-radius: 50%; filter: blur(72px) }
+  .b1 { width: 50vw; height: 50vw; top: -16%; left: -12%; background: radial-gradient(circle, rgba(214,208,250,.6), transparent 68%); transform: translate3d(6vw,5vh,0) scale(1.12); opacity: .5 }
+  .b2 { width: 44vw; height: 44vw; top: 4%;    right: -14%; background: radial-gradient(circle, rgba(252,218,234,.55), transparent 68%); transform: translate3d(-6vw,7vh,0) scale(1.02); opacity: .45 }
+  .b3 { width: 54vw; height: 54vw; bottom: -20%; left: 8%;  background: radial-gradient(circle, rgba(214,232,252,.55), transparent 68%); transform: translate3d(6vw,-7vh,0) scale(1.16); opacity: .45 }
+  .b4 { width: 38vw; height: 38vw; top: 38%;   left: 44%;  background: radial-gradient(circle, rgba(238,220,252,.5), transparent 68%); transform: translate3d(-8vw,-5vh,0) scale(1.04); opacity: .35 }
+  .b5 { width: 30vw; height: 30vw; top: 62%;   left: 6%;   background: radial-gradient(circle, rgba(220,246,242,.45), transparent 68%); transform: translate3d(9vw,-4vh,0) scale(.92); opacity: .28 }
+
+
+  /* ── floating gadgets: wardrobe emoji + the app's own occasion chips ── */
+  .g {
+    position: absolute; left: var(--x); top: var(--y);
+    font-size: calc(26px * var(--s, 1)); line-height: 1; opacity: var(--o, .5);
+    animation: bobble var(--t, 24s) ease-in-out var(--d, 0s) infinite;
+    will-change: transform;
+  }
+  .g.chip {
+    font-size: calc(11px * var(--s, 1)); font-weight: 600; white-space: nowrap;
+    padding: 5px 11px; border-radius: 999px; backdrop-filter: blur(6px);
+    box-shadow: 0 6px 18px -10px rgba(120,90,180,.5);
+  }
+  .g.dot { width: calc(7px * var(--s,1)); height: calc(7px * var(--s,1)); border-radius: 50%; background: currentColor }
+
+  @keyframes bobble {
+    0%,100% { transform: translate3d(0,0,0) rotate(0deg) }
+    28%     { transform: translate3d(16px,-26px,0) rotate(9deg) }
+    54%     { transform: translate3d(-8px,-46px,0) rotate(-7deg) }
+    78%     { transform: translate3d(-18px,-20px,0) rotate(4deg) }
+  }
+
+  /* ── film grain, sits above everything at a whisper ── */
+  .grain {
+    position: fixed; inset: -50%; z-index: 3; pointer-events: none; opacity: .035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ── scroll rail ── */
+  .progress { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 20; pointer-events: none }
+  .progress i { display: block; height: 100%; width: 0;
+    background: linear-gradient(90deg, #D2CCFC, #FCCCE2, #CCE2FC, #7B5BC7);
+    box-shadow: 0 0 12px rgba(120,90,180,.5); transition: width .12s linear }
+
+  /* ── logo with orbiting sparks ── */
+  .logo-wrap { position: relative; flex: none; width: clamp(104px, 16vw, 148px); aspect-ratio: 1; display: grid; place-items: center }
+  .logo-wrap::before, .logo-wrap::after {
+    content: ""; position: absolute; inset: -14px; border-radius: 50%;
+    animation: orbit 14s linear infinite;
+  }
+  .logo-wrap::before { background: radial-gradient(circle 5px at 50% 0%, #FCCCE2, transparent) }
+  .logo-wrap::after  { background: radial-gradient(circle 4px at 50% 100%, #CCE2FC, transparent); animation-duration: 19s; animation-direction: reverse }
+  @keyframes orbit { to { transform: rotate(360deg) } }
+
+  /* ── 3D tilt shell for the phone ── */
+  .shots { perspective: 1000px }
+  .tilt {
+    transform: rotateX(var(--tx, 0deg)) rotateY(var(--ty, 0deg));
+    transform-style: preserve-3d; transition: transform .35s cubic-bezier(.22,1,.36,1);
+  }
+
+  /* ══════════ micro-interactions ══════════
+     Reveals are gated on html.js (set in <head>) so nothing is hidden when JS
+     is off. Every loop/transition is disabled under prefers-reduced-motion. */
+
+  /* ── scroll reveal ── */
+  .js .badge, .js .brand, .js .hero > div:not(.logo-wrap), .js .feats > .feat,
+  .js .rule, .js .step, .js .qr, .js footer {
+    opacity: 0; transform: translateY(18px);
+    transition: opacity .7s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1);
+  }
+  .js .logo, .js .shots img { opacity: 0; transition: opacity .9s ease }
+  /* each selector repeats its hidden counterpart + .is-in, so it always outranks
+     it — a bare `.js .is-in` loses to `.js .hero > div:not(.logo-wrap)` on specificity */
+  .js .badge.is-in, .js .brand.is-in, .js .hero > div:not(.logo-wrap).is-in, .js .feats > .feat.is-in,
+  .js .rule.is-in, .js .step.is-in, .js .qr.is-in, .js footer.is-in,
+  .js .logo.is-in, .js .shots img.is-in { opacity: 1; transform: none }
+
+  /* stagger */
+  .js .hero > div:not(.logo-wrap) { transition-delay: .06s }
+  .js .feats > .feat:nth-child(2) { transition-delay: .07s }
+  .js .feats > .feat:nth-child(3) { transition-delay: .14s }
+  .js .feats > .feat:nth-child(4) { transition-delay: .21s }
+  .js .feats > .feat:nth-child(5) { transition-delay: .28s }
+  .js .feats > .feat:nth-child(6) { transition-delay: .35s }
+  .js .step:nth-child(2) { transition-delay: .09s }
+  .js .step:nth-child(3) { transition-delay: .18s }
+
+  /* the hairline rule draws itself in */
+  .js .rule::after { transform: scaleX(0); transform-origin: left; transition: transform .9s .15s cubic-bezier(.22,1,.36,1) }
+  .js .rule.is-in::after { transform: scaleX(1) }
+
+  /* ── ambient loops ── */
+  @keyframes float   { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-9px) } }
+  @keyframes bob     { 0%,100% { transform: translateY(0) rotate(0) } 50% { transform: translateY(-6px) rotate(-1.5deg) } }
+  @keyframes twinkle { 0%,100% { transform: rotate(0) scale(1); opacity: 1 } 50% { transform: rotate(18deg) scale(1.18); opacity: .75 } }
+  @keyframes glow    { 0%,100% { box-shadow: 0 10px 26px -14px rgba(120,90,180,.8) } 50% { box-shadow: 0 14px 34px -12px rgba(120,90,180,1) } }
+  @keyframes sheen   { 0% { left: -60% } 55%,100% { left: 130% } }
+  @keyframes pop     { 0% { transform: scale(0) rotate(-90deg) } 70% { transform: scale(1.25) rotate(8deg) } 100% { transform: scale(1) rotate(0) } }
+
+  .js .logo.is-in { animation: bob 7s ease-in-out infinite }
+  .js .shots img.is-in { animation: float 8s ease-in-out infinite }
+  .badge svg { animation: twinkle 3.4s ease-in-out infinite }
+  .cta { animation: glow 3s ease-in-out infinite }
+
+  /* sheen sweeping across the hero pill */
+  .pill { position: relative; overflow: hidden }
+  .pill::after {
+    content: ""; position: absolute; top: -40%; left: -60%; width: 40%; height: 180%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,.45), transparent);
+    transform: skewX(-18deg); animation: sheen 4.5s ease-in-out infinite;
+  }
+
+  /* step number badges pop after their card lands */
+  .js .step .n { transform: scale(0) }
+  .js .step.is-in .n { animation: pop .5s .35s cubic-bezier(.34,1.56,.64,1) forwards }
+
+  /* ── hover / press ── */
+  .feat { transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease }
+  .feat:hover { transform: translateY(-5px); box-shadow: 0 18px 38px -16px rgba(120,90,180,.5) }
+  .feat .ic { transition: transform .35s cubic-bezier(.34,1.56,.64,1) }
+  .feat:hover .ic { transform: scale(1.12) rotate(-7deg) }
+
+  .logo { transition: transform .4s cubic-bezier(.22,1,.36,1), filter .4s ease; cursor: pointer }
+  .logo:hover { transform: scale(1.05) rotate(-3deg); filter: drop-shadow(0 20px 38px rgba(120,90,180,.5)) }
+
+  .shots img { transition: transform .5s cubic-bezier(.22,1,.36,1) }
+  .shots:hover img { animation-play-state: paused; transform: translateY(-10px) scale(1.02) }
+
+  .badge { transition: transform .3s ease, box-shadow .3s ease }
+  .badge:hover { transform: translateY(-2px); box-shadow: 0 8px 20px -10px rgba(120,90,180,.5) }
+
+  .step .b { transition: transform .35s cubic-bezier(.34,1.56,.64,1) }
+  .step:hover .b { transform: translateY(-4px) scale(1.08) }
+
+  .qr img { transition: transform .4s cubic-bezier(.22,1,.36,1), filter .4s ease }
+  .qr:hover img { transform: scale(1.06); filter: drop-shadow(0 12px 26px rgba(120,90,180,.35)) }
+
+  .cta { transition: transform .25s cubic-bezier(.34,1.56,.64,1), background .25s ease }
+  .cta:hover { transform: translateY(-2px) scale(1.04); background: #6B4CB8 }
+  .cta:active { transform: translateY(0) scale(.97) }
+  .cta svg { transition: transform .5s ease }
+  .cta:hover svg { transform: rotate(180deg) }
+
+  .start { transition: box-shadow .4s ease }
+  .start:hover { box-shadow: 0 18px 40px -18px rgba(120,90,180,.3) }
+
+  /* the accent phrase runs a slow gradient through the three brand pastels */
+  h1 span {
+    background: linear-gradient(100deg, #7B5BC7, #9E7FDB, #6B4CB8, #7B5BC7);
+    background-size: 300% 100%;
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent; animation: hueslide 9s linear infinite;
+  }
+  @keyframes hueslide { to { background-position: 300% 0 } }
+
+  /* light sweeps across a feature card on hover */
+  .feat { position: relative; overflow: hidden }
+  .feat::after {
+    content: ""; position: absolute; top: -20%; left: -70%; width: 45%; height: 140%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,.6), transparent);
+    transform: skewX(-18deg); opacity: 0; pointer-events: none;
+  }
+  .feat:hover::after { opacity: 1; animation: sheen .9s ease }
+
+  /* ── accessibility escape hatch ── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+    .js .badge, .js .brand, .js .hero > div:not(.logo-wrap), .js .feats > .feat, .js .rule,
+    .js .step, .js .qr, .js footer, .js .logo, .js .shots img {
+      opacity: 1; transform: none;
+    }
+    .js .rule::after { transform: scaleX(1) }
+    .js .step .n { transform: none }
+    .pill::after { display: none }
+  }
 </style>
+<script>document.documentElement.className = "js"</script>
 </head>
 <body>
+
+<div class="progress" aria-hidden="true"><i></i></div>
+
+<div class="fx" aria-hidden="true">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+  <div class="blob b4"></div>
+  <div class="blob b5"></div>
+</div>
+
+<div class="gadgets" aria-hidden="true">
+  <span class="g" style="--x:5%;--y:16%;--s:1.2;--t:23s;--d:0s;--o:.45">👗</span>
+  <span class="g" style="--x:91%;--y:9%;--s:.9;--t:31s;--d:-4s;--o:.4">👟</span>
+  <span class="g" style="--x:12%;--y:62%;--s:1.05;--t:27s;--d:-9s;--o:.35">🧥</span>
+  <span class="g" style="--x:86%;--y:48%;--s:1.15;--t:35s;--d:-2s;--o:.4">👜</span>
+  <span class="g" style="--x:7%;--y:88%;--s:.95;--t:29s;--d:-14s;--o:.35">🕶️</span>
+  <span class="g" style="--x:94%;--y:80%;--s:1.1;--t:25s;--d:-7s;--o:.4">👖</span>
+  <span class="g" style="--x:47%;--y:6%;--s:.8;--t:33s;--d:-11s;--o:.3">✨</span>
+  <span class="g" style="--x:70%;--y:93%;--s:.85;--t:21s;--d:-5s;--o:.3">✨</span>
+
+  <span class="g chip" style="--x:3%;--y:40%;--t:37s;--d:-3s;--o:.55;background:#D2CCFC;color:#4A3480">งานทางการ</span>
+  <span class="g chip" style="--x:88%;--y:28%;--t:30s;--d:-16s;--o:.55;background:#FCCCE2;color:#8E2F5E">ออกเดท</span>
+  <span class="g chip" style="--x:9%;--y:74%;--t:34s;--d:-8s;--o:.5;background:#CCE2FC;color:#255089">ทำงาน</span>
+  <span class="g chip" style="--x:80%;--y:66%;--t:26s;--d:-12s;--o:.5;background:#D2CCFC;color:#4A3480">ลำลอง</span>
+  <span class="g chip" style="--x:38%;--y:96%;--t:32s;--d:-6s;--o:.45;background:#FCCCE2;color:#8E2F5E">เที่ยว</span>
+
+  <span class="g dot" style="--x:24%;--y:22%;--s:1.4;--t:28s;--d:-2s;--o:.4;color:#B08FE8"></span>
+  <span class="g dot" style="--x:64%;--y:34%;--s:1;--t:24s;--d:-13s;--o:.35;color:#E88FB4"></span>
+  <span class="g dot" style="--x:31%;--y:80%;--s:1.6;--t:36s;--d:-6s;--o:.3;color:#8FB4E8"></span>
+  <span class="g dot" style="--x:76%;--y:16%;--s:1.2;--t:22s;--d:-10s;--o:.35;color:#B08FE8"></span>
+</div>
+
+<div class="grain" aria-hidden="true"></div>
+
 <main class="poster">
 
   <!-- ══ header ══ -->
@@ -107,12 +329,16 @@
         <p>จัดชุดตามโอกาส สภาพอากาศ และสไตล์ของคุณ — ตอบเป็นภาษาไทย</p>
       </div>
     </div>
-    <img class="logo" src="../images/MATCHME.png" alt="โลโก้ MATCHME">
+    <div class="logo-wrap">
+      <img class="logo" src="../images/MATCHME.png" alt="โลโก้ MATCHME">
+    </div>
   </section>
 
   <!-- ══ app screen ══ -->
   <section class="shots">
-    <img src="../images/15_MATCHME.png" alt="หน้าจอแอป MATCHME — ตู้เสื้อผ้าและ AI Stylist">
+    <div class="tilt">
+      <img src="../images/15_MATCHME.png" alt="หน้าจอแอป MATCHME — ตู้เสื้อผ้าและ AI Stylist">
+    </div>
   </section>
 
   <!-- ══ features ══ -->
@@ -196,5 +422,80 @@
 
   <footer>MATCHME! · ตู้เสื้อผ้าดิจิทัล + AI สไตลิสต์</footer>
 </main>
+
+<script>
+  // Reveal-on-scroll. No IntersectionObserver (or no JS at all) → everything
+  // just shows, because the hidden state is scoped to html.js.
+  (() => {
+    const sel = ".badge,.brand,.hero > div:not(.logo-wrap),.logo,.shots img,.feats > .feat,.rule,.step,.qr,footer";
+    const targets = document.querySelectorAll(sel);
+    if (!("IntersectionObserver" in window)) {
+      targets.forEach((el) => el.classList.add("is-in"));
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          entry.target.classList.add("is-in");
+          io.unobserve(entry.target);
+        }
+      },
+      { threshold: 0, rootMargin: "0px 0px 8% 0px" },
+    );
+    targets.forEach((el) => io.observe(el));
+  })();
+
+  // Scroll rail. Runs even under reduced motion — it's information, not decoration.
+  (() => {
+    const bar = document.querySelector(".progress i");
+    const paint = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      bar.style.width = (max > 0 ? (window.scrollY / max) * 100 : 0) + "%";
+    };
+    addEventListener("scroll", paint, { passive: true });
+    addEventListener("resize", paint, { passive: true });
+    paint();
+  })();
+
+  // Cursor parallax + phone tilt. Pure decoration, so reduced motion opts out.
+  (() => {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const gadgets = document.querySelector(".gadgets");
+    const shots = document.querySelector(".shots");
+    const tilt = document.querySelector(".tilt");
+    let queued = 0;
+
+    // the two layers drift opposite ways, which reads as depth
+    addEventListener(
+      "pointermove",
+      (e) => {
+        const mx = e.clientX / window.innerWidth - 0.5;
+        const my = e.clientY / window.innerHeight - 0.5;
+        if (queued) return;
+        queued = requestAnimationFrame(() => {
+          queued = 0;
+          gadgets.style.transform = `translate3d(${mx * 46}px, ${my * 46}px, 0)`;
+        });
+      },
+      { passive: true },
+    );
+
+    shots.addEventListener(
+      "pointermove",
+      (e) => {
+        const r = shots.getBoundingClientRect();
+        tilt.style.setProperty("--ty", ((e.clientX - r.left) / r.width - 0.5) * 18 + "deg");
+        tilt.style.setProperty("--tx", (0.5 - (e.clientY - r.top) / r.height) * 13 + "deg");
+      },
+      { passive: true },
+    );
+    shots.addEventListener("pointerleave", () => {
+      tilt.style.setProperty("--ty", "0deg");
+      tilt.style.setProperty("--tx", "0deg");
+    });
+  })();
+</script>
 </body>
 </html>

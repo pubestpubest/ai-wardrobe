@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { EditItem } from "@/components/EditItem";
 import { SaveMatchModal } from "@/components/SaveMatchModal";
 import { useMatches } from "@/hooks/use-matches";
+import { GridSkeleton } from "@/components/GridSkeleton";
 import { CATEGORY_LABELS } from "@/lib/wardrobe";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,7 +33,7 @@ const CATEGORIES = [
 ];
 
 function WardrobePage() {
-  const { items, add, update, remove } = useWardrobe();
+  const { items, isLoading, add, update, remove } = useWardrobe();
   const { add: addMatch } = useMatches();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -154,7 +155,15 @@ function WardrobePage() {
 
         {/* Items Grid */}
         <div className="min-h-[50vh]">
-          {filteredItems.length > 0 ? (
+          {/* isLoading before the empty state — otherwise a first-time visitor is
+              told "ยังไม่มีเสื้อผ้าในตู้" while their wardrobe is still loading. */}
+          {isLoading ? (
+            <GridSkeleton
+              count={10}
+              tile="aspect-[4/5]"
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-5 gap-y-8"
+            />
+          ) : filteredItems.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-5 gap-y-8">
               {filteredItems.map((item, idx) => (
                 <WardrobeCard

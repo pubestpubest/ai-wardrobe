@@ -6,6 +6,7 @@ import { MatchCard } from "@/components/MatchCard";
 import { EditMatchModal } from "@/components/EditMatchModal";
 import { ShareMatchModal } from "@/components/ShareMatchModal";
 import { OutfitCalendar } from "@/components/OutfitCalendar";
+import { GridSkeleton } from "@/components/GridSkeleton";
 import { useMatches } from "@/hooks/use-matches";
 import { useWardrobe } from "@/hooks/use-wardrobe";
 import { useAffiliateProducts } from "@/hooks/use-affiliate-products";
@@ -44,7 +45,9 @@ function MatchesPage() {
         <header className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-foreground">แมตช์โปรด</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">{matches.length} ชุดที่บันทึกไว้</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isLoading ? "กำลังโหลด…" : `${matches.length} ชุดที่บันทึกไว้`}
+            </p>
           </div>
         </header>
 
@@ -72,7 +75,11 @@ function MatchesPage() {
         {view === "calendar" ? (
           <OutfitCalendar wears={wears} matches={matches} items={items} />
         ) : isLoading ? (
-          <div className="py-24 text-center text-sm text-muted-foreground">กำลังโหลด...</div>
+          <GridSkeleton
+            count={6}
+            tile="aspect-[3/1]"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+          />
         ) : matches.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {matches.map((m, idx) => (

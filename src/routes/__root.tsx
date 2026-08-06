@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -110,11 +111,16 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  // pathname only — not `location`/`href`. Search-param navigations (e.g.
+  // /virtual-model?tryOn=…) must not remount the page and drop its state.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGate>
-        <Outlet />
+        <div key={pathname} className="page-enter">
+          <Outlet />
+        </div>
         <ProfileGate />
       </AuthGate>
       <Toaster richColors position="top-center" />

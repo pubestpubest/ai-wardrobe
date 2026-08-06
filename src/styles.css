@@ -129,6 +129,19 @@
     }
   }
 
+  /* Route change. Opacity ONLY — deliberately no transform: a transformed
+     ancestor becomes the containing block for position:fixed descendants, which
+     would detach BottomNav and every in-route modal from the viewport mid-fade.
+     Kept short so it doesn't stack with the grids' own `rise`. */
+  .page-enter {
+    animation: page-enter 150ms ease-out both;
+  }
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .animate-drift {
       animation: none;

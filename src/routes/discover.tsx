@@ -4,6 +4,7 @@ import { Pencil, Plus, Search, ShoppingBag } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { AffiliateItemModal } from "@/components/AffiliateItemModal";
 import { AffiliateEditModal } from "@/components/AffiliateEditModal";
+import { GridSkeleton } from "@/components/GridSkeleton";
 import { useAffiliateProducts } from "@/hooks/use-affiliate-products";
 import { Input } from "@/components/ui/input";
 import { CATEGORY_LABELS, type AffiliateProduct } from "@/lib/wardrobe";
@@ -106,7 +107,10 @@ function DiscoverPage() {
         </div>
 
         {isLoading ? (
-          <div className="py-24 text-center text-sm text-muted-foreground">กำลังโหลด...</div>
+          <GridSkeleton
+            count={8}
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
+          />
         ) : affiliateProducts.length > 0 ? (
           filtered.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">

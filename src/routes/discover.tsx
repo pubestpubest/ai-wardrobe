@@ -115,6 +115,10 @@ function DiscoverPage() {
                   key={p.id}
                   role="button"
                   tabIndex={0}
+                  // Stagger only when unfiltered — see wardrobe.tsx for why.
+                  style={
+                    { "--d": `${hasFilters ? 0 : Math.min(i, 7) * 35}ms` } as React.CSSProperties
+                  }
                   onClick={() => setViewing(p)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
@@ -122,7 +126,7 @@ function DiscoverPage() {
                       setViewing(p);
                     }
                   }}
-                  className="relative text-left bg-white rounded-2xl border border-border/40 shadow-sm p-3 flex flex-col gap-2 transition hover:shadow-md cursor-pointer"
+                  className="rise relative text-left bg-white rounded-2xl border border-border/40 shadow-sm p-3 flex flex-col gap-2 transition hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                 >
                   {isAdmin && (
                     <button

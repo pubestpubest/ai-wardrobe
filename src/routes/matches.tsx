@@ -75,9 +75,11 @@ function MatchesPage() {
           <div className="py-24 text-center text-sm text-muted-foreground">กำลังโหลด...</div>
         ) : matches.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {matches.map((m) => (
+            {matches.map((m, idx) => (
               <MatchCard
                 key={m.id}
+                className="rise"
+                style={{ "--d": `${Math.min(idx, 7) * 35}ms` } as React.CSSProperties}
                 match={m}
                 items={items}
                 onClick={() => setEditing(m)}

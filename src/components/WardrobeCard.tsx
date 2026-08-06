@@ -1,5 +1,6 @@
 import { Check } from "lucide-react";
 import { TAG_COLORS, type WardrobeItem } from "@/lib/wardrobe";
+import { cn } from "@/lib/utils";
 
 const TONE = {
   lilac: "bg-lilac text-lilac-foreground",
@@ -13,12 +14,23 @@ interface Props {
   onClick?: () => void;
   selectable?: boolean;
   selected?: boolean;
+  /** Grid entrance animation — callers pass `rise` plus a `--d` stagger. */
+  className?: string;
+  style?: React.CSSProperties;
 }
 
-export function WardrobeCard({ item, tone, onClick, selectable, selected }: Props) {
+export function WardrobeCard({
+  item,
+  tone,
+  onClick,
+  selectable,
+  selected,
+  className,
+  style,
+}: Props) {
   const tags = item.tags ?? [];
   return (
-    <div className="group cursor-pointer" onClick={onClick}>
+    <div className={cn("group cursor-pointer", className)} style={style} onClick={onClick}>
       <div
         className={`aspect-[4/5] rounded-[2rem] ${TONE[tone]} flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-[1.02] overflow-hidden relative shadow-sm ${
           selectable && selected ? "ring-4 ring-primary ring-offset-2 ring-offset-background" : ""

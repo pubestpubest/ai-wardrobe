@@ -175,6 +175,8 @@ function Index() {
                   item={it}
                   tone={tones[idx % 3]}
                   onClick={() => setEditing(it)}
+                  className="rise"
+                  style={{ "--d": `${idx * 35}ms` } as React.CSSProperties}
                 />
               ))}
             </div>

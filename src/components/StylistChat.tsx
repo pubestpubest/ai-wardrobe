@@ -222,7 +222,9 @@ export function StylistChat({
         className="flex-1 overflow-y-auto max-h-[380px] flex flex-col gap-3 pr-1"
       >
         {messages.map((m, i) => (
-          <div key={i} className="flex flex-col gap-2">
+          // `rise` with no stagger: keys are indexes, so appending only mounts
+          // the newest bubble. An index-based delay would hide message N for N×35ms.
+          <div key={i} className="rise flex flex-col gap-2">
             {m.content && (
               <div
                 className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap leading-relaxed ${
@@ -253,7 +255,7 @@ export function StylistChat({
           </div>
         ))}
         {loading && (
-          <div className="self-start bg-blush text-blush-foreground rounded-2xl px-4 py-2.5 flex items-center gap-2">
+          <div className="rise self-start bg-blush text-blush-foreground rounded-2xl px-4 py-2.5 flex items-center gap-2">
             <Loader2 className="size-4 animate-spin" />
             <span className="text-xs">กำลังจัดชุดให้...</span>
           </div>

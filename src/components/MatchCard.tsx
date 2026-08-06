@@ -1,5 +1,6 @@
 import { CalendarCheck, CalendarX, Share2, Sparkles, Wand2 } from "lucide-react";
 import type { Match, WardrobeItem } from "@/lib/wardrobe";
+import { cn } from "@/lib/utils";
 
 const TONES = ["bg-lilac", "bg-blush", "bg-sky"] as const;
 
@@ -14,6 +15,9 @@ interface Props {
   wornToday?: boolean;
   /** A toggle is in flight; blocks the double-tap that would race two upserts. */
   wearPending?: boolean;
+  /** Grid entrance animation — callers pass `rise` plus a `--d` stagger. */
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 export function MatchCard({
@@ -25,6 +29,8 @@ export function MatchCard({
   onWearToday,
   wornToday = false,
   wearPending = false,
+  className,
+  style,
 }: Props) {
   const byId = new Map(items.map((i) => [i.id, i]));
   const resolved = match.itemIds.map((id) => byId.get(id)).filter(Boolean) as WardrobeItem[];
@@ -33,7 +39,13 @@ export function MatchCard({
     // h-full + flex column so the action row can be pinned to the bottom: grid
     // stretches every card to the tallest in its row, and cards without a
     // reason/note would otherwise leave dead space under their buttons.
-    <div className="h-full flex flex-col bg-white rounded-3xl border border-border/40 shadow-sm overflow-hidden hover:shadow-md transition group">
+    <div
+      style={style}
+      className={cn(
+        "h-full flex flex-col bg-white rounded-3xl border border-border/40 shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition group",
+        className,
+      )}
+    >
       <button type="button" onClick={onClick} className="w-full text-left">
         <div className="grid grid-cols-3 gap-1 p-3 bg-muted/30">
           {resolved.slice(0, 6).map((item, idx) => (

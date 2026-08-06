@@ -10,7 +10,7 @@ export function BottomNav({ onUpload }: { onUpload?: () => void }) {
       <NavLink to="/wardrobe" icon={Shirt} active={pathname === "/wardrobe"} />
       <button
         onClick={onUpload}
-        className="size-11 rounded-full flex items-center justify-center bg-primary text-primary-foreground scale-110 transition"
+        className="size-11 rounded-full flex items-center justify-center bg-primary text-primary-foreground scale-110 transition hover:scale-115 active:scale-100 shadow-md shadow-primary/30"
       >
         <Plus className="size-4" />
       </button>
@@ -33,8 +33,10 @@ function NavLink({
   return (
     <Link
       to={to}
-      className={`size-11 rounded-full flex items-center justify-center transition ${
-        active ? "bg-lilac text-lilac-foreground" : "text-muted-foreground hover:bg-muted"
+      className={`size-11 rounded-full flex items-center justify-center transition duration-200 active:scale-90 ${
+        active
+          ? "bg-lilac text-lilac-foreground scale-105"
+          : "text-muted-foreground hover:bg-muted hover:scale-105"
       }`}
     >
       <Icon className="size-4" />

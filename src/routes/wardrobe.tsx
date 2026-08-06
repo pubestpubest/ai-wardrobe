@@ -75,6 +75,12 @@ function WardrobePage() {
 
   const tones = ["lilac", "blush", "sky"] as const;
 
+  // Stagger only on an unfiltered grid. While filtering, matching items remount
+  // on every keystroke and a delayed cascade would replay each time; capped so
+  // late items don't sit invisible for half a second.
+  const isFiltered = search !== "" || selectedCategory !== "all";
+  const staggerMs = (idx: number) => (isFiltered ? 0 : Math.min(idx, 7) * 35);
+
   return (
     <div className="min-h-screen pb-28 bg-[#FDFCFD]">
       <div className="mx-auto max-w-6xl px-5 pt-8">
@@ -158,6 +164,8 @@ function WardrobePage() {
                   selectable={selectMode}
                   selected={selectedIds.has(item.id)}
                   onClick={() => (selectMode ? toggleSelected(item.id) : setEditing(item))}
+                  className="rise"
+                  style={{ "--d": `${staggerMs(idx)}ms` } as React.CSSProperties}
                 />
               ))}
             </div>

@@ -7,15 +7,22 @@ export default {
   async fetch(req: Request) {
     const { pathname } = new URL(req.url);
 
-    if (pathname.startsWith("/assets/")) {
-      const filePath = resolve(CLIENT, pathname.slice(1));
-      if (filePath.startsWith(CLIENT)) {
-        const file = Bun.file(filePath);
-        if (await file.exists()) {
-          return new Response(file, {
-            headers: { "cache-control": "public, max-age=31536000, immutable" },
-          });
-        }
+    // Everything Vite emitted into dist/client is served straight off disk: the
+    // hashed /assets/* bundle plus everything copied from public/ (the poster
+    // page, mock model PNGs). Misses fall through to SSR, so app routes are
+    // unaffected — dist/client has no index.html of its own.
+    const rel = pathname.endsWith("/") ? `${pathname}index.html` : pathname;
+    const filePath = resolve(CLIENT, rel.slice(1));
+    if (filePath.startsWith(CLIENT)) {
+      const file = Bun.file(filePath);
+      if (await file.exists()) {
+        return new Response(file, {
+          headers: {
+            "cache-control": pathname.startsWith("/assets/")
+              ? "public, max-age=31536000, immutable"
+              : "public, max-age=300",
+          },
+        });
       }
     }
 

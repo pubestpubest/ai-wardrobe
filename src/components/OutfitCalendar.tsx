@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
-import type { Match, OutfitWear } from "@/lib/wardrobe";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
+import { localDateKey, type Match, type OutfitWear, type WardrobeItem } from "@/lib/wardrobe";
 
 const WEEKDAY_LABELS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 const MONTH_LABELS = [
@@ -18,51 +19,52 @@ const MONTH_LABELS = [
   "ธันวาคม",
 ];
 
-function pad(n: number) {
-  return String(n).padStart(2, "0");
-}
-
-function toDateKey(year: number, month: number, day: number) {
-  return `${year}-${pad(month + 1)}-${pad(day)}`;
-}
-
 interface Props {
   wears: OutfitWear[];
   matches: Match[];
+  items: WardrobeItem[];
 }
 
-export function OutfitCalendar({ wears, matches }: Props) {
+export function OutfitCalendar({ wears, matches, items }: Props) {
   const [cursor, setCursor] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
+  // Controlled rather than relying on Radix's own hover trigger: it guards
+  // pointerenter against touch, so a tap would never open the detail on mobile.
+  const [openKey, setOpenKey] = useState<string | null>(null);
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
 
-  const matchNameById = useMemo(() => new Map(matches.map((m) => [m.id, m.name])), [matches]);
+  const matchById = useMemo(() => new Map(matches.map((m) => [m.id, m])), [matches]);
+  const itemById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
 
-  const wearsByDate = useMemo(() => {
-    const map = new Map<string, OutfitWear[]>();
-    for (const w of wears) {
-      const list = map.get(w.wornDate) ?? [];
-      list.push(w);
-      map.set(w.wornDate, list);
-    }
+  // One wear per day (enforced by the unique index in migration 017), so this
+  // is a plain date → wear map, not a list.
+  const wearByDate = useMemo(() => {
+    const map = new Map<string, OutfitWear>();
+    for (const w of wears) map.set(w.wornDate, w);
     return map;
   }, [wears]);
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstWeekday = new Date(year, month, 1).getDay();
-  const now = new Date();
-  const todayKey = toDateKey(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayKey = localDateKey();
 
   const cells: Array<{ day: number; key: string } | null> = [];
   for (let i = 0; i < firstWeekday; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, key: toDateKey(year, month, d) });
+  for (let d = 1; d <= daysInMonth; d++)
+    cells.push({ day: d, key: localDateKey(new Date(year, month, d)) });
 
-  const goPrev = () => setCursor(new Date(year, month - 1, 1));
-  const goNext = () => setCursor(new Date(year, month + 1, 1));
+  const goPrev = () => {
+    setOpenKey(null);
+    setCursor(new Date(year, month - 1, 1));
+  };
+  const goNext = () => {
+    setOpenKey(null);
+    setCursor(new Date(year, month + 1, 1));
+  };
 
   return (
     <div className="bg-white rounded-3xl border border-border/40 shadow-sm p-4">
@@ -99,25 +101,114 @@ export function OutfitCalendar({ wears, matches }: Props) {
       <div className="grid grid-cols-7 gap-1">
         {cells.map((cell, idx) => {
           if (!cell) return <div key={`blank-${idx}`} />;
-          const dayWears = wearsByDate.get(cell.key) ?? [];
+
+          const wear = wearByDate.get(cell.key);
           const isToday = cell.key === todayKey;
-          const firstName =
-            dayWears.length > 0 ? matchNameById.get(dayWears[0].matchId) : undefined;
+          const match = wear?.matchId ? matchById.get(wear.matchId) : undefined;
+          const outfit = (match?.itemIds ?? [])
+            .map((id) => itemById.get(id))
+            .filter(Boolean) as WardrobeItem[];
+          const preview = outfit.find((i) => i.imageUrl);
+
+          // Empty day — no detail to open, so render a plain cell.
+          if (!wear) {
+            return (
+              <div
+                key={cell.key}
+                className={`aspect-square rounded-xl flex items-center justify-center bg-muted/40 ${
+                  isToday ? "ring-2 ring-primary" : ""
+                }`}
+              >
+                <span className="text-[11px] font-semibold text-foreground/80">{cell.day}</span>
+              </div>
+            );
+          }
+
           return (
-            <div
+            <HoverCard
               key={cell.key}
-              className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 text-center px-0.5 ${
-                dayWears.length > 0 ? "bg-lilac" : "bg-muted/40"
-              } ${isToday ? "ring-2 ring-primary" : ""}`}
+              open={openKey === cell.key}
+              onOpenChange={(o) => setOpenKey(o ? cell.key : null)}
             >
-              <span className="text-[11px] font-semibold text-foreground/80">{cell.day}</span>
-              {dayWears.length > 0 && (
-                <span className="text-[9px] leading-tight text-lilac-foreground/80 truncate max-w-full px-0.5">
-                  {firstName ?? "ชุด"}
-                  {dayWears.length > 1 ? ` +${dayWears.length - 1}` : ""}
-                </span>
-              )}
-            </div>
+              <HoverCardTrigger asChild>
+                <button
+                  type="button"
+                  // Open eagerly on hover and on tap (Radix guards its own
+                  // pointerenter against touch). Closing is left to Radix via
+                  // onOpenChange — an eager onPointerLeave here would fire while
+                  // crossing the sideOffset gap and shut the card before the
+                  // pointer reached it.
+                  onPointerEnter={() => setOpenKey(cell.key)}
+                  onClick={() => setOpenKey((k) => (k === cell.key ? null : cell.key))}
+                  aria-label={`${cell.day} — ${match?.name ?? "ชุดที่ถูกลบ"}`}
+                  className={`relative aspect-square w-full rounded-xl overflow-hidden bg-lilac flex items-center justify-center hover:ring-2 hover:ring-primary/50 transition ${
+                    isToday ? "ring-2 ring-primary" : ""
+                  }`}
+                >
+                  {preview ? (
+                    <img
+                      src={preview.imageUrl}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-lg leading-none opacity-80">
+                      {outfit[0]?.emoji ?? (match ? "👗" : "🗑️")}
+                    </span>
+                  )}
+                  <span className="absolute top-0.5 left-0.5 z-10 min-w-4 px-1 rounded-md bg-black/55 text-white text-[10px] font-bold leading-4 text-center">
+                    {cell.day}
+                  </span>
+                </button>
+              </HoverCardTrigger>
+
+              <HoverCardContent align="center" className="w-60 p-3">
+                <p className="text-sm font-bold text-foreground/90 truncate">
+                  {match?.name ?? "ชุดที่ถูกลบไปแล้ว"}
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {cell.day} {MONTH_LABELS[month]} {year}
+                  {match?.occasion ? ` · ${match.occasion}` : ""}
+                </p>
+
+                {outfit.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-3 gap-1.5 mt-2.5">
+                      {outfit.slice(0, 6).map((item) => (
+                        <div
+                          key={item.id}
+                          className="aspect-square rounded-lg bg-muted flex items-center justify-center overflow-hidden"
+                        >
+                          {item.imageUrl ? (
+                            <img
+                              src={item.imageUrl}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-lg">{item.emoji}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-2">
+                      {outfit.length} ไอเท็ม
+                      {outfit.length > 6 ? ` (แสดง 6)` : ""}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    {match
+                      ? "ไอเท็มในชุดนี้ถูกลบไปแล้ว"
+                      : "แมตช์นี้ถูกลบ แต่ยังบันทึกว่าใส่ชุดวันนี้"}
+                  </p>
+                )}
+
+                {match?.note && (
+                  <p className="text-[11px] text-foreground/70 mt-2 line-clamp-3">{match.note}</p>
+                )}
+              </HoverCardContent>
+            </HoverCard>
           );
         })}
       </div>

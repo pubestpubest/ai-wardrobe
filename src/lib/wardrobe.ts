@@ -68,9 +68,19 @@ export type Match = {
 
 export type OutfitWear = {
   id: string;
-  matchId: string;
+  // null once the match is deleted — the FK is `on delete set null`, so the day
+  // keeps its "you wore something" record without pointing at a match.
+  matchId: string | null;
   wornDate: string;
 };
+
+// The one place a calendar date key is computed. The calendar renders in local
+// time, so a UTC-derived key lands on the wrong cell near midnight (the bug
+// B05-L1's scrutinize caught). Hook, calendar and toggle all call this.
+export function localDateKey(d: Date = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
 
 export type MatchSuggestion = {
   name: string;

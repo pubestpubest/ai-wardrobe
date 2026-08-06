@@ -1,4 +1,4 @@
-import { CalendarCheck, Share2, Sparkles, Wand2 } from "lucide-react";
+import { CalendarCheck, CalendarX, Share2, Sparkles, Wand2 } from "lucide-react";
 import type { Match, WardrobeItem } from "@/lib/wardrobe";
 
 const TONES = ["bg-lilac", "bg-blush", "bg-sky"] as const;
@@ -10,14 +10,30 @@ interface Props {
   onShare?: () => void;
   onTryOn?: () => void;
   onWearToday?: (match: Match) => void;
+  /** This match is the outfit logged for today — button reads as "un-set". */
+  wornToday?: boolean;
+  /** A toggle is in flight; blocks the double-tap that would race two upserts. */
+  wearPending?: boolean;
 }
 
-export function MatchCard({ match, items, onClick, onShare, onTryOn, onWearToday }: Props) {
+export function MatchCard({
+  match,
+  items,
+  onClick,
+  onShare,
+  onTryOn,
+  onWearToday,
+  wornToday = false,
+  wearPending = false,
+}: Props) {
   const byId = new Map(items.map((i) => [i.id, i]));
   const resolved = match.itemIds.map((id) => byId.get(id)).filter(Boolean) as WardrobeItem[];
 
   return (
-    <div className="bg-white rounded-3xl border border-border/40 shadow-sm overflow-hidden hover:shadow-md transition group">
+    // h-full + flex column so the action row can be pinned to the bottom: grid
+    // stretches every card to the tallest in its row, and cards without a
+    // reason/note would otherwise leave dead space under their buttons.
+    <div className="h-full flex flex-col bg-white rounded-3xl border border-border/40 shadow-sm overflow-hidden hover:shadow-md transition group">
       <button type="button" onClick={onClick} className="w-full text-left">
         <div className="grid grid-cols-3 gap-1 p-3 bg-muted/30">
           {resolved.slice(0, 6).map((item, idx) => (
@@ -63,16 +79,22 @@ export function MatchCard({ match, items, onClick, onShare, onTryOn, onWearToday
       </button>
 
       {(onShare || onTryOn || onWearToday) && (
-        <div className="px-4 pb-4 flex gap-2">
+        <div className="mt-auto px-4 pb-4 flex gap-2">
           {onWearToday && (
             <button
               type="button"
               onClick={() => onWearToday(match)}
-              title="ใส่ชุดนี้วันนี้"
-              aria-label="ใส่ชุดนี้วันนี้"
-              className="size-11 shrink-0 rounded-full bg-blush text-blush-foreground flex items-center justify-center hover:opacity-90 transition"
+              disabled={wearPending}
+              title={wornToday ? "เอาชุดนี้ออกจากวันนี้" : "ใส่ชุดนี้วันนี้"}
+              aria-label={wornToday ? "เอาชุดนี้ออกจากวันนี้" : "ใส่ชุดนี้วันนี้"}
+              aria-pressed={wornToday}
+              className={`size-11 shrink-0 rounded-full flex items-center justify-center transition disabled:opacity-50 ${
+                wornToday
+                  ? "bg-primary text-primary-foreground ring-2 ring-primary/40"
+                  : "bg-blush text-blush-foreground hover:opacity-90"
+              }`}
             >
-              <CalendarCheck className="size-4" />
+              {wornToday ? <CalendarX className="size-4" /> : <CalendarCheck className="size-4" />}
             </button>
           )}
           {onTryOn && (

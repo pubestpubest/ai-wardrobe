@@ -28,7 +28,8 @@ function MatchesPage() {
   const { matches, isLoading, update, remove } = useMatches();
   const { items } = useWardrobe();
   const { affiliateProducts } = useAffiliateProducts();
-  const { wears, logWear } = useOutfitWears();
+  const { wears, wornMatchId, toggleWear, isToggling } = useOutfitWears();
+  const wornTodayId = wornMatchId();
   const [editing, setEditing] = useState<Match | null>(null);
   const [sharing, setSharing] = useState<Match | null>(null);
   const [view, setView] = useState<"list" | "calendar">("list");
@@ -69,7 +70,7 @@ function MatchesPage() {
         </div>
 
         {view === "calendar" ? (
-          <OutfitCalendar wears={wears} matches={matches} />
+          <OutfitCalendar wears={wears} matches={matches} items={items} />
         ) : isLoading ? (
           <div className="py-24 text-center text-sm text-muted-foreground">กำลังโหลด...</div>
         ) : matches.length > 0 ? (
@@ -84,7 +85,9 @@ function MatchesPage() {
                 onTryOn={() =>
                   navigate({ to: "/virtual-model", search: { tryOn: m.name } as never })
                 }
-                onWearToday={(match) => logWear({ matchId: match.id })}
+                onWearToday={(match) => toggleWear({ matchId: match.id })}
+                wornToday={wornTodayId === m.id}
+                wearPending={isToggling}
               />
             ))}
           </div>

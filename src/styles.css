@@ -101,4 +101,23 @@
     background: color-mix(in oklch, white 70%, transparent);
     backdrop-filter: blur(12px);
   }
+
+  /* Ambient drifting blobs behind the auth page — matches the poster's mood. */
+  .animate-drift {
+    animation: drift 14s ease-in-out infinite;
+  }
+  @keyframes drift {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(0, -22px, 0) scale(1.08);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-drift {
+      animation: none;
+    }
+  }
 }

@@ -81,6 +81,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "AI-powered digital wardrobe & outfit stylist" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { property: "og:image", content: "/images/MATCHME.png" },
+    ],
+    links: [
+      { rel: "icon", href: "/images/MATCHME.png" },
+      { rel: "apple-touch-icon", href: "/images/MATCHME.png" },
     ],
   }),
   shellComponent: RootShell,

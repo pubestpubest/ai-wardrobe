@@ -36,6 +36,12 @@ const SUGGESTIONS = [
 
 const CHAT_STORAGE_KEY = "wardrobe.chat";
 const AFFILIATE_TURNS_KEY = "wardrobe.affiliateTurns";
+// Bump when buildGuestSample changes. A guest's transcript can only ever BE the
+// sample — 029 blocks ai_usage writes, so they cannot generate a message — which
+// is what makes overwriting it safe here and nowhere else. Without a version the
+// first sample sticks in localStorage forever and later ones never appear.
+const GUEST_SAMPLE_KEY = "wardrobe.chat.guestSampleVersion";
+const GUEST_SAMPLE_VERSION = "2";
 
 function readAffiliateTurns(): number {
   if (typeof window === "undefined") return 0;
@@ -140,16 +146,26 @@ export function StylistChat({
   const { affiliateProducts } = useAffiliateProducts();
   // Effect, not a useState initializer: `isGuest` comes from a query that has
   // not resolved on first render, and an initializer never re-runs — the exact
-  // trap UX-1 was filed for. Only fires while the transcript is still the bare
-  // greeting, so it can never overwrite a real conversation.
+  // trap UX-1 was filed for.
+  //
+  // Re-seeds whenever the stored version differs, not just when the transcript
+  // is empty. The first cut only replaced a bare greeting, so an already-stored
+  // sample was frozen forever and a rewritten one never showed up. Safe to
+  // overwrite for a guest specifically: 029 blocks ai_usage writes, so a guest
+  // can never have produced a conversation of their own to lose.
   useEffect(() => {
-    if (!isGuest || wardrobe.length === 0) return;
-    setMessages((m) =>
-      m.length === 1 && m[0].role === "assistant"
-        ? buildGuestSample(wardrobe, affiliateProducts)
-        : m,
-    );
+    if (!isGuest || wardrobe.length === 0 || typeof window === "undefined") return;
+    if (window.localStorage.getItem(GUEST_SAMPLE_KEY) === GUEST_SAMPLE_VERSION) return;
+    setMessages(buildGuestSample(wardrobe, affiliateProducts));
+    window.localStorage.setItem(GUEST_SAMPLE_KEY, GUEST_SAMPLE_VERSION);
   }, [isGuest, wardrobe, affiliateProducts]);
+
+  // Clearing the chat as a guest should bring the sample back, not leave an
+  // empty room they have no way to fill.
+  useEffect(() => {
+    if (!isGuest || typeof window === "undefined") return;
+    if (messages.length <= 1) window.localStorage.removeItem(GUEST_SAMPLE_KEY);
+  }, [isGuest, messages.length]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [viewingAffiliate, setViewingAffiliate] = useState<AffiliateProduct | null>(null);

@@ -1,15 +1,25 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { Pencil, Plus, Search, ShoppingBag } from "lucide-react";
+import {
+  ArrowRight,
+  Package,
+  Pencil,
+  Plus,
+  Search,
+  ShoppingBag,
+  Store as StoreIcon,
+} from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { AffiliateItemModal } from "@/components/AffiliateItemModal";
 import { AffiliateEditModal } from "@/components/AffiliateEditModal";
 import { GridSkeleton } from "@/components/GridSkeleton";
-import { useAffiliateProducts } from "@/hooks/use-affiliate-products";
+import { useDiscoverStores, type DiscoverStore } from "@/hooks/use-discover-stores";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 import { Input } from "@/components/ui/input";
-import { CATEGORY_LABELS, type AffiliateProduct } from "@/lib/wardrobe";
+import { CATEGORY_LABELS, STORE_PACKAGES, type AffiliateProduct } from "@/lib/wardrobe";
 
 const TONES = ["bg-lilac", "bg-blush", "bg-sky"] as const;
+const PREVIEW_CAP = 6;
 
 const CATEGORIES = [
   { id: "all", label: "ทั้งหมด" },
@@ -32,22 +42,76 @@ export const Route = (createFileRoute as any)("/discover")({
   }),
 });
 
+// Deterministic PRNG (mulberry32) so the SAME seed always produces the SAME
+// sequence. No Math.random() call lives inside weightedShuffle itself — the
+// caller supplies the seed (from useState, so it's fixed for the mount) —
+// which is what lets useMemo hold the order stable across re-renders
+// (LOCAL-STORE.md §5 / B14b-L1 grill: must not reshuffle while typing or on
+// a background refetch).
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Weighted-random ordering (Efraimidis-Spirakis A-ExpJ): draw
+// key = rand() ** (1/weight) per item, sort descending by key. Higher weight
+// biases toward the front without being a strict sort — a free store can
+// still land near the top, same lottery shape as the AI recommendation pick
+// (LOCAL-STORE.md §4).
+function weightedShuffle<T>(items: T[], weightFn: (item: T) => number, seed: number): T[] {
+  const rand = mulberry32(Math.floor(seed * 0xffffffff));
+  return items
+    .map((item) => ({ item, key: Math.pow(rand(), 1 / Math.max(weightFn(item), 0.0001)) }))
+    .sort((a, b) => b.key - a.key)
+    .map(({ item }) => item);
+}
+
+type CardEntry = { store: DiscoverStore; items: AffiliateProduct[] };
+
 function DiscoverPage() {
-  const { affiliateProducts, isLoading, isAdmin } = useAffiliateProducts();
+  const { stores, hasData, isLoading, isError } = useDiscoverStores();
+  const isAdmin = useIsAdmin();
   const [viewing, setViewing] = useState<AffiliateProduct | null>(null);
   const [editing, setEditing] = useState<AffiliateProduct | null>(null);
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
 
-  const filtered = useMemo(() => {
-    const q = norm(search);
-    return affiliateProducts.filter((p) => {
-      const matchesSearch = !q || norm(p.name).includes(q) || norm(p.description ?? "").includes(q);
-      const matchesCategory = category === "all" || p.category === category;
-      return matchesSearch && matchesCategory;
-    });
-  }, [affiliateProducts, search, category]);
+  // Held for the life of the mount — see weightedShuffle's comment above.
+  const [seed] = useState(() => Math.random());
+
+  const orderedStores = useMemo(
+    () => weightedShuffle(stores, (s) => STORE_PACKAGES[s.package].weight, seed),
+    [stores, seed],
+  );
+
+  const q = norm(search);
+  const cards: CardEntry[] = useMemo(() => {
+    return orderedStores
+      .map((store) => {
+        const categoryItems = store.items.filter(
+          (p) => category === "all" || p.category === category,
+        );
+        // A store-name hit keeps the FULL (category-filtered) item list; an
+        // item-only hit narrows it further to the matching items
+        // (LOCAL-STORE.md §5 — once a shop's name is the largest text on the
+        // card, typing it and finding nothing reads as a bug).
+        const nameHit = q !== "" && norm(store.name).includes(q);
+        const items =
+          q === "" || nameHit
+            ? categoryItems
+            : categoryItems.filter(
+                (p) => norm(p.name).includes(q) || norm(p.description ?? "").includes(q),
+              );
+        return { store, items };
+      })
+      .filter((entry) => entry.items.length > 0);
+  }, [orderedStores, q, category]);
 
   const hasFilters = search !== "" || category !== "all";
 
@@ -56,6 +120,8 @@ function DiscoverPage() {
     setCategory("all");
   };
 
+  const totalItemsShown = cards.reduce((sum, e) => sum + e.items.length, 0);
+
   return (
     <div className="min-h-screen pb-28 bg-[#FDFCFD]">
       <div className="mx-auto max-w-6xl px-5 pt-8">
@@ -63,7 +129,11 @@ function DiscoverPage() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">ช้อปปิ้งไอเท็ม</h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {isLoading ? "กำลังโหลด…" : `${filtered.length} รายการจากร้านค้าพาร์ทเนอร์`}
+              {isLoading
+                ? "กำลังโหลด…"
+                : isError
+                  ? "\u2014"
+                  : `${totalItemsShown} รายการจากร้านค้าพาร์ทเนอร์`}
             </p>
           </div>
           {isAdmin && (
@@ -84,7 +154,7 @@ function DiscoverPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="ค้นหาไอเท็ม..."
+            placeholder="ค้นหาร้านค้าหรือไอเท็ม..."
             className="pl-10 h-12 bg-white border-none shadow-sm rounded-2xl focus-visible:ring-lilac/50"
           />
         </div>
@@ -106,89 +176,151 @@ function DiscoverPage() {
           ))}
         </div>
 
+        {/* Four states, in order (B12b-L2's established shape): loading →
+            error → no-stores-at-all → content. */}
         {isLoading ? (
-          <GridSkeleton
-            count={8}
-            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
-          />
-        ) : affiliateProducts.length > 0 ? (
-          filtered.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filtered.map((p, i) => (
+          <GridSkeleton count={3} className="flex flex-col gap-4" tile="h-44" lines={1} />
+        ) : isError && !hasData ? (
+          <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+            <div className="size-24 rounded-[2.5rem] bg-white shadow-inner flex items-center justify-center mb-6 grayscale opacity-40">
+              <ShoppingBag className="size-10" />
+            </div>
+            <p className="text-base font-bold text-foreground/80">โหลดข้อมูลร้านค้าไม่สำเร็จ</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-6 px-6 py-2 bg-muted rounded-full text-xs font-bold hover:bg-border transition-colors"
+            >
+              ลองใหม่
+            </button>
+          </div>
+        ) : stores.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+            <div className="size-24 rounded-[2.5rem] bg-white shadow-inner flex items-center justify-center mb-6 grayscale opacity-40">
+              <ShoppingBag className="size-10" />
+            </div>
+            <p className="text-base font-bold text-foreground/80">ยังไม่มีร้านค้าแนะนำ</p>
+            <p className="text-sm opacity-60 mt-1">กลับมาเช็คใหม่เร็ว ๆ นี้</p>
+          </div>
+        ) : cards.length > 0 ? (
+          <div className="flex flex-col gap-4">
+            {cards.map(({ store, items }, i) => {
+              const shown = items.slice(0, PREVIEW_CAP);
+              // Gated and labelled on the store's FULL catalog, not the filtered
+              // view: this is a navigation affordance, so it must describe where
+              // it goes. Using the filtered count hid the link entirely whenever
+              // a search or chip was active — and for admin-created items (which
+              // always carry an affiliateUrl, so the modal shows the external
+              // link instead of ดูที่ร้าน) that was the ONLY route from Discover
+              // to /store/$id, which is the page B14b exists to make reachable.
+              const hasMore = store.items.length > shown.length;
+              const pkg = STORE_PACKAGES[store.package];
+              return (
                 <div
-                  key={p.id}
-                  role="button"
-                  tabIndex={0}
+                  key={store.id}
                   // Stagger only when unfiltered — see wardrobe.tsx for why.
                   style={
                     { "--d": `${hasFilters ? 0 : Math.min(i, 7) * 35}ms` } as React.CSSProperties
                   }
-                  onClick={() => setViewing(p)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setViewing(p);
-                    }
-                  }}
-                  className="rise relative text-left bg-white rounded-2xl border border-border/40 shadow-sm p-3 flex flex-col gap-2 transition hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+                  className="rise bg-white rounded-3xl border border-border/40 shadow-sm p-4 flex flex-col gap-3"
                 >
-                  {isAdmin && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditing(p);
-                      }}
-                      className="absolute top-2 right-2 z-10 size-8 rounded-full bg-white/90 shadow-md flex items-center justify-center"
-                      aria-label="แก้ไข"
-                    >
-                      <Pencil className="size-3.5" />
-                    </button>
-                  )}
-                  <div
-                    className={`aspect-square rounded-xl ${TONES[i % 3]} flex items-center justify-center overflow-hidden`}
-                  >
-                    {p.imageUrl ? (
-                      <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-4xl">{p.emoji}</span>
-                    )}
-                  </div>
-                  <p className="text-sm font-bold text-foreground/80 truncate">{p.name}</p>
-                  <p className="text-xs font-semibold text-foreground/70">
-                    {p.price.toLocaleString("th-TH")} บาท
-                  </p>
-                  {(p.store || p.platform) && (
-                    <p className="text-[11px] text-muted-foreground truncate">
-                      {[p.store, p.platform].filter(Boolean).join(" · ")}
+                  <div className="flex items-center gap-3">
+                    <div className="size-11 rounded-2xl overflow-hidden bg-lilac/20 flex items-center justify-center shrink-0">
+                      {store.logoUrl ? (
+                        <img
+                          src={store.logoUrl}
+                          alt={store.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <StoreIcon className="size-5 text-lilac-foreground/70" />
+                      )}
+                    </div>
+                    <p className="text-sm font-bold text-foreground truncate flex-1 min-w-0">
+                      {store.name}
                     </p>
+                    <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-lilac text-lilac-foreground text-[10px] font-semibold">
+                      <Package className="size-3" /> {pkg.label}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {shown.map((p, itemIdx) => (
+                      <div
+                        key={p.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setViewing(p)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setViewing(p);
+                          }
+                        }}
+                        className="relative text-left bg-muted/40 rounded-2xl p-2 flex flex-col gap-1.5 transition hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+                      >
+                        {isAdmin && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditing(p);
+                            }}
+                            className="absolute top-1 right-1 z-10 size-6 rounded-full bg-white/90 shadow-md flex items-center justify-center"
+                            aria-label="แก้ไข"
+                          >
+                            <Pencil className="size-3" />
+                          </button>
+                        )}
+                        <div
+                          className={`aspect-square rounded-xl ${TONES[itemIdx % 3]} flex items-center justify-center overflow-hidden`}
+                        >
+                          {p.imageUrl ? (
+                            <img
+                              src={p.imageUrl}
+                              alt={p.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-3xl">{p.emoji}</span>
+                          )}
+                        </div>
+                        <p className="text-[11px] font-bold text-foreground/80 truncate">
+                          {p.name}
+                        </p>
+                        <p className="text-[10px] font-semibold text-foreground/70">
+                          {p.price.toLocaleString("th-TH")} บาท
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {hasMore && (
+                    <Link
+                      to="/store/$id"
+                      params={{ id: store.id }}
+                      className="self-end text-xs font-semibold text-lilac-foreground flex items-center gap-1"
+                    >
+                      ดูทั้งหมด ({store.items.length}) <ArrowRight className="size-3.5" />
+                    </Link>
                   )}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
-              <div className="size-24 rounded-[2.5rem] bg-white shadow-inner flex items-center justify-center mb-6 grayscale opacity-40">
-                <ShoppingBag className="size-10" />
-              </div>
-              <p className="text-base font-bold text-foreground/80">ไม่พบไอเท็มที่ค้นหา</p>
-              <p className="text-sm opacity-60 mt-1">ลองเปลี่ยนคำค้นหาหรือตัวกรองดูนะ</p>
-              {hasFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="mt-6 px-6 py-2 bg-muted rounded-full text-xs font-bold hover:bg-border transition-colors"
-                >
-                  ล้างตัวกรอง
-                </button>
-              )}
-            </div>
-          )
+              );
+            })}
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
             <div className="size-24 rounded-[2.5rem] bg-white shadow-inner flex items-center justify-center mb-6 grayscale opacity-40">
               <ShoppingBag className="size-10" />
             </div>
-            <p className="text-base font-bold text-foreground/80">ยังไม่มีไอเท็มแนะนำ</p>
-            <p className="text-sm opacity-60 mt-1">กลับมาเช็คใหม่เร็ว ๆ นี้</p>
+            <p className="text-base font-bold text-foreground/80">ไม่พบไอเท็มที่ค้นหา</p>
+            <p className="text-sm opacity-60 mt-1">ลองเปลี่ยนคำค้นหาหรือตัวกรองดูนะ</p>
+            {hasFilters && (
+              <button
+                onClick={clearFilters}
+                className="mt-6 px-6 py-2 bg-muted rounded-full text-xs font-bold hover:bg-border transition-colors"
+              >
+                ล้างตัวกรอง
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -141,11 +141,13 @@ bug, not before.
 <!-- newest first: date | <ID>-L<n> | ✅ done / 🔁 re-loop / ⛔ blocked | one-line note -->
 
 _Queue state (2026-08-07, after B11): **B12–B16 remain in Tier 5**, then B08
-(Tier 6). Next `/drain` picks **B14b** (Discover regroup into store cards). Carry two
-things: `/store/$id` has **zero inbound links** — `AffiliateItemModal`'s fallback
-link belongs to neither half of the B14 split, so B14b should adopt it; and
-suspension enforcement (banner, refused mutations, AI-pool exclusion) was
-assigned to **B16** alongside the admin suspend action that creates the state._
+(Tier 6). Next `/drain` picks **B15** (AI recommendation weighting). It replaces
+`findAffiliateProduct`'s uniform tie-break with a **two-step** pick — weighted
+store first, then uniform item within it — so catalog size and package weight
+don't multiply (20× × 8× = ~160×, a hard filter by accident). It must also
+exclude suspended stores and `store_id is null` rows **with an explicit filter**:
+that path uses `adminClient()` (service-role), so RLS does nothing there. B14b's
+`weightedShuffle` in `discover.tsx` is a working reference for the weighting._
 
 _Superseded — queue state before B11: **B11–B16 (Local Store, PRD §12 Tier 5) queued ahead
 of B08 — Virtual Try-On (Tier 6)**. Next `/drain` picks **B11**, which is gated
@@ -158,6 +160,7 @@ _Queue state (2026-08-06): everything drained except **B08 — Virtual Try-On**.
 Commits after B10 (poster page, docker/UI fixes) were direct work, not loops —
 no Loop Log rows for them by design._
 
+- 2026-08-07 | B14b-L1 | ✅ done | Discover regroup into store cards — getDiscoverStores (suspension excluded by RLS, null-store rows by the .in filter), weighted-random order proven correct by extraction (premium-first 47.8% vs 47% theoretical, deterministic per seed), 6-item preview → /store/$id, search matches store names, AffiliateItemModal ดูที่ร้าน fallback adopted. Scrutinize caught that no mutation invalidated the new Discover cache — admin saves toasted success over a stale card; and fixing it surfaced that my own B14a-L2 auth middleware had left the products query firing unauthenticated with no session in its key
 - 2026-08-07 | B14a-L1 | ✅ done | Store page + admin store dropdown — `/store/$id` (signed-in only; RLS hides suspended stores for free, verified), `listStoresForAdmin` + store `<select>` so admin items stop getting `store_id = null`. **Gate found a second cap bypass**: 025's trigger was INSERT-only, and B14a made UPDATE reachable via the admin path — an UPDATE moved 18 items into a cap-10 store; `026` closes it. Scrutinize (re-run after the first agent died mid-API-call) found a comment declaring that gap unfixed while its fix shipped alongside — the B12b-L2 failure mode again — plus an unauthenticated `getAffiliateProducts` that B14a had widened
 - 2026-08-07 | B13b-L2 | ✅ done | Silent-save + input fixes — clearing an optional field was a no-op with a success toast (needed BOTH halves: emit "" and let the URL schemas accept ""); style field swallowed commas turning a,b into "ab"; zod now mirrors the DB CHECKs so raw English constraint text stops reaching the Thai UI; B10's admin editor given the same bounds so 024 doesn't regress it
 - 2026-08-07 | B13b-L1 | 🔁 re-loop | Item CRUD — `024` ownership policy + narrow column grants + 7 CHECKs (14/14 pen-test). **Gate found the cap fully bypassable** — one PostgREST bulk insert put 17 rows in a cap-10 store, because grants bound columns and CHECKs bound values but nothing bounds a COUNT; `025` adds a before-insert trigger (human go taken), verified to hold under a 6-way race and to cap service-role too

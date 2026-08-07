@@ -466,7 +466,7 @@ Deploy: Docker image (`Dockerfile` + `prod.ts` static-file server หน้า S
 >
 > แต่ละ backlog มี ID (`B01`–`B16`) ใช้อ้างอิงใน `LOOP.md` และ loop docs (`loops/<ID>-L<n>.md`)
 >
-> **สถานะคิว (2026-08-07):** B01–B03, B05–B07, B09, B10, **B11** ✅ · B04 ⏭️ (รวมเข้า B08) · **คิวปัจจุบัน: B14b → B16 (Local Store, Tier 5) แล้วค่อย B08 — Virtual Try-On (Tier 6)** ส่วนงานที่ค้างนอกคิวอยู่ใน §13
+> **สถานะคิว (2026-08-07):** B01–B03, B05–B07, B09, B10, **B11** ✅ · B04 ⏭️ (รวมเข้า B08) · **คิวปัจจุบัน: B15 → B16 (Local Store, Tier 5) แล้วค่อย B08 — Virtual Try-On (Tier 6)** ส่วนงานที่ค้างนอกคิวอยู่ใน §13
 
 ### Tier 1 — Quick wins (ไม่มี dependency, ง่าย)
 
@@ -521,7 +521,7 @@ Deploy: Docker image (`Dockerfile` + `prod.ts` static-file server หน้า S
 
 12. **B14 — **แตกเป็น B14a/B14b\*\* (grill 2026-08-07: ~550 บรรทัด เกิน trigger)
     - **B14a — Store page + admin dropdown** ✅ (loop `B14a-L1`, migration `026`) — `getStorePublic` + route `/store/$id` (เข้าได้เมื่อ sign-in แล้ว ไม่ใช่หน้าสาธารณะ — `AuthGate.tsx:49`) + **dropdown เลือกร้านใน `AffiliateEditModal`** และ `createAffiliateProduct` เขียน `store_id` (ต้องมาก่อน filter `store_id is null` ของ B14b ไม่งั้นไอเท็มที่ admin เพิ่มจะหายเงียบ ๆ)
-    - **B14b — Discover regroup** — การ์ดร้าน + preview ~6 ไอเท็ม + "ดูทั้งหมด (n)" → `/store/$id` + เรียง weighted-random memoize ครั้งเดียวต่อ data + ซ่อนร้านที่ไม่มีไอเท็มตรงเงื่อนไข + search ครอบคลุมชื่อร้าน
+    - **B14b — Discover regroup** ✅ (loop `B14b-L1`, ไม่มี migration) — การ์ดร้าน + preview ~6 ไอเท็ม + "ดูทั้งหมด (n)" → `/store/$id` + เรียง weighted-random memoize ครั้งเดียวต่อ data + ซ่อนร้านที่ไม่มีไอเท็มตรงเงื่อนไข + search ครอบคลุมชื่อร้าน
 
     **การ suspend:** grill 2026-08-07 ตัดสินว่า **B16 เป็นเจ้าของ** — ปัจจุบันไม่มีอะไรตั้ง `status='suspended'` ได้เลย (package/status เป็น service-role เท่านั้น) B14a แค่ได้ผลพลอยได้จาก RLS `Public read approved stores` ที่ซ่อนร้าน suspended อยู่แล้ว ส่วน banner + ปฏิเสธ mutation + ซ่อนจาก pool ของ AI ไปพร้อม admin suspend ใน B16
 

@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Store } from "@/hooks/use-store";
 import type { StorePublic } from "@/hooks/use-store-public";
-import type { AffiliateProduct } from "@/lib/wardrobe";
+import type { AffiliateProduct, StorePackage } from "@/lib/wardrobe";
 
 function adminClient() {
   const url = process.env.SUPABASE_URL;
@@ -233,6 +233,11 @@ function mapItemRow(row: any): AffiliateProduct {
     imageUrl: row.image_url ?? undefined,
     description: row.description ?? undefined,
     affiliateUrl: row.affiliate_url ?? undefined,
+    // Needed by AffiliateItemModal's "ดูที่ร้าน" fallback (B14b) — an item
+    // opened from Discover carries no other link back to its store page.
+    // Redundant but harmless on /store/$id, where every item's storeId
+    // already equals the page's own id.
+    storeId: row.store_id ?? undefined,
   };
 }
 
@@ -274,6 +279,62 @@ export const getStorePublic = createServerFn({ method: "POST" })
     if (itemsError) throw new Error(itemsError.message);
 
     return { ...mapRow(row), items: (itemRows ?? []).map(mapItemRow) };
+  });
+
+// ─── Discover feed: approved stores + their items (B14b) ──────────────────
+//
+// Same signed-in-only reasoning as getStorePublic above: AuthGate.tsx:49
+// gates every router route, no pathname exemption. Reads through
+// context.supabase so RLS "Public read approved stores" (018/019) excludes a
+// suspended store — do NOT re-implement that check in app code, the policy is
+// the single source of truth (LOCAL-STORE.md §3).
+export type DiscoverStore = {
+  id: string;
+  name: string;
+  description: string;
+  logoUrl: string;
+  package: StorePackage;
+  items: AffiliateProduct[];
+};
+
+export const getDiscoverStores = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({}).parse(d))
+  .handler(async ({ context }): Promise<DiscoverStore[]> => {
+    const { data: storeRows, error } = await storesTable(context.supabase)
+      .select("*")
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    if (!storeRows || storeRows.length === 0) return [];
+
+    // One extra round trip for every store's items, not N+1 — a single
+    // `.in(store_id, …)` fetch, bucketed client-side below. Rows with
+    // store_id is null (legacy admin items predating B14a's store dropdown)
+    // are excluded by the `.in()` filter itself, so they get no card.
+    const storeIds = storeRows.map((r: { id: string }) => r.id);
+    const { data: itemRows, error: itemsError } = await affiliateProductsTable(context.supabase)
+      .select("*")
+      .in("store_id", storeIds)
+      .order("created_at", { ascending: false });
+    if (itemsError) throw new Error(itemsError.message);
+
+    const itemsByStore = new Map<string, AffiliateProduct[]>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const row of (itemRows ?? []) as any[]) {
+      const list = itemsByStore.get(row.store_id) ?? [];
+      list.push(mapItemRow(row));
+      itemsByStore.set(row.store_id, list);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (storeRows as any[]).map((row) => ({
+      id: row.id,
+      name: row.name ?? "",
+      description: row.description ?? "",
+      logoUrl: row.logo_url ?? "",
+      package: row.package,
+      items: itemsByStore.get(row.id) ?? [],
+    }));
   });
 
 // ─── Update the caller's own store profile ─────────────────────────────────

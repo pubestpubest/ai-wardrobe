@@ -11,6 +11,7 @@ import {
 } from "@/lib/affiliate.functions";
 import type { AffiliateProduct } from "@/lib/wardrobe";
 import { useAuth } from "@/hooks/use-auth";
+import { DISCOVER_STORES_QUERY_KEY } from "@/hooks/use-discover-stores";
 
 export const AFFILIATE_PRODUCTS_QUERY_KEY = ["affiliate-products"];
 
@@ -44,8 +45,14 @@ export function useAffiliateProducts() {
   const listStoresFn = useServerFn(listStoresForAdmin);
 
   const { data: affiliateProducts = [], isLoading } = useQuery<AffiliateProduct[]>({
-    queryKey: AFFILIATE_PRODUCTS_QUERY_KEY,
+    // Session in the key + `enabled`: B14a-L2 put requireSupabaseAuth on
+    // getAffiliateProducts, and AuthGate renders children during SSR and the
+    // client auth window — so an ungated query fired unauthenticated, failed,
+    // and (with no session in the key) cached that failure instead of
+    // refetching once the session arrived.
+    queryKey: [...AFFILIATE_PRODUCTS_QUERY_KEY, session?.user?.id],
     queryFn: () => fetchFn({ data: {} }),
+    enabled: !!session,
     staleTime: 30_000,
   });
 
@@ -66,7 +73,14 @@ export function useAffiliateProducts() {
     staleTime: 30_000,
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: AFFILIATE_PRODUCTS_QUERY_KEY });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: AFFILIATE_PRODUCTS_QUERY_KEY });
+    // Discover renders from getDiscoverStores since B14b, not from this hook's
+    // products. Without this an admin edit/delete/create toasts success while
+    // the card keeps showing the old row — and it self-heals on refocus, which
+    // makes it harder to diagnose, not milder.
+    qc.invalidateQueries({ queryKey: DISCOVER_STORES_QUERY_KEY });
+  };
 
   const createMutation = useMutation({
     mutationFn: (product: NewAffiliateProduct) => createFn({ data: { product } }),

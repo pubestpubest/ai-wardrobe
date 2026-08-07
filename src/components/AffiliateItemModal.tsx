@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { ExternalLink, X } from "lucide-react";
 import type { AffiliateProduct } from "@/lib/wardrobe";
 
@@ -42,8 +43,10 @@ export function AffiliateItemModal({ item, onClose }: Props) {
           <p className="text-sm text-foreground/70 leading-relaxed italic">{item.description}</p>
         )}
 
-        {/* No affiliateUrl on a local-store item — /store/$id fallback link arrives in B14 */}
-        {item.affiliateUrl && (
+        {/* External affiliateUrl always wins; a local-store item (no
+            affiliateUrl) falls back to its /store/$id page instead. Neither
+            present → no button, same as before B14b. */}
+        {item.affiliateUrl ? (
           <a
             href={item.affiliateUrl}
             target="_blank"
@@ -52,6 +55,17 @@ export function AffiliateItemModal({ item, onClose }: Props) {
           >
             ไปที่ร้านค้า <ExternalLink className="size-4" />
           </a>
+        ) : (
+          item.storeId && (
+            <Link
+              to="/store/$id"
+              params={{ id: item.storeId }}
+              onClick={onClose}
+              className="w-full bg-primary text-primary-foreground rounded-full py-3 text-sm font-medium flex items-center justify-center gap-2 mt-1"
+            >
+              ดูที่ร้าน <ExternalLink className="size-4" />
+            </Link>
+          )
         )}
       </div>
     </div>

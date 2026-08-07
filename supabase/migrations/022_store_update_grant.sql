@@ -1,0 +1,32 @@
+-- B12b: store.functions.ts's updateStore writes through context.supabase (the
+-- user-scoped client) so RLS `using (owner_user_id = auth.uid())` (018,
+-- "Owners manage own store") applies. As with 020's INSERT grant, RLS alone is
+-- not enough — Supabase's default table-wide UPDATE grant to `authenticated`
+-- would let a caller reach `package`/`status` directly via PostgREST, so this
+-- migration grants back exactly the columns updateStore needs, column-level
+-- only.
+--
+-- `owner_user_id` is deliberately NOT in this list, even though it's the same
+-- account editing its own row under RLS: granting it would let an owner set
+-- `owner_user_id` to a DIFFERENT account in the same UPDATE, handing their
+-- store to someone else. It stays insert-only (set once, in 020, to
+-- `auth.uid()` via CreateStoreSchema and never touched again).
+--
+-- `package`/`status`/`id`/`created_at` stay ungranted too, for the same
+-- reason 020 withheld them on INSERT: self-upgrading a package or
+-- self-clearing a `suspended` status is exactly the privilege escalation
+-- B11-L1/L2 blocked on. Admin writes for those columns keep going through the
+-- service-role path (LOCAL-STORE.md §3).
+--
+-- 021's CHECK constraints (http(s)-only URLs, non-blank name, description
+-- cap, at-least-one-contact) already apply to UPDATE as well as INSERT — that
+-- is the whole reason 021 exists as a separate migration from 020. A column
+-- GRANT only bounds which columns a caller may write, never what values; the
+-- CHECKs are what bound the values on this path too.
+--
+-- Never "fix" a permission-denied here with
+-- `grant update on public.stores to authenticated` (table-wide) — see 020 and
+-- loops/B11-L2.md for why that reopens the hole.
+grant update (name, description, contact_phone, contact_line, contact_email,
+              address, google_map_url, online_store_url, logo_url, cover_url)
+  on public.stores to authenticated;

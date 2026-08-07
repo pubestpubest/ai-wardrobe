@@ -11,11 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WardrobeRouteImport } from './routes/wardrobe'
 import { Route as VirtualModelRouteImport } from './routes/virtual-model'
+import { Route as StoreRouteImport } from './routes/store'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StoreIndexRouteImport } from './routes/store.index'
 import { Route as StoreRegisterRouteImport } from './routes/store.register'
+import { Route as StorePackageRouteImport } from './routes/store.package'
 
 const WardrobeRoute = WardrobeRouteImport.update({
   id: '/wardrobe',
@@ -25,6 +28,11 @@ const WardrobeRoute = WardrobeRouteImport.update({
 const VirtualModelRoute = VirtualModelRouteImport.update({
   id: '/virtual-model',
   path: '/virtual-model',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StoreRoute = StoreRouteImport.update({
+  id: '/store',
+  path: '/store',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -47,10 +55,20 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StoreIndexRoute = StoreIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => StoreRoute,
+} as any)
 const StoreRegisterRoute = StoreRegisterRouteImport.update({
-  id: '/store/register',
-  path: '/store/register',
-  getParentRoute: () => rootRouteImport,
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StorePackageRoute = StorePackageRouteImport.update({
+  id: '/package',
+  path: '/package',
+  getParentRoute: () => StoreRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -58,9 +76,12 @@ export interface FileRoutesByFullPath {
   '/discover': typeof DiscoverRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/store': typeof StoreRouteWithChildren
   '/virtual-model': typeof VirtualModelRoute
   '/wardrobe': typeof WardrobeRoute
+  '/store/package': typeof StorePackageRoute
   '/store/register': typeof StoreRegisterRoute
+  '/store/': typeof StoreIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -69,7 +90,9 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/virtual-model': typeof VirtualModelRoute
   '/wardrobe': typeof WardrobeRoute
+  '/store/package': typeof StorePackageRoute
   '/store/register': typeof StoreRegisterRoute
+  '/store': typeof StoreIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,9 +100,12 @@ export interface FileRoutesById {
   '/discover': typeof DiscoverRoute
   '/matches': typeof MatchesRoute
   '/profile': typeof ProfileRoute
+  '/store': typeof StoreRouteWithChildren
   '/virtual-model': typeof VirtualModelRoute
   '/wardrobe': typeof WardrobeRoute
+  '/store/package': typeof StorePackageRoute
   '/store/register': typeof StoreRegisterRoute
+  '/store/': typeof StoreIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -88,9 +114,12 @@ export interface FileRouteTypes {
     | '/discover'
     | '/matches'
     | '/profile'
+    | '/store'
     | '/virtual-model'
     | '/wardrobe'
+    | '/store/package'
     | '/store/register'
+    | '/store/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -99,16 +128,21 @@ export interface FileRouteTypes {
     | '/profile'
     | '/virtual-model'
     | '/wardrobe'
+    | '/store/package'
     | '/store/register'
+    | '/store'
   id:
     | '__root__'
     | '/'
     | '/discover'
     | '/matches'
     | '/profile'
+    | '/store'
     | '/virtual-model'
     | '/wardrobe'
+    | '/store/package'
     | '/store/register'
+    | '/store/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -116,9 +150,9 @@ export interface RootRouteChildren {
   DiscoverRoute: typeof DiscoverRoute
   MatchesRoute: typeof MatchesRoute
   ProfileRoute: typeof ProfileRoute
+  StoreRoute: typeof StoreRouteWithChildren
   VirtualModelRoute: typeof VirtualModelRoute
   WardrobeRoute: typeof WardrobeRoute
-  StoreRegisterRoute: typeof StoreRegisterRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -135,6 +169,13 @@ declare module '@tanstack/react-router' {
       path: '/virtual-model'
       fullPath: '/virtual-model'
       preLoaderRoute: typeof VirtualModelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/store': {
+      id: '/store'
+      path: '/store'
+      fullPath: '/store'
+      preLoaderRoute: typeof StoreRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -165,24 +206,52 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/store/': {
+      id: '/store/'
+      path: '/'
+      fullPath: '/store/'
+      preLoaderRoute: typeof StoreIndexRouteImport
+      parentRoute: typeof StoreRoute
+    }
     '/store/register': {
       id: '/store/register'
-      path: '/store/register'
+      path: '/register'
       fullPath: '/store/register'
       preLoaderRoute: typeof StoreRegisterRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/store/package': {
+      id: '/store/package'
+      path: '/package'
+      fullPath: '/store/package'
+      preLoaderRoute: typeof StorePackageRouteImport
+      parentRoute: typeof StoreRoute
     }
   }
 }
+
+interface StoreRouteChildren {
+  StorePackageRoute: typeof StorePackageRoute
+  StoreRegisterRoute: typeof StoreRegisterRoute
+  StoreIndexRoute: typeof StoreIndexRoute
+}
+
+const StoreRouteChildren: StoreRouteChildren = {
+  StorePackageRoute: StorePackageRoute,
+  StoreRegisterRoute: StoreRegisterRoute,
+  StoreIndexRoute: StoreIndexRoute,
+}
+
+const StoreRouteWithChildren = StoreRoute._addFileChildren(StoreRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DiscoverRoute: DiscoverRoute,
   MatchesRoute: MatchesRoute,
   ProfileRoute: ProfileRoute,
+  StoreRoute: StoreRouteWithChildren,
   VirtualModelRoute: VirtualModelRoute,
   WardrobeRoute: WardrobeRoute,
-  StoreRegisterRoute: StoreRegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -11,6 +11,7 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { ProfileGate } from "@/components/ProfileGate";
 import { AuthGate } from "@/components/AuthGate";
+import { StoreGuard } from "@/components/StoreGuard";
 
 import "../styles.css";
 
@@ -122,6 +123,7 @@ function RootComponent() {
           <Outlet />
         </div>
         <ProfileGate />
+        <StoreGuard />
       </AuthGate>
       <Toaster richColors position="top-center" />
     </QueryClientProvider>

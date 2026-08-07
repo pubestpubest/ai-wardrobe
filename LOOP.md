@@ -141,9 +141,11 @@ bug, not before.
 <!-- newest first: date | <ID>-L<n> | ✅ done / 🔁 re-loop / ⛔ blocked | one-line note -->
 
 _Queue state (2026-08-07, after B11): **B12–B16 remain in Tier 5**, then B08
-(Tier 6). Next `/drain` picks **B12b** (store shell: `/store`, `/store/package`,
-StoreBottomNav, `__root` redirect guard, and the UPDATE grant — which per B12a-L2
-must ship with CHECK constraints, not zod alone)._
+(Tier 6). Next `/drain` picks **B13** (store item CRUD). It must recreate the
+`Owners manage own store items` policy that `019` removed, add its own column
+grants, and put the item cap behind a service-role count — `getMyStore`'s
+`itemCount` reads through `Public read catalog` and would silently under-report
+if that policy ever narrows._
 
 _Superseded — queue state before B11: **B11–B16 (Local Store, PRD §12 Tier 5) queued ahead
 of B08 — Virtual Try-On (Tier 6)**. Next `/drain` picks **B11**, which is gated
@@ -156,6 +158,8 @@ _Queue state (2026-08-06): everything drained except **B08 — Virtual Try-On**.
 Commits after B10 (poster page, docker/UI fixes) were direct work, not loops —
 no Loop Log rows for them by design._
 
+- 2026-08-07 | B12b-L2 | ✅ done | Disabled-query load state — `isLoading: !session || isLoading`; TanStack v5 reports isLoading===false for a query disabled by `enabled: !!session`, so every store page took its no-store branch on a cold load. My L1 gate accepted "200 + empty body" without asking why `store` was null — a status code is not a render check
+- 2026-08-07 | B12b-L1 | 🔁 re-loop | Store shell — `022` column UPDATE grant (owner_user_id excluded so a store can't be transferred), `updateStore`, `/store` editor, `/store/package`, StoreBottomNav (ไอเท็ม disabled until B13), StoreGuard redirect; UPDATE path pen-tested with the discriminating owner_user_id case (GRANT-denied, not RLS-denied) and 021's CHECKs proven to bind UPDATE; **first loop in this feature where scrutinize found no authorization hole** — it found a load-state bug instead
 - 2026-08-07 | B12a-L2 | ✅ done | Value constraints + guard ordering — migration `021` CHECKs (http(s)-only URLs, non-blank name, description cap, ≥1 contact) after scrutinize proved a column GRANT bounds columns not values and zod was bypassable by direct PostgREST (empty name + `javascript:` logo_url accepted live); also moved the wardrobe guard above the self-healing path where it was unreachable, and made a null count fail closed
 - 2026-08-07 | B12a-L1 | 🔁 re-loop | Store registration — `020` column-level INSERT grant, `store.functions.ts`, `/store/register` + form, `role` on Profile, ProfileGate bypass, sign-in link; grill split B12 into B12a/B12b (past LOOP.md's ~400-line trigger); gate pen-tested the grant layer (package/status injection, cross-user insert, UPDATE, role self-set all denied) and ran the real zod schema against XSS payloads; scrutinize then found two majors
 - 2026-08-07 | B11-L3 | ✅ done | Narrowed authorization — removed ALL `stores` write grants from `authenticated` (B11 has no user-scoped writer; a GRANT bypasses zod via PostgREST), read policy scoped `to authenticated`, revoked anon SELECT on stores + `profiles` DELETE; scrutinize found the SQL correct, its 4 handoff findings fixed in place (PRD B12/B13 + LOCAL-STORE.md §3 now state the grant/policy work each must add)

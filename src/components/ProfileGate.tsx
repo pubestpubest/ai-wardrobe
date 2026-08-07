@@ -27,6 +27,13 @@ export function ProfileGate() {
   // also exempt `/store/$id`, which after B14 is a page shoppers reach from
   // Discover, letting a new signup skip onboarding entirely.
   if (pathname.replace(/\/+$/, "") === "/store/register") return null;
+  // "everything after registration is covered by the role === 'store' clause"
+  // (LOCAL-STORE.md §2). A store account has no personal profile to complete
+  // — name/gender/birthdate are never filled in, so without this,
+  // isProfileComplete would be permanently false and this modal would block
+  // every /store/* page forever. StoreGuard (__root.tsx) is what actually
+  // keeps a store account inside /store/*; this just stops blocking it there.
+  if (profile.role === "store") return null;
   if (isProfileComplete(profile)) return null;
 
   const today = new Date().toISOString().split("T")[0];

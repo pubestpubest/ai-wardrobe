@@ -18,6 +18,12 @@ function storesTable(supabase: unknown) {
   return (supabase as SupabaseClient).from("stores" as any) as any;
 }
 
+// Same story as storesTable — affiliate_products isn't in generated types.ts.
+function affiliateProductsTable(supabase: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (supabase as SupabaseClient).from("affiliate_products" as any) as any;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapRow(row: any): Store {
   return {
@@ -49,7 +55,22 @@ export const getMyStore = createServerFn({ method: "POST" })
       .eq("owner_user_id", context.userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return row ? mapRow(row) : null;
+    if (!row) return null;
+
+    // Item quota for /store/package's `n/maxItems` (LOCAL-STORE.md §4).
+    // Counted here so both /store and /store/package share one round trip.
+    // "Public read catalog" (006_affiliate.sql, still in force) lets the
+    // user-scoped client count any store's products, so this needs no
+    // service-role escalation. B13: do NOT reuse this for cap enforcement — if
+    // that policy ever narrows (e.g. hiding suspended stores' products) this
+    // count silently under-reports instead of erroring, and a quota check that
+    // under-reports lets a store exceed its package. Count via service-role.
+    const { count, error: countError } = await affiliateProductsTable(context.supabase)
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", row.id);
+    if (countError) throw new Error(countError.message);
+
+    return { ...mapRow(row), itemCount: count ?? 0 };
   });
 
 // Sets profiles.role='store' for the caller. Must be `upsert`, not `update`:
@@ -79,25 +100,50 @@ const httpUrl = z
   .url()
   .refine((u) => /^https?:\/\//i.test(u), { message: "ต้องเป็นลิงก์ http(s)" });
 
-const CreateStoreSchema = z
-  .object({
-    name: z.string().min(1),
-    description: z.string().optional(),
-    contactPhone: z.string().optional(),
-    contactLine: z.string().optional(),
-    contactEmail: z.string().optional(),
-    address: z.string().optional(),
-    googleMapUrl: httpUrl.optional(),
-    onlineStoreUrl: httpUrl.optional(),
-    logoUrl: httpUrl.optional(),
-    coverUrl: httpUrl.optional(),
-  })
-  // At least one contact channel — LOCAL-STORE.md §2: "one of three" still
-  // lets a shop withhold a phone number it doesn't want public, but a store
-  // card nobody can act on is dead weight on Discover.
-  .refine((d) => !!(d.contactPhone || d.contactLine || d.address), {
-    message: "กรุณากรอกช่องทางติดต่ออย่างน้อยหนึ่งอย่าง: เบอร์โทร, LINE หรือที่อยู่",
-  });
+// Shared by create AND update — an edit that clears every contact channel
+// leaves a store exactly as dead on Discover as one that never had one, and
+// B12b's updateStore reuses this shape wholesale (plan item 2).
+const StoreFieldsSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  contactPhone: z.string().optional(),
+  contactLine: z.string().optional(),
+  contactEmail: z.string().optional(),
+  address: z.string().optional(),
+  googleMapUrl: httpUrl.optional(),
+  onlineStoreUrl: httpUrl.optional(),
+  logoUrl: httpUrl.optional(),
+  coverUrl: httpUrl.optional(),
+});
+
+// At least one contact channel — LOCAL-STORE.md §2: "one of three" still
+// lets a shop withhold a phone number it doesn't want public, but a store
+// card nobody can act on is dead weight on Discover.
+const hasContact = (d: z.infer<typeof StoreFieldsSchema>) =>
+  !!(d.contactPhone || d.contactLine || d.address);
+const CONTACT_MESSAGE = "กรุณากรอกช่องทางติดต่ออย่างน้อยหนึ่งอย่าง: เบอร์โทร, LINE หรือที่อยู่";
+
+const CreateStoreSchema = StoreFieldsSchema.refine(hasContact, { message: CONTACT_MESSAGE });
+const UpdateStoreSchema = StoreFieldsSchema.refine(hasContact, { message: CONTACT_MESSAGE });
+
+// Full replacement, not a patch: every column is written on every call, so an
+// omitted optional field becomes null. Safe today because StoreForm always
+// sends all ten — but updateStore is a public endpoint whose name reads like a
+// patch, so any future caller must send the complete field set.
+function toRow(data: z.infer<typeof StoreFieldsSchema>) {
+  return {
+    name: data.name,
+    description: data.description || null,
+    contact_phone: data.contactPhone || null,
+    contact_line: data.contactLine || null,
+    contact_email: data.contactEmail || null,
+    address: data.address || null,
+    google_map_url: data.googleMapUrl || null,
+    online_store_url: data.onlineStoreUrl || null,
+    logo_url: data.logoUrl || null,
+    cover_url: data.coverUrl || null,
+  };
+}
 
 export const createStore = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -140,19 +186,7 @@ export const createStore = createServerFn({ method: "POST" })
     // `with check (owner_user_id = auth.uid())` applies — 020 grants exactly
     // these columns to `authenticated`.
     const { data: row, error } = await storesTable(context.supabase)
-      .insert({
-        owner_user_id: context.userId,
-        name: data.name,
-        description: data.description || null,
-        contact_phone: data.contactPhone || null,
-        contact_line: data.contactLine || null,
-        contact_email: data.contactEmail || null,
-        address: data.address || null,
-        google_map_url: data.googleMapUrl || null,
-        online_store_url: data.onlineStoreUrl || null,
-        logo_url: data.logoUrl || null,
-        cover_url: data.coverUrl || null,
-      })
+      .insert({ owner_user_id: context.userId, ...toRow(data) })
       .select("*")
       .single();
     if (error) {
@@ -169,5 +203,37 @@ export const createStore = createServerFn({ method: "POST" })
     // would fail with "permission denied for table profiles".
     await setRoleStore(context.userId);
 
+    return mapRow(row);
+  });
+
+// ─── Update the caller's own store profile ─────────────────────────────────
+
+export const updateStore = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => UpdateStoreSchema.parse(d))
+  .handler(async ({ data, context }): Promise<Store> => {
+    // Writes through the user-scoped client so RLS ("Owners manage own
+    // store", 018) enforces ownership, PLUS an explicit .eq scope below —
+    // safety shouldn't depend on a policy living in another file (same
+    // reasoning as clearWear in outfit-wears.functions.ts). 022 grants
+    // exactly these columns; owner_user_id/package/status/id/created_at stay
+    // ungranted (an owner must never be able to hand off their store or
+    // self-upgrade/self-approve), and 021's CHECKs bound the values on this
+    // path too, same as on insert — LOCAL-STORE.md §3.
+    const { data: row, error } = await storesTable(context.supabase)
+      .update(toRow(data))
+      .eq("owner_user_id", context.userId)
+      .select("*")
+      .single();
+    if (error) {
+      // PGRST116 = .single() got zero rows back — no store row for this
+      // owner (e.g. a second tab raced a delete, or this handler was reached
+      // without one existing at all). Same reasoning as the 23505 handling
+      // in createStore: surface Thai, not a raw PostgREST string.
+      if ((error as { code?: string }).code === "PGRST116") {
+        throw new Error("ไม่พบร้านค้าของคุณ");
+      }
+      throw new Error(error.message);
+    }
     return mapRow(row);
   });

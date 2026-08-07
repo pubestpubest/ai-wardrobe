@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { getMyStore, createStore } from "@/lib/store.functions";
+import { getMyStore, createStore, updateStore } from "@/lib/store.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { PROFILE_QUERY_KEY } from "@/hooks/use-profile";
 import type { StorePackage } from "@/lib/wardrobe";
@@ -21,6 +21,9 @@ export type Store = {
   package: StorePackage;
   status: "approved" | "suspended";
   createdAt: string;
+  // Only populated by getMyStore (LOCAL-STORE.md §4's item quota) — optional
+  // so updateStore's plain mapRow() return still satisfies this type.
+  itemCount?: number;
 };
 
 export type CreateStoreInput = {
@@ -36,6 +39,8 @@ export type CreateStoreInput = {
   coverUrl?: string;
 };
 
+export type UpdateStoreInput = CreateStoreInput;
+
 export const STORE_QUERY_KEY = ["store"];
 
 export function useStore() {
@@ -44,6 +49,7 @@ export function useStore() {
 
   const fetchFn = useServerFn(getMyStore);
   const createFn = useServerFn(createStore);
+  const updateFn = useServerFn(updateStore);
 
   const { data, isLoading } = useQuery({
     // key scoped to the user so account switch can't serve a stale store
@@ -63,10 +69,25 @@ export function useStore() {
     onError: (err) => toast.error(`สมัครร้านค้าไม่สำเร็จ: ${(err as Error).message}`),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: (input: UpdateStoreInput) => updateFn({ data: input }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: STORE_QUERY_KEY }),
+    onError: (err) => toast.error(`บันทึกข้อมูลร้านค้าไม่สำเร็จ: ${(err as Error).message}`),
+  });
+
   return {
     store: data ?? null,
-    isLoading,
+    // `!session ||` is load-bearing: TanStack v5 computes
+    // `isLoading = isPending && isFetching`, so a query disabled via
+    // `enabled: !!session` reports isLoading===false with data===undefined.
+    // AuthGate renders children during SSR and the client auth-loading window,
+    // so without this every consumer sees `store === null, isLoading === false`
+    // and takes its no-store branch — /store/package redirected away on any
+    // refresh or bookmark, /store flashed the registration form at real owners.
+    isLoading: !session || isLoading,
     create: (input: CreateStoreInput) => createMutation.mutateAsync(input),
     isCreating: createMutation.isPending,
+    update: (input: UpdateStoreInput) => updateMutation.mutateAsync(input),
+    isUpdating: updateMutation.isPending,
   };
 }

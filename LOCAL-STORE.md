@@ -288,7 +288,14 @@ GRANT is a direct PostgREST path that bypasses `store.functions.ts` and its zod
 `profiles` (everything except `role`). Consequences for later loops:
 
 - **B12 must add** `grant insert/update (<columns>) on public.stores to
-authenticated`, beside the zod that makes those columns safe.
+authenticated` — **plus DB CHECK constraints on the values.** A column GRANT
+  bounds which columns, never what values: once a caller holds the grant they can
+  `POST /rest/v1/stores` directly and never reach `CreateStoreSchema`. Proven in
+  B12a-L1 (empty `name`, `javascript:` in `logo_url`/`google_map_url`, all
+  accepted). The `httpUrl` rule this section calls "the actual XSS boundary" is
+  enforced by migration `021`'s CHECKs. Three layers, all required: **zod** bounds
+  what goes through the server function, **grants** bound columns, **CHECKs**
+  bound values.
 - **B13 must recreate** the `Owners manage own store items` policy (B11 removed
   it) _and_ keep `affiliate_products`' table-wide grants in mind — they still
   exist, so a permissive policy re-opens table-wide writes.

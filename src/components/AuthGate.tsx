@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Sparkles, Shirt, CalendarHeart } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -187,6 +188,16 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             >
               {mode === "signin" ? "ยังไม่มีบัญชี? สมัครสมาชิก" : "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ"}
             </button>
+
+            {/* Quiet entry point for shops — AuthGate renders regardless of
+                pathname, so this just changes the URL; the register form
+                itself only appears once the visitor signs in. */}
+            <Link
+              to="/store/register"
+              className="text-center text-[11px] text-muted-foreground/70 hover:text-muted-foreground underline underline-offset-2 transition"
+            >
+              เปิดร้านค้า?
+            </Link>
           </div>
         </div>
       </div>

@@ -15,6 +15,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StoreRegisterRouteImport } from './routes/store.register'
 
 const WardrobeRoute = WardrobeRouteImport.update({
   id: '/wardrobe',
@@ -46,6 +47,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StoreRegisterRoute = StoreRegisterRouteImport.update({
+  id: '/store/register',
+  path: '/store/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/virtual-model': typeof VirtualModelRoute
   '/wardrobe': typeof WardrobeRoute
+  '/store/register': typeof StoreRegisterRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/virtual-model': typeof VirtualModelRoute
   '/wardrobe': typeof WardrobeRoute
+  '/store/register': typeof StoreRegisterRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +79,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/virtual-model': typeof VirtualModelRoute
   '/wardrobe': typeof WardrobeRoute
+  '/store/register': typeof StoreRegisterRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +90,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/virtual-model'
     | '/wardrobe'
+    | '/store/register'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +99,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/virtual-model'
     | '/wardrobe'
+    | '/store/register'
   id:
     | '__root__'
     | '/'
@@ -97,6 +108,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/virtual-model'
     | '/wardrobe'
+    | '/store/register'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +118,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   VirtualModelRoute: typeof VirtualModelRoute
   WardrobeRoute: typeof WardrobeRoute
+  StoreRegisterRoute: typeof StoreRegisterRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -152,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/store/register': {
+      id: '/store/register'
+      path: '/store/register'
+      fullPath: '/store/register'
+      preLoaderRoute: typeof StoreRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -162,6 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   VirtualModelRoute: VirtualModelRoute,
   WardrobeRoute: WardrobeRoute,
+  StoreRegisterRoute: StoreRegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

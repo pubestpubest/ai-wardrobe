@@ -22,6 +22,10 @@ function mapRow(row: any): Profile {
     birthdate: row.birthdate ?? "",
     heightCm: row.height_cm ?? "",
     weightKg: row.weight_kg ?? "",
+    // Round-trip only — never written here. `authenticated` has no grant on
+    // this column (018/019); it's set exclusively by store.functions.ts's
+    // createStore through the service-role client.
+    role: row.role ?? "shopper",
   };
 }
 

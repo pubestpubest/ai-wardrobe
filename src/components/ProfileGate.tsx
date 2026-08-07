@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { isProfileComplete, useProfile } from "@/hooks/use-profile";
 import type { Gender, Profile } from "@/hooks/use-profile";
 import { useAuth } from "@/hooks/use-auth";
@@ -8,6 +9,7 @@ export function ProfileGate() {
   const { profile, update, isLoading } = useProfile();
   const [mounted, setMounted] = useState(false);
   const [draft, setDraft] = useState<Profile>(profile);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => setMounted(true), []);
 
@@ -20,6 +22,11 @@ export function ProfileGate() {
   // (query is disabled pre-session, so isLoading is false in that window)
   if (authLoading || !session) return null;
   if (isLoading) return null;
+  // Exact match only, not a `/store/*` prefix — this is the only pathname
+  // where role is still 'shopper' (LOCAL-STORE.md §2). A prefix bypass would
+  // also exempt `/store/$id`, which after B14 is a page shoppers reach from
+  // Discover, letting a new signup skip onboarding entirely.
+  if (pathname.replace(/\/+$/, "") === "/store/register") return null;
   if (isProfileComplete(profile)) return null;
 
   const today = new Date().toISOString().split("T")[0];

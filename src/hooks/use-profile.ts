@@ -6,6 +6,11 @@ import { useAuth } from "@/hooks/use-auth";
 
 export type Gender = "" | "male" | "female" | "other";
 
+// Set exclusively by store.functions.ts's createStore via the service-role
+// client — `authenticated` has no grant on this column (018/019), so it can
+// never be written through upsertProfile.
+export type Role = "shopper" | "store";
+
 export type Profile = {
   name: string;
   handle: string;
@@ -17,6 +22,7 @@ export type Profile = {
   birthdate: string;
   heightCm: string;
   weightKg: string;
+  role: Role;
 };
 
 export const DEFAULT_PROFILE: Profile = {
@@ -30,6 +36,7 @@ export const DEFAULT_PROFILE: Profile = {
   birthdate: "",
   heightCm: "",
   weightKg: "",
+  role: "shopper",
 };
 
 export function isProfileComplete(p: Profile): boolean {
@@ -55,14 +62,14 @@ export function useProfile() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (patch: Partial<Profile>) => upsertFn({ data: patch }),
+    mutationFn: (patch: Partial<Omit<Profile, "role">>) => upsertFn({ data: patch }),
     onSuccess: () => qc.invalidateQueries({ queryKey: PROFILE_QUERY_KEY }),
     onError: (err) => toast.error(`บันทึกโปรไฟล์ไม่สำเร็จ: ${(err as Error).message}`),
   });
 
   return {
     profile: data ?? DEFAULT_PROFILE,
-    update: (patch: Partial<Profile>) => updateMutation.mutate(patch),
+    update: (patch: Partial<Omit<Profile, "role">>) => updateMutation.mutate(patch),
     isLoading,
   };
 }

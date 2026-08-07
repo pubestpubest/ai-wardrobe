@@ -1,22 +1,71 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Sparkles, Shirt, CalendarHeart } from "lucide-react";
+import { Sparkles, Shirt, CalendarHeart, Store, MapPin, PackageOpen } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useRouterState } from "@tanstack/react-router";
 
-const PERKS = [
-  {
-    icon: Sparkles,
-    tone: "bg-lilac text-lilac-foreground",
-    text: "AI สไตลิสต์จัดชุดให้จากตู้ของคุณ",
+// Two audiences, one product. Same layout and components throughout — only the
+// accent, the art and the words change, so a shop owner who also shops doesn't
+// feel like they've landed on a different brand.
+const AUDIENCES = {
+  customer: {
+    accent: "bg-primary text-primary-foreground shadow-primary/25",
+    chip: "bg-lilac text-lilac-foreground",
+    ring: "ring-primary",
+    eyebrow: "ตู้เสื้อผ้าดิจิทัล + AI สไตลิสต์",
+    headline: ["แมตช์ลุคที่ใช่", "จากตู้เสื้อผ้าที่คุณมี"] as const,
+    signinTitle: "ยินดีต้อนรับกลับมา ✨",
+    signupTitle: "มาเริ่มจัดตู้กันเลย 👗",
+    signinSub: "เข้าสู่ระบบเพื่อกลับไปที่ตู้เสื้อผ้าของคุณ",
+    signupSub: "สร้างบัญชีผู้ใช้ใหม่ ใช้อีเมลและตั้งรหัส PIN 6 หลัก",
+    signinCta: "เข้าสู่ระบบ",
+    signupCta: "สร้างบัญชีผู้ใช้",
+    perks: [
+      {
+        icon: Sparkles,
+        tone: "bg-lilac text-lilac-foreground",
+        text: "AI สไตลิสต์จัดชุดให้จากตู้ของคุณ",
+      },
+      {
+        icon: Shirt,
+        tone: "bg-blush text-blush-foreground",
+        text: "ถ่ายรูป แล้วให้ AI กรอกแท็กให้เอง",
+      },
+      {
+        icon: CalendarHeart,
+        tone: "bg-sky text-sky-foreground",
+        text: "บันทึกว่าวันไหนใส่ชุดอะไร",
+      },
+    ],
   },
-  {
-    icon: Shirt,
-    tone: "bg-blush text-blush-foreground",
-    text: "ถ่ายรูป แล้วให้ AI กรอกแท็กให้เอง",
+  store: {
+    accent: "bg-sky-foreground text-white shadow-sky-foreground/25",
+    chip: "bg-sky text-sky-foreground",
+    ring: "ring-sky-foreground",
+    eyebrow: "สำหรับร้านค้า",
+    headline: ["เปิดร้านบน", "MATCHME"] as const,
+    signinTitle: "เข้าสู่ระบบร้านค้า 🏪",
+    signupTitle: "เปิดร้านค้าใหม่ 🏪",
+    signinSub: "เข้าสู่ระบบเพื่อจัดการร้านและไอเท็มของคุณ",
+    signupSub: "สร้างบัญชีร้านค้าใหม่ — ต้องใช้อีเมลคนละอันกับบัญชีผู้ใช้",
+    signinCta: "เข้าสู่ระบบร้านค้า",
+    signupCta: "สร้างบัญชีร้านค้า",
+    perks: [
+      { icon: Store, tone: "bg-sky text-sky-foreground", text: "ร้านของคุณแสดงในหน้าช้อปปิ้ง" },
+      {
+        icon: PackageOpen,
+        tone: "bg-lilac text-lilac-foreground",
+        text: "จัดการไอเท็มในร้านได้เอง",
+      },
+      {
+        icon: MapPin,
+        tone: "bg-blush text-blush-foreground",
+        text: "ลูกค้าเห็นแผนที่และช่องทางติดต่อ",
+      },
+    ],
   },
-  { icon: CalendarHeart, tone: "bg-sky text-sky-foreground", text: "บันทึกว่าวันไหนใส่ชุดอะไร" },
-];
+} as const;
 
 // The showcase panel is desktop-only. `hidden lg:flex` alone still makes phones
 // download the 220KB mockup — display:none does not stop <img> from fetching —
@@ -36,6 +85,11 @@ function useIsWide() {
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, loading, signIn, signUp } = useAuth();
   const isWide = useIsWide();
+  // AuthGate renders regardless of pathname, so this is what tells a visitor
+  // arriving at /store/register that they're opening a SHOP, not a wardrobe.
+  const pathname = useRouterState({ select: (st) => st.location.pathname });
+  const audience = pathname.replace(/\/+$/, "") === "/store/register" ? "store" : "customer";
+  const A = AUDIENCES[audience];
   const [mounted, setMounted] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -96,20 +150,20 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
               />
               <div>
                 <p className="text-2xl font-bold tracking-tight leading-none">MATCHME</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  ตู้เสื้อผ้าดิจิทัล + AI สไตลิสต์
-                </p>
+                <p className="text-sm text-muted-foreground mt-1">{A.eyebrow}</p>
               </div>
             </div>
 
             <h1 className="text-4xl font-bold leading-tight tracking-tight">
-              แมตช์ลุคที่ใช่
+              {A.headline[0]}
               <br />
-              <span className="text-primary">จากตู้เสื้อผ้าที่คุณมี</span>
+              <span className={audience === "store" ? "text-sky-foreground" : "text-primary"}>
+                {A.headline[1]}
+              </span>
             </h1>
 
             <div className="flex flex-col gap-2.5">
-              {PERKS.map(({ icon: Icon, tone, text }) => (
+              {A.perks.map(({ icon: Icon, tone, text }) => (
                 <div key={text} className="flex items-center gap-3">
                   <span className={`size-9 rounded-xl ${tone} flex items-center justify-center`}>
                     <Icon className="size-4" />
@@ -119,11 +173,17 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
               ))}
             </div>
 
-            <img
-              src="/images/15_MATCHME.png"
-              alt="ตัวอย่างหน้าจอแอป MATCHME"
-              className="w-64 self-center drop-shadow-2xl -mt-2"
-            />
+            {audience === "store" ? (
+              <div className="self-center mt-2 size-40 rounded-[2rem] bg-sky/40 flex items-center justify-center shadow-inner">
+                <Store className="size-16 text-sky-foreground" />
+              </div>
+            ) : (
+              <img
+                src="/images/15_MATCHME.png"
+                alt="ตัวอย่างหน้าจอแอป MATCHME"
+                className="w-64 self-center drop-shadow-2xl -mt-2"
+              />
+            )}
           </div>
         )}
 
@@ -131,20 +191,47 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         <div className="glass w-full max-w-md mx-auto rounded-3xl border border-white/60 shadow-xl shadow-lilac/20 p-6 flex flex-col gap-5">
           {/* Brand — mobile only, desktop has the showcase panel */}
           <div className="flex flex-col items-center gap-2 lg:hidden">
-            <img
-              src="/images/MATCHME.png"
-              alt=""
-              className="size-16 rounded-2xl shadow-lg shadow-lilac/40"
-            />
+            {audience === "store" ? (
+              <span className="size-16 rounded-2xl bg-sky flex items-center justify-center shadow-lg shadow-sky-foreground/30">
+                <Store className="size-8 text-sky-foreground" />
+              </span>
+            ) : (
+              <img
+                src="/images/MATCHME.png"
+                alt=""
+                className="size-16 rounded-2xl shadow-lg shadow-lilac/40"
+              />
+            )}
             <p className="text-lg font-bold tracking-tight">MATCHME</p>
+            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${A.chip}`}>
+              {audience === "store" ? "ร้านค้า" : "ผู้ใช้ทั่วไป"}
+            </span>
+          </div>
+
+          {/* Mode as a segmented control, not a text link: the old toggle meant
+              the CURRENT mode had to be inferred from the button label, which is
+              why signing in and signing up looked identical. */}
+          <div className="flex bg-muted/70 rounded-full p-1">
+            {(["signin", "signup"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                className={`flex-1 py-2 rounded-full text-xs font-bold transition ${
+                  mode === m ? `${A.chip} shadow-sm` : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {m === "signin" ? "เข้าสู่ระบบ" : "สมัครใหม่"}
+              </button>
+            ))}
           </div>
 
           <div>
             <h2 className="text-xl font-bold tracking-tight">
-              {mode === "signin" ? "ยินดีต้อนรับกลับมา ✨" : "มาเริ่มจัดตู้กันเลย 👗"}
+              {mode === "signin" ? A.signinTitle : A.signupTitle}
             </h2>
             <p className="text-xs text-muted-foreground mt-1">
-              ใช้อีเมลและรหัส PIN 6 หลักเพื่อเข้าใช้งานตู้เสื้อผ้าของคุณ
+              {mode === "signin" ? A.signinSub : A.signupSub}
             </p>
           </div>
 
@@ -177,26 +264,19 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             <button
               onClick={handleSubmit}
               disabled={!canSubmit}
-              className="bg-primary text-primary-foreground rounded-full py-3 text-sm font-semibold shadow-lg shadow-primary/25 hover:opacity-95 active:scale-[0.99] disabled:opacity-40 disabled:shadow-none transition mt-2"
+              className={`${A.accent} rounded-full py-3 text-sm font-semibold shadow-lg hover:opacity-95 active:scale-[0.99] disabled:opacity-40 disabled:shadow-none transition mt-2`}
             >
-              {submitting ? "กำลังดำเนินการ…" : mode === "signin" ? "เข้าสู่ระบบ" : "สมัครสมาชิก"}
+              {submitting ? "กำลังดำเนินการ…" : mode === "signin" ? A.signinCta : A.signupCta}
             </button>
 
-            <button
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-              className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 mt-1 transition"
-            >
-              {mode === "signin" ? "ยังไม่มีบัญชี? สมัครสมาชิก" : "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ"}
-            </button>
-
-            {/* Quiet entry point for shops — AuthGate renders regardless of
-                pathname, so this just changes the URL; the register form
-                itself only appears once the visitor signs in. */}
+            {/* Switches AUDIENCE, not mode. AuthGate renders regardless of
+                pathname, so this only changes the URL; the store register form
+                itself appears once the visitor signs in. */}
             <Link
-              to="/store/register"
+              to={audience === "store" ? "/" : "/store/register"}
               className="text-center text-[11px] text-muted-foreground/70 hover:text-muted-foreground underline underline-offset-2 transition"
             >
-              เปิดร้านค้า?
+              {audience === "store" ? "เข้าใช้งานในฐานะผู้ใช้ทั่วไป" : "เปิดร้านค้า?"}
             </Link>
           </div>
         </div>

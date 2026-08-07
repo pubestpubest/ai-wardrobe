@@ -29,16 +29,29 @@ interface Props {
   onClose: () => void;
 }
 
+// A product being edited may be a local-store item with no marketplace
+// store/platform/affiliateUrl (optional on AffiliateProduct since 018) — the
+// admin form still requires them, so a missing value becomes "" to fill in.
+function toDraft(product: AffiliateProduct | null): NewAffiliateProduct {
+  if (!product) return EMPTY_DRAFT;
+  return {
+    ...product,
+    store: product.store ?? "",
+    platform: product.platform ?? "",
+    affiliateUrl: product.affiliateUrl ?? "",
+  };
+}
+
 export function AffiliateEditModal({ product, open, onClose }: Props) {
   const { create, update, remove } = useAffiliateProducts();
-  const [draft, setDraft] = useState<NewAffiliateProduct>(product ?? EMPTY_DRAFT);
+  const [draft, setDraft] = useState<NewAffiliateProduct>(toDraft(product));
   const [imgError, setImgError] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setDraft(product ?? EMPTY_DRAFT);
+      setDraft(toDraft(product));
       setConfirmDelete(false);
     }
   }, [open, product]);

@@ -205,6 +205,43 @@ Digital Wardrobe เป็นแอปมือถือที่ให้ผู
 
 ---
 
+### 3.11 Feature: Local Store (P1)
+
+> **ออกแบบเมื่อ 2026-08-07** — รายละเอียดการออกแบบเต็ม (schema, RLS policy, weighting algorithm, ลำดับ build) อยู่ใน **`LOCAL-STORE.md`** ที่ root ของ repo ทุกข้อตัดสินใจผ่าน grilling session กับ product owner แล้ว ห้ามรื้อใหม่ในขั้น grill ของแต่ละ loop — ให้ grill เฉพาะ _วิธีทำ_ ของ slice นั้น ๆ
+>
+> **ยอมรับแล้วว่าฟีเจอร์นี้ข้ามเส้น Non-Goal "E-commerce integration" (1.4)** ต่อจากที่ 3.7 เริ่มแหย่ไว้ — Discover เปลี่ยนจาก catalog ที่ทีมดูแลเอง เป็น marketplace ที่ร้านค้าลงของเองและจ่ายเงินซื้อ exposure
+
+**Description:** ร้านค้าท้องถิ่นสมัคร/เข้าสู่ระบบเข้ามาจัดการร้านของตัวเองได้ — ข้อมูลติดต่อ, ข้อมูลพื้นฐาน, Google Map URL, ลิงก์ร้านออนไลน์, และแพ็กเกจปัจจุบัน แพ็กเกจกำหนดทั้ง **จำนวนไอเท็มสูงสุด** ที่ลงได้ และ **ความถี่ที่ร้านถูก AI แนะนำ** หน้า Discover เปลี่ยนจาก grid ไอเท็มแบน ๆ เป็น **การ์ดร้านค้าที่มีไอเท็มเป็น sub-card**
+
+**User Flow (ร้านค้า):**
+
+1. เข้า `/store/register` → สมัคร/เข้าสู่ระบบด้วย email + PIN เดิม → กรอกข้อมูลร้าน → ระบบสร้าง `stores` row + ตั้ง `profiles.role = 'store'`
+2. เข้าสู่ shell ของร้าน (`/store`) ที่มี nav ของตัวเอง: ร้านค้า / ไอเท็ม / แพ็กเกจ / โปรไฟล์
+3. ลงไอเท็ม (`/store/items`) ได้จนถึงเพดานของแพ็กเกจ — อัปโหลดรูปหรือวาง URL ก็ได้
+4. อยากอัปเกรดแพ็กเกจ → กด "ติดต่อเพื่ออัปเกรด" (ไม่มีระบบชำระเงิน admin เป็นคนตั้งให้)
+
+**User Flow (ผู้ใช้ทั่วไป):**
+
+1. หน้า Discover เห็นการ์ดร้าน เรียงแบบ weighted-random ตามแพ็กเกจ (คำนวณครั้งเดียวต่อการเข้าหน้า)
+2. การ์ดโชว์ไอเท็มตัวอย่าง ~6 ชิ้น + "ดูทั้งหมด (n)" → หน้าร้านสาธารณะ `/store/$id`
+3. ค้นหา/เลือกหมวดหมู่ → ร้านที่ไม่มีไอเท็มตรงเงื่อนไขหายไปทั้งการ์ด
+4. AI Stylist แนะนำไอเท็มจากร้านเหมือนเดิม แต่ตอนตัดสินเสมอ ร้านแพ็กเกจสูงกว่ามีโอกาสถูกเลือกมากกว่า
+
+**Acceptance Criteria:**
+
+- ร้านสมัครเองได้ผ่าน `/store/register` และแก้ข้อมูลร้าน (ติดต่อ / map / ร้านออนไลน์ / โลโก้ / ปก) ได้เอง
+- ร้านลง/แก้/ลบไอเท็มของตัวเองได้ และ **ลงเกินเพดานแพ็กเกจไม่ได้** (ฟรี 10 / เบสิก 50 / พรีเมียม 200)
+- ร้าน A **แก้ไอเท็มของร้าน B ไม่ได้** — บังคับด้วย RLS ไม่ใช่โค้ดฝั่งแอป
+- Discover แสดงเป็นการ์ดร้าน + ไอเท็ม sub-card, มีหน้าร้านสาธารณะ `/store/$id`
+- แพ็กเกจสูงกว่าถูก AI แนะนำบ่อยกว่าตามอัตราส่วนของ weight (**ไม่ใช่** ตามจำนวนไอเท็มที่มี) และ **ไม่** ชนะไอเท็มที่ relevance ดีกว่า
+- ร้านที่ถูก suspend หายจากทั้ง Discover และ pool ของ AI แต่เจ้าของยังเห็นร้านตัวเองได้
+- ทุก URL ที่ร้านกรอก (`google_map_url`, `online_store_url`, `logo_url`, `cover_url`, `image_url`, `affiliate_url`) ผ่าน `httpUrl` guard — ตอนนี้เป็น **XSS boundary จริง** ไม่ใช่แค่กัน typo เพราะคนกรอกคือคนนอกที่สมัครเอง
+- บัญชี `role = 'store'` ไม่โดน `ProfileGate` บล็อก (ร้านไม่มีวันเกิด/เพศ)
+
+**Non-Goals ของฟีเจอร์นี้:** ระบบชำระเงิน/อัปเกรดเอง · ลบร้าน · หลายร้านต่อบัญชี หรือหลายพนักงานต่อร้าน · analytics ของร้าน · claim ร้านที่ seed ไว้
+
+---
+
 ## 4. UI / UX Design
 
 ### 4.1 Visual Style
@@ -401,6 +438,8 @@ Deploy: Docker image (`Dockerfile` + `prod.ts` static-file server หน้า S
 | 3.9 Profile — required fields  | ✅ ทำแล้ว (บางส่วน) | บังคับ name/birthdate/gender ผ่าน blocking onboarding gate (`ProfileGate.tsx` ใน `__root`) + `isProfileComplete` + validation ใน `EditProfileModal`; **โปรไฟล์ย้ายเข้า DB ต่อบัญชีแล้วใน B07a** (ตาราง `profiles` + RLS, `use-profile.ts` บน TanStack Query) — body measurements (optional) เป็น B04 — loop `B03-L1`, `B07a-L1`                                                                                                                                                     |
 | 3.8 Authentication (B07a–d ✅) | ✅ ทำแล้ว (บางส่วน) | B07a identity (Supabase email + 6-digit PIN + `profiles` + RLS). B07b items scoped. B07c matches + body_models scoped + body-scan bucket private + signed URLs + `getBodyModel` leak fixed. B07d daily AI quota (chat 30/auto-tag 20, atomic counter). ทั้ง 4 slice เสร็จ; **pending (ดู §13): AUTH-1 email auto-confirm + smoke tests; claim gating; owner-scope storage writes; privatize `wardrobe-images`** — loops `B07a/b/c/d-L1`                                             |
 
+| 3.11 Local Store | 🚧 กำลังทำ (B11 ✅) | **B11 เสร็จ**: schema (`stores` + `profiles.role` + `affiliate_products.store_id`, migrations `018`+`019`), 6 ร้าน seed คละแพ็กเกจพร้อมบัญชีจริง (`scripts/seed-stores.ts`, dev เท่านั้น), กระจาย 50 ไอเท็มเดิมแบบกำหนดจำนวนต่อร้าน (18/12/9/5/4/2), `STORE_PACKAGES`, และ RLS ที่ผ่านการ pen-test แล้ว (3 loop — L1/L2 เจอ privilege escalation จริงและปิดไปแล้ว) — **ยังไม่มี UI**: B12–B16 คือ registration/shell, item CRUD, Discover store cards, AI weighting, admin |
+
 ### 11.3 Feature ที่ Build เพิ่มนอกเหนือแผนเดิมใน PRD
 
 | Feature                           | รายละเอียด                                                                                                                                                                                                                                                                                                                                                                                                     |
@@ -425,9 +464,9 @@ Deploy: Docker image (`Dockerfile` + `prod.ts` static-file server หน้า S
 
 > แทนที่ลำดับความสำคัญเดิมใน Section 8 สำหรับงานที่ยังไม่เริ่ม เรียงจาก dependency น้อย/ง่ายสุดไปมาก/ยากสุด Virtual Try-On ถูกจัดไว้ท้ายสุดตามที่ตกลง (ยากสุด)
 >
-> แต่ละ backlog มี ID (`B01`–`B10`) ใช้อ้างอิงใน `LOOP.md` และ loop docs (`loops/<ID>-L<n>.md`)
+> แต่ละ backlog มี ID (`B01`–`B16`) ใช้อ้างอิงใน `LOOP.md` และ loop docs (`loops/<ID>-L<n>.md`)
 >
-> **สถานะคิว:** B01–B03, B05–B07, B09, B10 ✅ · B04 ⏭️ (รวมเข้า B08) · **เหลือ B08 — Virtual Try-On (Tier 5) เป็นรายการเดียวในคิว** ส่วนงานที่ค้างนอกคิวอยู่ใน §13
+> **สถานะคิว (2026-08-07):** B01–B03, B05–B07, B09, B10, **B11** ✅ · B04 ⏭️ (รวมเข้า B08) · **คิวปัจจุบัน: B12 → B16 (Local Store, Tier 5) แล้วค่อย B08 — Virtual Try-On (Tier 6)** ส่วนงานที่ค้างนอกคิวอยู่ใน §13
 
 ### Tier 1 — Quick wins (ไม่มี dependency, ง่าย)
 
@@ -453,9 +492,33 @@ Deploy: Docker image (`Dockerfile` + `prod.ts` static-file server หน้า S
    - **B07c — Scope matches + body-model** ✅ (loop `B07c-L1`, migration `013`) — RLS `auth.uid()=user_id` บน matches + body_models (user-scoped client), แก้ `getBodyModel` global-latest leak, ปิด bucket รูปสแกนเป็น private + signed URLs (รวม `try-on.functions`), claimOrphans ครอบคลุม 3 ตาราง; **follow-up: owner-scope storage write/delete ทั้งสอง bucket, privatize `wardrobe-images`**
    - **B07d — Per-user quota** ✅ (loop `B07d-L1`, migration `015`) — daily AI cap ต่อผู้ใช้: chat 30/วัน, auto-tag 20/วัน (atomic `bump_ai_usage` reserve-a-slot + RLS), hard block + ข้อความไทย, ผูก `requireSupabaseAuth` เข้า `matchChat`/`analyzeClothing`; **pending: live smoke test 31 chats/21 analyzes**
 
-### Tier 5 — Last (ยากสุดตามที่ตกลง)
+### Tier 5 — Local Store (3.11) — ออกแบบครบแล้ว, drain เรียงตามลำดับ B11 → B16
 
-9. **B08 — Virtual Try-On** (3.10) — ต้องแก้ quota/เปลี่ยน image-gen model ก่อนถึงจะ generate จริงได้ (ปัจจุบัน mock) และควรอยู่หลัง Authentication (Tier 4). **รวมงาน B04 (optional body measurements) เข้ามาด้วย** — เพิ่มฟิลด์วัดสัดส่วนบน `profiles` (DB-backed จาก B07a) ตามที่ try-on ต้องใช้จริง
+> ทุก slice อ้าง **`LOCAL-STORE.md`** เป็น source of truth ของการออกแบบ (schema เต็ม, RLS policy, algorithm, ข้อ Non-Goal) ขั้น grill ของแต่ละ loop ให้ถามเรื่อง _วิธีทำ_ ไม่ใช่รื้อสิ่งที่ตัดสินใจไปแล้ว
+>
+> ลำดับเป็น dependency chain แข็ง: **B11 → B12 → B13 → B14/B15 → B16** (B14 กับ B15 สลับกันได้ ทั้งคู่ขึ้นกับ B13 ที่มีของจริงในร้าน)
+
+9. **B11 — Store schema + seed data** ✅ (loops `B11-L1/L2/L3`, migrations `018`+`019`; STORE-1 go ได้รับแล้ว) — migration `018`: ตาราง `stores` (+ unique owner), `profiles.role`, `affiliate_products.store_id`, **drop not null บน `store`/`platform`/`affiliate_url`** (สี่คอลัมน์นี้บรรยาย listing ของ marketplace ร้านท้องถิ่นไม่มีค่าให้กรอก และเป็น NOT NULL อยู่ — `006_affiliate.sql:11-16` ทำให้ insert ฝั่งร้านพังตั้งแต่ B13) **พร้อมเติม `?? undefined` ใน `mapRow` ทั้งสามฟิลด์** (`affiliate.functions.ts:54,55,59` ไม่มี guard อยู่ เพราะเดิมเป็น NOT NULL — พอ drop แล้วจะคืน `null` แทน `undefined` — **ไม่ใช่ว่าจะโชว์คำว่า `"null · null"`**: React render `null` กับ `undefined` เหมือนกันคือไม่โชว์อะไรเลย และ `??` เป็น nullish-coalescing ที่ทำงานกับ `null` ด้วย ไม่ใช่แค่ `undefined` — อาการจริงคือ `{p.store} · {p.platform}` จะเหลือ separator `·` ลอย ๆ ไม่มีอะไรอยู่ข้าง ๆ เมื่อค่าใดค่าหนึ่งหาย ส่วน guard ยังจำเป็นอยู่ดี เพราะ type ของ `AffiliateProduct` ต้องเป็น optional จริง ๆ (`string | undefined` ไม่ใช่ `string | null`) ให้ B13's zod schema สองชุดกับเงื่อนไข "มีค่าหรือเปล่า" สอดคล้องกับ convention `?? undefined` ที่ใช้อยู่ทั้งไฟล์ — แก้ไขคำอธิบายนี้ใน `B11-L2.md`), RLS policy ทั้งชุด, seed 6 ร้านท้องถิ่นสมมติคละแพ็กเกจ แล้วกระจาย 50 ไอเท็มเดิมเข้าไป **ตามจำนวนที่กำหนดไว้ต่อร้าน ไม่ใช่สุ่มเท่า ๆ กัน** (เฉลี่ยร้านละ ~8 จะทะลุเพดาน 10 ของ tier ฟรี — ร้าน seed จะเกิดมาพร้อมสถานะ 13/10 แล้ว B13 จะบล็อกการแก้ไข) ตารางร้าน/แพ็กเกจ/จำนวน/บัญชี อยู่ใน `LOCAL-STORE.md` §1 + `STORE_PACKAGES` ใน `wardrobe.ts` + **`scripts/seed-stores.ts`** สร้างบัญชีจริงให้ร้าน seed แต่ละร้าน (dev เท่านั้น)
+   - ⚠️ **item นี้ยังไม่มี UI ของตัวเอง** — gate ข้อ "feature reachable and renders" ใช้แทนด้วย: Discover เดิมยัง render เหมือนเดิมไม่พัง · query ยืนยันว่าไอเท็มทั้ง 50 มี `store_id` ครบ กระจายทั่วทุกร้าน seed · **เข้าสู่ระบบด้วยบัญชีร้าน seed ได้จริง** (หน้า `/store` ยังไม่มีจนถึง B12 — แค่ยืนยันว่า login ผ่านและ `role='store'` ถูกตั้ง)
+   - บัญชีร้าน seed **แยกเป็น script ไม่อยู่ใน migration** — สร้าง `auth.users` จาก raw SQL ต้องเขียน bcrypt hash + แถว `auth.identities` เองในสกีมา auth ภายในของ Supabase ซึ่งเปราะและตรงกับ Guardrail พอดี; ใช้ `auth.admin.createUser` แทน (idempotent, `email_confirm: true`, บล็อกด้วย env `SEED_STORES=1` ไม่ให้รันบน prod)
+   - ไม่ destructive (ไม่มี DROP/ไม่ลบแถว) แต่ **แตะ RLS** → เข้าเงื่อนไข Guardrail ของ LOOP.md
+   - ตรวจแล้ว (2026-08-07): ทุกจุดที่แตะ `affiliate_products` ใน `src/` ใช้ `adminClient()` (service-role) ทั้งหมด — **ไม่มี reader ที่ผ่าน user-scoped client เลย** policy ใหม่จึง regress path การอ่านไม่ได้ gate ที่ใช้แทนจึงเพียงพอจริง ถ้าอนาคตมี reader แบบ user-scoped เพิ่ม ต้องกลับมาทบทวนข้อนี้
+10. **B12 — Store registration + shell** — **ต้องเพิ่ม `grant insert/update (<คอลัมน์ที่แก้ได้>) on public.stores to authenticated` ด้วย** (B11 ตั้งใจไม่ให้สิทธิ์เขียนไว้เลย ดู `LOCAL-STORE.md` §3 — ให้ grant มาพร้อม zod ที่ทำให้ปลอดภัย **ห้าม** ใช้รูปแบบ table-wide) — `store.functions.ts` (create/read/update ร้าน, บังคับ `httpUrl` ทุกฟิลด์ URL) + route `/store/register` + `/store` (หน้าแก้ข้อมูลร้าน) + `/store/package` (โชว์แพ็กเกจ + ปุ่มติดต่ออัปเกรด) + **บล็อกบัญชีที่มีเสื้อผ้าอยู่แล้วไม่ให้สมัครเป็นร้าน** (`/store/register` ปฏิเสธเมื่อบัญชีมี wardrobe items — ไม่งั้น role พลิกแล้ว redirect guard จะทำให้เจ้าตัวเปิด `/wardrobe` ไม่ได้อีกเลย ทั้งที่ข้อมูลยังอยู่และ RLS ยังบอกว่าเป็นของเขา = การลบข้อมูลในคราบอื่น) + **required ตอนสมัคร: `name` + ช่องทางติดต่ออย่างน้อย 1 (phone/LINE/address)** บังคับใน zod ไม่ใช่ DB + **BottomNav ร้าน 3 แท็บ**: ร้านค้า (`/store`) / ไอเท็ม (`/store/items`) / บัญชี (`/store/package` — แพ็กเกจ + โควตา + ติดต่ออัปเกรด + อีเมล + ออกจากระบบ) ไม่มีแท็บโปรไฟล์ เพราะร้านไม่มีโปรไฟล์ส่วนตัวให้แก้ และ `/profile` ก็ไปไม่ถึงอยู่แล้วเพราะ redirect guard + **ProfileGate bypass** — เจาะจง `/store/register` **ไม่ใช่ `/store/*`** (เป็น pathname เดียวที่ role ยังเป็น `shopper`; ที่เหลือคลุมด้วยเงื่อนไข `role === 'store'` อยู่แล้ว — ถ้า exempt ทั้ง prefix จะพลอย exempt `/store/$id` ซึ่งหลัง B14 เป็นหน้าที่ **ผู้ใช้ทั่วไป** เข้าจาก Discover ทำให้คนสมัครใหม่ข้าม onboarding ได้) + BottomNav ของร้าน
+    - `/store` ต้อง render ฟอร์มสมัครเมื่อ `role='store'` แต่ยังไม่มี `stores` row — กัน shell dead-end
+    - **redirect บัญชี `role='store'` ออกจาก route ฝั่งผู้ใช้** — guard เดียวใน `__root.tsx` ข้าง gate เดิม: `role==='store'` และ pathname ไม่ขึ้นต้น `/store` → ไป `/store` (รอให้ query โปรไฟล์ resolve ก่อนค่อย redirect ไม่งั้น `DEFAULT_PROFILE` ให้ `role='shopper'` แล้วร้านจะเห็นหน้า Home ผู้ใช้แวบหนึ่งก่อนเด้ง) (ไม่งั้นร้านพิมพ์โดเมนเปล่าจะเจอหน้า Home ของผู้ใช้พร้อม nav ของร้าน และ `/wardrobe`/`/stylist`/`/virtual-model` พังครึ่ง ๆ เพราะไม่มี body profile)
+    - ต้องเพิ่ม `role` เข้า `Profile` type + `DEFAULT_PROFILE` (`use-profile.ts`) ด้วย — `useProfile` คืน object ที่มี field ครบเสมอ (ไม่เคย undefined) ดังนั้น bypass ตาม pathname ครอบคลุมช่วงก่อนมีแถว `profiles` อยู่แล้ว
+11. **B13 — Store item management** — **ต้องสร้าง policy `Owners manage own store items` ขึ้นใหม่ก่อน** (`019` ลบทิ้งเพราะ B11/B12 ไม่มีตัวเขียนผ่าน user-scoped client และตอนนั้นยังไม่มี zod/httpUrl/เพดาน) และจำไว้ว่า `affiliate_products` ยังมี grant ระดับตารางอยู่ policy ที่หลวมจะเปิดช่องเขียนทั้งตารางทันที — `/store/items` CRUD ไอเท็มของร้านผ่าน user-scoped client (RLS + grant เป็นตัวบังคับ owner) + เพดานแพ็กเกจแบบ count-then-insert (`ponytail:` comment ระบุ ceiling) + รูปแบบ **อัปโหลดหรือวาง URL** (ใช้ `uploadWardrobeImage` เดิมซ้ำ ไม่สร้าง bucket ใหม่)
+    - ต้องรับผลจาก B11 ที่ drop not null: `store`/`platform`/`affiliateUrl` กลายเป็น optional บน type `AffiliateProduct` → แก้ consumer ทุกจุด (`discover.tsx:161` แสดง `{p.store} · {p.platform}`, ปุ่มซื้อใน `AffiliateItemModal` fallback ไป `/store/$id`) และแยก zod เป็นสองชุด: **admin path ยังบังคับครบ** (B10 ลง marketplace product), store path ปล่อย optional
+12. **B14 — Discover store cards + public store page** — `discover.tsx` จัดกลุ่มเป็นการ์ดร้าน, preview ~6 ไอเท็ม + "ดูทั้งหมด (n)", เรียงแบบ weighted-random **memoize ครั้งเดียวต่อ data** (ไม่ใช่ต่อ render มิฉะนั้นการ์ดเด้งตอนพิมพ์ค้นหา), search ครอบคลุมชื่อร้านด้วย (โดนชื่อร้าน = การ์ดนั้นโชว์ไอเท็มครบทุกชิ้น, โดนแค่ชื่อไอเท็ม = การ์ดเหลือเฉพาะที่ตรง), filter แล้วซ่อนร้านที่ว่าง + route `/store/$id` (**ไม่ใช่หน้าสาธารณะ** — `AuthGate.tsx:49` ปล่อย children เฉพาะเมื่อมี session และไม่มี exemption ตาม pathname ทุก route ของ router จึงถูก gate หมด; ตัดสินใจไม่เปิด public เพราะต้องเพิ่ม bypass + อ่านผ่าน anon client ใต้ RLS)
+    - **+ dropdown เลือกร้านใน `AffiliateEditModal`** และ `createAffiliateProduct` เขียน `store_id` — ต้องมาพร้อม B14 **ไม่ใช่รอ B16** เพราะการตัดแถว `store_id is null` เกิดที่ B14/B15 ถ้าเลื่อนไป B16 ไอเท็มที่ admin เพิ่มจะหายจาก Discover + pool ของ AI แบบเงียบ ๆ ตลอดสอง loop
+13. **B15 — AI recommendation weighting** — `findAffiliateProduct`: เปลี่ยนการสุ่มท้ายสุดเป็น **two-step (สุ่มร้านแบบ weighted → สุ่มไอเท็มในร้านแบบเท่ากัน)** เพื่อไม่ให้ขนาดแคตตาล็อกกับ weight คูณกัน (20× × 8× = ~160× = hard filter โดยไม่ตั้งใจ) + ตัดร้าน suspended และแถว `store_id is null` ออกจาก pool **ด้วย filter ในคิวรีตรง ๆ** (path นี้ใช้ `adminClient()` service-role, RLS ไม่มีผล)
+    - verify เชิงตัวเลข: สุ่ม 1000 ครั้งจาก pool ที่รู้คำตอบ ต้องได้ใกล้ 8:1 ไม่ใช่ 160:1
+    - เงื่อนไข `store_id is null` จะไม่เจอแถวไหนเลยหลัง backfill ของ B11 — **อย่าลบทิ้ง** เพราะ admin editor (B10) ยังสร้างไอเท็มที่ไม่มี `store_id` ได้อยู่
+14. **B16 — Store admin** — ต่อยอด `assertAdmin` เดิม: ตั้ง `stores.package` และ `status = 'suspended'` ได้จากฝั่ง admin
+
+### Tier 6 — Last (ยากสุดตามที่ตกลง)
+
+15. **B08 — Virtual Try-On** (3.10) — ต้องแก้ quota/เปลี่ยน image-gen model ก่อนถึงจะ generate จริงได้ (ปัจจุบัน mock) และควรอยู่หลัง Authentication (Tier 4). **รวมงาน B04 (optional body measurements) เข้ามาด้วย** — เพิ่มฟิลด์วัดสัดส่วนบน `profiles` (DB-backed จาก B07a) ตามที่ try-on ต้องใช้จริง
 
 ### ไม่รวมในลำดับ (ตัดสินใจแล้ว)
 
@@ -467,12 +530,15 @@ Deploy: Docker image (`Dockerfile` + `prod.ts` static-file server หน้า S
 
 > Cross-cutting deferrals surfaced by the loop scrutinize passes (not feature backlog). Newest first.
 
-| ID          | Item                                                                                                                                                                                         | Source  | Priority | Notes                                                                                                               |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
-| **AUTH-1**  | Enable **email auto-confirm** in the Supabase dashboard, then smoke-test signup→login→logout live                                                                                            | B07a-L1 | **High** | Auth doesn't work end-to-end until this dashboard toggle; register currently dead-ends at "confirm your email"      |
-| **QUOTA-1** | Live smoke-test the AI quota: 31 stylist chats / 21 auto-tags → the 31st/21st blocks with the Thai toast, no `permission denied`                                                             | B07d-L1 | Medium   | Static analysis + precedent say the RPC grants work; needs one real logged-in run (depends on AUTH-1)               |
-| **ADMIN-1** | Admin editor (B10) trusts the JWT email claim: enable Supabase **email confirmation** + **pre-register** every `ADMIN_EMAILS` account before go-live, else admin-email squatting is possible | B10-L1  | **High** | Deploy precondition, not a code fix; ties to AUTH-1 (auto-confirm). Also set `ADMIN_EMAILS` in `.env`               |
-| **SEC-1**   | Owner-scope storage **INSERT/DELETE** policies on `body-model-images` **and** `wardrobe-images` (currently `bucket_id`-only → anon key can blind upload/delete)                              | B07c-L1 | Medium   | Reads are now private; writes/deletes still open. Not data theft (no list policy, random UUIDs) but junk-upload/DoS |
-| **SEC-2**   | Privatize the **`wardrobe-images`** bucket + signed URLs (item photos are world-readable by URL today)                                                                                       | B07b-L1 | Medium   | Same signed-URL treatment as B07c body-scan bucket                                                                  |
-| **AUTH-2**  | Decide `claimOrphans` **multi-user gating** (admin allowlist / one-shot migration / accept for solo)                                                                                         | B07b-L1 | Low      | Mitigated to first-run-per-account (button hidden once you own items)                                               |
-| **DX-1**    | Add **`tsc` to the gate** + fix pre-existing type errors (`ShareMatchModal.tsx` null guards, `server.ts` needs `@types/bun`)                                                                 | B07b-L1 | Low      | `bun run build` (Vite) doesn't type-check, so real type errors slip through                                         |
+| ID          | Item                                                                                                                                                                                                                                                                                                                 | Source      | Priority | Notes                                                                                                                                           |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **STORE-1** | ✅ **ได้ go แล้ว (2026-08-07) — B11 เสร็จ.** เดิม: **Human go for B11's RLS work** — B11 adds policies on a new `stores` table and on `affiliate_products` (which has none today). LOOP.md's guardrail says never touch RLS without an explicit go, so `/drain B11` must stop and ask before writing migration `018` | 3.11 design | **High** | Not destructive (no DROP, no row deletes) — but it changes the authorization model of a table that admin writes bypass today                    |
+| **STORE-2** | Seed store logins (`scripts/seed-stores.ts`, B11) are **dev fixtures with known 6-digit PINs**. `SEED_STORES=1` must never be set in the deployed environment, and the credentials must not land in a shipped `.env`                                                                                                 | 3.11 design | Medium   | Same class of risk as `ADMIN_EMAILS` squatting (ADMIN-1): a known-PIN account that reaches prod is an open door into a store dashboard          |
+| **SEC-3**   | `uploadWardrobeImage` (`src/lib/upload.functions.ts`) has **no auth middleware** — it is an open upload endpoint for anyone who can reach the server function                                                                                                                                                        | 3.11 design | Medium   | Pre-existing, found while designing Local Store. B13 reuses this function for store images, which widens who is pointed at it. Related to SEC-1 |
+| **AUTH-1**  | Enable **email auto-confirm** in the Supabase dashboard, then smoke-test signup→login→logout live                                                                                                                                                                                                                    | B07a-L1     | **High** | Auth doesn't work end-to-end until this dashboard toggle; register currently dead-ends at "confirm your email"                                  |
+| **QUOTA-1** | Live smoke-test the AI quota: 31 stylist chats / 21 auto-tags → the 31st/21st blocks with the Thai toast, no `permission denied`                                                                                                                                                                                     | B07d-L1     | Medium   | Static analysis + precedent say the RPC grants work; needs one real logged-in run (depends on AUTH-1)                                           |
+| **ADMIN-1** | Admin editor (B10) trusts the JWT email claim: enable Supabase **email confirmation** + **pre-register** every `ADMIN_EMAILS` account before go-live, else admin-email squatting is possible                                                                                                                         | B10-L1      | **High** | Deploy precondition, not a code fix; ties to AUTH-1 (auto-confirm). Also set `ADMIN_EMAILS` in `.env`                                           |
+| **SEC-1**   | Owner-scope storage **INSERT/DELETE** policies on `body-model-images` **and** `wardrobe-images` (currently `bucket_id`-only → anon key can blind upload/delete)                                                                                                                                                      | B07c-L1     | Medium   | Reads are now private; writes/deletes still open. Not data theft (no list policy, random UUIDs) but junk-upload/DoS                             |
+| **SEC-2**   | Privatize the **`wardrobe-images`** bucket + signed URLs (item photos are world-readable by URL today)                                                                                                                                                                                                               | B07b-L1     | Medium   | Same signed-URL treatment as B07c body-scan bucket                                                                                              |
+| **AUTH-2**  | Decide `claimOrphans` **multi-user gating** (admin allowlist / one-shot migration / accept for solo)                                                                                                                                                                                                                 | B07b-L1     | Low      | Mitigated to first-run-per-account (button hidden once you own items)                                                                           |
+| **DX-1**    | Add **`tsc` to the gate** + fix pre-existing type errors (`ShareMatchModal.tsx` null guards, `server.ts` needs `@types/bun`)                                                                                                                                                                                         | B07b-L1     | Low      | `bun run build` (Vite) doesn't type-check, so real type errors slip through                                                                     |

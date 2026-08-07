@@ -51,12 +51,12 @@ function mapRow(row: any): AffiliateProduct {
     formality: row.formality,
     price: row.price,
     size: row.size ?? undefined,
-    store: row.store,
-    platform: row.platform,
+    store: row.store ?? undefined,
+    platform: row.platform ?? undefined,
     emoji: row.emoji,
     imageUrl: row.image_url ?? undefined,
     description: row.description ?? undefined,
-    affiliateUrl: row.affiliate_url,
+    affiliateUrl: row.affiliate_url ?? undefined,
   };
 }
 

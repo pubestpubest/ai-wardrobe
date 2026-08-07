@@ -28,9 +28,11 @@ export function AffiliateItemCard({ item, onView }: Props) {
           <p className="text-xs font-semibold text-foreground/70">
             {item.price.toLocaleString("th-TH")} บาท
           </p>
-          <p className="text-[11px] text-muted-foreground truncate">
-            {item.store} · {item.platform}
-          </p>
+          {(item.store || item.platform) && (
+            <p className="text-[11px] text-muted-foreground truncate">
+              {[item.store, item.platform].filter(Boolean).join(" · ")}
+            </p>
+          )}
           {item.description && (
             <p className="text-[11px] text-foreground/60 italic line-clamp-1">{item.description}</p>
           )}

@@ -11,7 +11,7 @@ it runs when invoked, drains the top of the queue, and stops.
 
 ## Naming
 
-- **Backlog ID**: `B01`–`B10`, assigned in PRD §12. Queue order = tier order.
+- **Backlog ID**: `B01`–`B16`, assigned in PRD §12. Queue order = tier order.
 - **Loop number**: `L1` = first attempt at a backlog item; `L2`, `L3`… = each
   re-loop triggered by scrutinize findings on the same item.
 - **Loop doc**: `loops/<ID>-L<n>.md` — one per loop, e.g. `loops/B01-L1.md`,
@@ -21,7 +21,7 @@ it runs when invoked, drains the top of the queue, and stops.
 
 | Piece      | Implementation                                                  | Model           |
 | ---------- | --------------------------------------------------------------- | --------------- |
-| Queue      | `PRD.md` §12 — backlog IDs `B01`–`B10`, tier order first        | —               |
+| Queue      | `PRD.md` §12 — backlog IDs `B01`–`B16`, tier order first        | —               |
 | Memory     | PRD §11/§12 status + `loops/` docs + Loop Log below (the index) | —               |
 | Automation | The skill, invoked manually per loop                            | —               |
 | Plan check | `/grilling` in the main session — attended, pre-build           | session (Opus+) |
@@ -140,10 +140,25 @@ bug, not before.
 
 <!-- newest first: date | <ID>-L<n> | ✅ done / 🔁 re-loop / ⛔ blocked | one-line note -->
 
+_Queue state (2026-08-07, after B11): **B12–B16 remain in Tier 5**, then B08
+(Tier 6). Next `/drain` picks **B12** — note PRD §12 B12 now carries a required
+step: B11 deliberately granted `authenticated` NO write privilege on `stores`, so
+B12 must add the column GRANTs beside its zod (see `LOCAL-STORE.md` §3)._
+
+_Superseded — queue state before B11: **B11–B16 (Local Store, PRD §12 Tier 5) queued ahead
+of B08 — Virtual Try-On (Tier 6)**. Next `/drain` picks **B11**, which is gated
+on **STORE-1** (§13): it adds RLS policies, so the guardrail below requires an
+explicit human go before migration `018` is written. Local Store's design is
+already settled in `LOCAL-STORE.md` — the grill step on each of B11–B16 should
+question the *implementation* of that slice, not reopen the design._
+
 _Queue state (2026-08-06): everything drained except **B08 — Virtual Try-On**.
 Commits after B10 (poster page, docker/UI fixes) were direct work, not loops —
 no Loop Log rows for them by design._
 
+- 2026-08-07 | B11-L3 | ✅ done | Narrowed authorization — removed ALL `stores` write grants from `authenticated` (B11 has no user-scoped writer; a GRANT bypasses zod via PostgREST), read policy scoped `to authenticated`, revoked anon SELECT on stores + `profiles` DELETE; scrutinize found the SQL correct, its 4 handoff findings fixed in place (PRD B12/B13 + LOCAL-STORE.md §3 now state the grant/policy work each must add)
+- 2026-08-07 | B11-L2 | 🔁 re-loop → ⛔ escalated | RLS hardening — dropped the premature `affiliate_products` item policy (returns in B13); gate caught TWO of my own errors: column `REVOKE` cannot subtract from a table-level GRANT (shipped inert, cited a false precedent), then the regrant omitted the upsert conflict key and broke profile editing for every user. Scrutinize then found the same class of hole on `stores` grants → LOOP.md L3 trigger, stopped and asked the human
+- 2026-08-07 | B11-L1 | 🔁 re-loop | Store schema + seed — `stores`/`profiles.role`/`store_id`, 3 dropped NOT NULLs, 6 seed shops + logins, deterministic 18/12/9/5/4/2 over the 50 products; all 4 gates passed, then scrutinize found a privilege escalation I reproduced live (self-granted premium store → unvalidated catalog insert with a `javascript:` URL). Also corrected a false claim of mine in 3 docs (React renders `null` as nothing; `??` fires on `null`), which had made the L1 render gate vacuous
 - 2026-07-19 | B10-L1 | ✅ done | Affiliate catalog admin editor — CRUD gated by env ADMIN_EMAILS allowlist (fail-closed), edit modal + live image preview; grill ruled out scraping; scrutinize fix-then-ship (URL-scheme XSS + button-nesting fixed; email-claim trust = ADMIN-1 deploy precondition)
 - 2026-07-19 | B09-L1 | ✅ done | Background removal — @imgly client-side (free, on-device) + opt-in preview/revert in UploadItem; resolves Open Q 9.5; scrutinize fix-then-ship (stale-cutout leak on mid-removal close + button-on-cutout fixed)
 - 2026-07-19 | B07d-L1 | ✅ done | Per-user AI quota — ai_usage table + atomic bump_ai_usage (chat 30/day, auto-tag 20/day), hard block; scrutinize ship-after-smoke-test, chat-bubble + anon-grant nits fixed. **Completes B07a–d**

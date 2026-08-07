@@ -10,7 +10,8 @@
     "start": "bun prod.ts",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "seed:stores": "bun scripts/seed-stores.ts"
   },
   "dependencies": {
     "@google/genai": "^2.3.0",

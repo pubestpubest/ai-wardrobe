@@ -181,7 +181,9 @@ export function EditMatchModal({ match, items, affiliateItems, onClose, onSave, 
                   <span className="text-base">{p.emoji}</span>
                   <div className="flex flex-col leading-tight max-w-[100px]">
                     <span className="text-[11px] font-medium truncate">{p.name}</span>
-                    <span className="text-[10px] text-muted-foreground truncate">{p.store}</span>
+                    {p.store && (
+                      <span className="text-[10px] text-muted-foreground truncate">{p.store}</span>
+                    )}
                   </div>
                   <button
                     type="button"

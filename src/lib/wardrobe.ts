@@ -35,6 +35,16 @@ export const TAG_COLORS: Record<string, string> = {
 // Daily per-user AI call limits — mirrored by the server quota checks and shown in the UI.
 export const AI_LIMITS = { chat: 30, analyze: 20 } as const;
 
+// Store package limits — code, not DB, so tuning a tier is a one-line edit
+// rather than a migration plus a data update. `weight` biases the AI
+// recommendation lottery and Discover card ordering toward higher tiers.
+export const STORE_PACKAGES = {
+  free: { label: "ฟรี", maxItems: 10, weight: 1 },
+  basic: { label: "เบสิก", maxItems: 50, weight: 3 },
+  premium: { label: "พรีเมียม", maxItems: 200, weight: 8 },
+} as const;
+export type StorePackage = keyof typeof STORE_PACKAGES;
+
 export type MatchSource = "manual" | "ai";
 
 export type AffiliateProduct = {
@@ -46,12 +56,16 @@ export type AffiliateProduct = {
   formality: WardrobeItem["formality"];
   price: number;
   size?: string;
-  store: string;
-  platform: string;
+  // Optional since 018: a local store's items have no marketplace listing —
+  // see LOCAL-STORE.md §1. Stays required in the admin-editor's own type
+  // (NewAffiliateProduct, use-affiliate-products.ts) since that path still
+  // lists marketplace products.
+  store?: string;
+  platform?: string;
   emoji: string;
   imageUrl?: string;
   description?: string;
-  affiliateUrl: string;
+  affiliateUrl?: string;
 };
 
 export type Match = {

@@ -157,9 +157,11 @@ function DiscoverPage() {
                   <p className="text-xs font-semibold text-foreground/70">
                     {p.price.toLocaleString("th-TH")} บาท
                   </p>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    {p.store} · {p.platform}
-                  </p>
+                  {(p.store || p.platform) && (
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {[p.store, p.platform].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

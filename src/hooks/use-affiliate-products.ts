@@ -13,7 +13,17 @@ import { useAuth } from "@/hooks/use-auth";
 
 export const AFFILIATE_PRODUCTS_QUERY_KEY = ["affiliate-products"];
 
-export type NewAffiliateProduct = Omit<AffiliateProduct, "id">;
+// The admin editor (AffiliateEditModal) still lists marketplace products, so
+// unlike AffiliateProduct these three stay required here — mirrors
+// AffiliateProductFields in affiliate.functions.ts (two schemas, one table).
+export type NewAffiliateProduct = Omit<
+  AffiliateProduct,
+  "id" | "store" | "platform" | "affiliateUrl"
+> & {
+  store: string;
+  platform: string;
+  affiliateUrl: string;
+};
 export type AffiliateProductPatch = Partial<NewAffiliateProduct>;
 
 export function useAffiliateProducts() {

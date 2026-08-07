@@ -34,22 +34,25 @@ export function AffiliateItemModal({ item, onClose }: Props) {
         <div className="grid grid-cols-2 gap-3">
           <InfoField label="ราคา" value={`${item.price.toLocaleString("th-TH")} บาท`} />
           <InfoField label="ไซซ์" value={item.size ?? "-"} />
-          <InfoField label="ร้านค้า" value={item.store} />
-          <InfoField label="แพลตฟอร์ม" value={item.platform} />
+          {item.store && <InfoField label="ร้านค้า" value={item.store} />}
+          {item.platform && <InfoField label="แพลตฟอร์ม" value={item.platform} />}
         </div>
 
         {item.description && (
           <p className="text-sm text-foreground/70 leading-relaxed italic">{item.description}</p>
         )}
 
-        <a
-          href={item.affiliateUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full bg-primary text-primary-foreground rounded-full py-3 text-sm font-medium flex items-center justify-center gap-2 mt-1"
-        >
-          ไปที่ร้านค้า <ExternalLink className="size-4" />
-        </a>
+        {/* No affiliateUrl on a local-store item — /store/$id fallback link arrives in B14 */}
+        {item.affiliateUrl && (
+          <a
+            href={item.affiliateUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full bg-primary text-primary-foreground rounded-full py-3 text-sm font-medium flex items-center justify-center gap-2 mt-1"
+          >
+            ไปที่ร้านค้า <ExternalLink className="size-4" />
+          </a>
+        )}
       </div>
     </div>
   );

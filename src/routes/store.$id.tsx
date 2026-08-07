@@ -118,6 +118,20 @@ function StorePublicPage() {
           </p>
         )}
 
+        {store.galleryUrls.length > 0 && (
+          <div className="mt-5 -mx-5 px-5 flex gap-3 overflow-x-auto scrollbar-none">
+            {store.galleryUrls.map((url, i) => (
+              <img
+                key={i}
+                src={url}
+                alt=""
+                loading="lazy"
+                className="h-40 w-56 shrink-0 rounded-2xl object-cover bg-muted border border-border/40"
+              />
+            ))}
+          </div>
+        )}
+
         {contactRows.length > 0 && (
           <div className="bg-white rounded-3xl border border-border/40 shadow-sm p-4 mt-5 flex flex-col gap-3">
             {contactRows.map(({ icon: Icon, label }, i) => (
@@ -152,6 +166,27 @@ function StorePublicPage() {
                 <ExternalLink className="size-3" />
               </a>
             )}
+          </div>
+        )}
+
+        {store.address && (
+          <div className="mt-4 rounded-3xl overflow-hidden border border-border/40 shadow-sm bg-white">
+            {/* The src is built from a HARD-CODED host plus the shop's address.
+                It is deliberately NOT store.googleMapUrl: that field is owner
+                input (validated only as http(s)), so framing it would let any
+                shop render an arbitrary site inside our chrome — clickjacking,
+                or a fake sign-in wearing our UI. Owner input only ever fills the
+                query string here, never the origin. The stored URL is still used
+                for the "แผนที่" link above, where a new tab makes the
+                destination visible. */}
+            <iframe
+              title={`แผนที่ ${store.name}`}
+              src={`https://maps.google.com/maps?q=${encodeURIComponent(store.address)}&output=embed`}
+              className="w-full h-56 border-0"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              sandbox="allow-scripts allow-same-origin allow-popups"
+            />
           </div>
         )}
 

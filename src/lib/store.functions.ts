@@ -41,6 +41,7 @@ function mapRow(row: any): Store {
     onlineStoreUrl: row.online_store_url ?? "",
     logoUrl: row.logo_url ?? "",
     coverUrl: row.cover_url ?? "",
+    galleryUrls: (row.gallery_urls ?? []) as string[],
     package: row.package,
     status: row.status,
     createdAt: row.created_at,
@@ -117,6 +118,10 @@ const StoreFieldsSchema = z.object({
   onlineStoreUrl: httpUrl.optional(),
   logoUrl: httpUrl.optional(),
   coverUrl: httpUrl.optional(),
+  // Mirrors 028's CHECKs so the error surfaces before the round trip. 028 is
+  // the enforcement — an owner holds the gallery_urls UPDATE grant and can
+  // PATCH it directly without ever reaching this schema.
+  galleryUrls: z.array(httpUrl).max(8, "รูปแกลเลอรีได้สูงสุด 8 รูป").optional(),
 });
 
 // At least one contact channel — LOCAL-STORE.md §2: "one of three" still
@@ -147,6 +152,7 @@ function toRow(data: z.infer<typeof StoreFieldsSchema>) {
     online_store_url: data.onlineStoreUrl || null,
     logo_url: data.logoUrl || null,
     cover_url: data.coverUrl || null,
+    gallery_urls: data.galleryUrls ?? [],
   };
 }
 

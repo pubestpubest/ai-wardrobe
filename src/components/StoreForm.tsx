@@ -5,6 +5,8 @@ import type { CreateStoreInput } from "@/hooks/use-store";
 // exact same fields, validation and layout for both the registration case
 // (no store row yet) and the edit case (store already exists) — one
 // component, driven entirely by props (B12b-L1 plan item 3).
+export const GALLERY_MAX = 8;
+
 export type StoreFormDraft = {
   name: string;
   description: string;
@@ -16,6 +18,7 @@ export type StoreFormDraft = {
   onlineStoreUrl: string;
   logoUrl: string;
   coverUrl: string;
+  galleryUrls: string[];
 };
 
 export const EMPTY_STORE_DRAFT: StoreFormDraft = {
@@ -29,6 +32,7 @@ export const EMPTY_STORE_DRAFT: StoreFormDraft = {
   onlineStoreUrl: "",
   logoUrl: "",
   coverUrl: "",
+  galleryUrls: [],
 };
 
 const isHttpUrl = (v: string) => /^https?:\/\//i.test(v);
@@ -47,6 +51,9 @@ export function validateStoreDraft(draft: StoreFormDraft): string | null {
     ["ลิงก์ร้านค้าออนไลน์", draft.onlineStoreUrl],
     ["ลิงก์โลโก้", draft.logoUrl],
     ["ลิงก์ภาพปก", draft.coverUrl],
+    ...draft.galleryUrls
+      .map((u, i) => [`รูปแกลเลอรีที่ ${i + 1}`, u] as [string, string])
+      .filter(([, v]) => v.trim() !== ""),
   ];
   for (const [label, v] of urlFields) {
     if (v.trim() && !isHttpUrl(v.trim())) return `${label}ต้องเป็นลิงก์ http(s)`;
@@ -66,6 +73,9 @@ function toStoreInput(draft: StoreFormDraft): CreateStoreInput {
     onlineStoreUrl: draft.onlineStoreUrl.trim() || undefined,
     logoUrl: draft.logoUrl.trim() || undefined,
     coverUrl: draft.coverUrl.trim() || undefined,
+    // Drop blank rows — an empty '+ เพิ่มรูป' slot would otherwise fail
+    // 028's stores_gallery_http_only CHECK on submit.
+    galleryUrls: draft.galleryUrls.map((u) => u.trim()).filter(Boolean),
   };
 }
 
@@ -145,6 +155,47 @@ export function StoreFormFields({
         onChange={(v) => onChange({ ...draft, coverUrl: v })}
         placeholder="https://..."
       />
+
+      {/* Gallery — shopfront/interior photos, distinct from product images.
+          Capped at 8 to match 028's stores_gallery_max CHECK. */}
+      <div className="flex flex-col gap-2">
+        <span className="text-xs text-muted-foreground">
+          แกลเลอรีร้าน ({draft.galleryUrls.length}/{GALLERY_MAX})
+        </span>
+        {draft.galleryUrls.map((url, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <img src={url} alt="" className="size-10 rounded-lg object-cover bg-muted shrink-0" />
+            <input
+              value={url}
+              onChange={(e) => {
+                const next = [...draft.galleryUrls];
+                next[i] = e.target.value;
+                onChange({ ...draft, galleryUrls: next });
+              }}
+              placeholder="https://..."
+              className="flex-1 min-w-0 bg-muted rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-primary"
+            />
+            <button
+              type="button"
+              onClick={() =>
+                onChange({ ...draft, galleryUrls: draft.galleryUrls.filter((_, k) => k !== i) })
+              }
+              className="shrink-0 px-3 py-2 rounded-lg bg-muted text-xs font-semibold hover:bg-border transition"
+            >
+              ลบ
+            </button>
+          </div>
+        ))}
+        {draft.galleryUrls.length < GALLERY_MAX && (
+          <button
+            type="button"
+            onClick={() => onChange({ ...draft, galleryUrls: [...draft.galleryUrls, ""] })}
+            className="self-start px-4 py-2 rounded-full bg-muted text-xs font-semibold hover:bg-border transition"
+          >
+            + เพิ่มรูป
+          </button>
+        )}
+      </div>
     </div>
   );
 }

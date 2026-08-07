@@ -18,6 +18,7 @@ export type Store = {
   onlineStoreUrl: string;
   logoUrl: string;
   coverUrl: string;
+  galleryUrls: string[];
   package: StorePackage;
   status: "approved" | "suspended";
   createdAt: string;
@@ -37,6 +38,7 @@ export type CreateStoreInput = {
   onlineStoreUrl?: string;
   logoUrl?: string;
   coverUrl?: string;
+  galleryUrls?: string[];
 };
 
 export type UpdateStoreInput = CreateStoreInput;

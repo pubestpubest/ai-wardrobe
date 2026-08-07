@@ -90,7 +90,13 @@ export function useWardrobe() {
 
   return {
     items,
-    isLoading,
+    // `!session ||`: TanStack v5 computes isLoading = isPending && isFetching,
+    // so a query disabled by `enabled: !!session` reports isLoading===false with
+    // empty data. AuthGate renders children during SSR and the client auth
+    // window, so a raw value makes consumers flash their empty state on a cold
+    // load. No spinner-forever risk: once mounted && !loading && !session,
+    // AuthGate renders the sign-in screen instead of children.
+    isLoading: !session || isLoading,
     // Returns a promise so callers can await and catch errors
     // Guarded at the hook, not in each component: every write path in the app
     // funnels through here, and 029 refuses a guest at the database anyway —

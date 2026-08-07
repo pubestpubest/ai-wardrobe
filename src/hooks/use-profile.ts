@@ -76,6 +76,12 @@ export function useProfile() {
       if ((data ?? DEFAULT_PROFILE).role === "guest") return openGuestGate("แก้ไขโปรไฟล์");
       updateMutation.mutate(patch);
     },
-    isLoading,
+    // `!session ||`: TanStack v5 computes isLoading = isPending && isFetching,
+    // so a query disabled by `enabled: !!session` reports isLoading===false with
+    // empty data. AuthGate renders children during SSR and the client auth
+    // window, so a raw value makes consumers flash their empty state on a cold
+    // load. No spinner-forever risk: once mounted && !loading && !session,
+    // AuthGate renders the sign-in screen instead of children.
+    isLoading: !session || isLoading,
   };
 }

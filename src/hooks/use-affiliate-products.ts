@@ -112,7 +112,12 @@ export function useAffiliateProducts() {
 
   return {
     affiliateProducts,
-    isLoading,
+    // `!session ||` — the fourth place this has bitten (useStore, useStoreItems,
+    // useBodyModel, here). TanStack v5 computes isLoading = isPending &&
+    // isFetching, so a query disabled by `enabled: !!session` reports
+    // isLoading===false with data===[]. StylistChat now gates the guest sample
+    // on this flag, so a raw value made it build against an empty catalog.
+    isLoading: !session || isLoading,
     isAdmin,
     storesForAdmin,
     create: (product: NewAffiliateProduct) => createMutation.mutateAsync(product),

@@ -41,7 +41,7 @@ const AFFILIATE_TURNS_KEY = "wardrobe.affiliateTurns";
 // is what makes overwriting it safe here and nowhere else. Without a version the
 // first sample sticks in localStorage forever and later ones never appear.
 const GUEST_SAMPLE_KEY = "wardrobe.chat.guestSampleVersion";
-const GUEST_SAMPLE_VERSION = "2";
+const GUEST_SAMPLE_VERSION = "3";
 
 function readAffiliateTurns(): number {
   if (typeof window === "undefined") return 0;
@@ -143,7 +143,7 @@ export function StylistChat({
   const { add: addMatch } = useMatches();
   const [messages, setMessages] = useState<Msg[]>(() => loadMessages());
   const isGuest = useIsGuest();
-  const { affiliateProducts } = useAffiliateProducts();
+  const { affiliateProducts, isLoading: affiliatesLoading } = useAffiliateProducts();
   // Effect, not a useState initializer: `isGuest` comes from a query that has
   // not resolved on first render, and an initializer never re-runs — the exact
   // trap UX-1 was filed for.
@@ -154,11 +154,16 @@ export function StylistChat({
   // overwrite for a guest specifically: 029 blocks ai_usage writes, so a guest
   // can never have produced a conversation of their own to lose.
   useEffect(() => {
-    if (!isGuest || wardrobe.length === 0 || typeof window === "undefined") return;
+    if (!isGuest || typeof window === "undefined") return;
+    // Wait for BOTH sources. The wardrobe resolves first, and seeding on that
+    // alone built the sample against an empty catalog — so the recommendation
+    // card silently became its "your wardrobe is already complete" fallback,
+    // and the version marker below then stopped it ever being rebuilt.
+    if (wardrobe.length === 0 || affiliatesLoading) return;
     if (window.localStorage.getItem(GUEST_SAMPLE_KEY) === GUEST_SAMPLE_VERSION) return;
     setMessages(buildGuestSample(wardrobe, affiliateProducts));
     window.localStorage.setItem(GUEST_SAMPLE_KEY, GUEST_SAMPLE_VERSION);
-  }, [isGuest, wardrobe, affiliateProducts]);
+  }, [isGuest, wardrobe, affiliateProducts, affiliatesLoading]);
 
   // Clearing the chat as a guest should bring the sample back, not leave an
   // empty room they have no way to fill.

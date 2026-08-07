@@ -112,21 +112,34 @@ const StoreItemFieldsSchema = z.object({
 async function resolveOwnStore(
   supabase: SupabaseClient,
   userId: string,
-): Promise<{ id: string; pkg: StorePackage }> {
+): Promise<{ id: string; pkg: StorePackage; status: "approved" | "suspended" }> {
   const { data: store, error } = await storesTable(supabase)
-    .select("id, package")
+    .select("id, package, status")
     .eq("owner_user_id", userId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!store) throw new Error("ไม่พบร้านค้าของคุณ");
-  return { id: store.id, pkg: store.package as StorePackage };
+  return { id: store.id, pkg: store.package as StorePackage, status: store.status };
+}
+
+// This refusal exists for the MESSAGE, not the enforcement (same split as
+// createStoreItem's cap check vs 025's trigger, below): 027's RLS predicate
+// (`s.status = 'approved'`) is what actually stops a suspended owner writing,
+// direct-PostgREST included. Without this, a mutation that reached this point
+// would still be rejected by 027, just with a raw "new row violates row-level
+// security policy" instead of a readable Thai explanation.
+const SUSPENDED_MESSAGE =
+  "ร้านค้าของคุณถูกระงับชั่วคราว ไม่สามารถแก้ไขไอเท็มได้ กรุณาติดต่อผู้ดูแลระบบ";
+function assertNotSuspended(status: "approved" | "suspended"): void {
+  if (status === "suspended") throw new Error(SUSPENDED_MESSAGE);
 }
 
 export const createStoreItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => StoreItemFieldsSchema.parse(d))
   .handler(async ({ data, context }): Promise<AffiliateProduct> => {
-    const { id: storeId, pkg } = await resolveOwnStore(context.supabase, context.userId);
+    const { id: storeId, pkg, status } = await resolveOwnStore(context.supabase, context.userId);
+    assertNotSuspended(status);
 
     // Counted with the SERVICE-ROLE client, not context.supabase (B12b-L3 /
     // B13b-L1 plan item 3): getMyStore's itemCount reads through "Public read
@@ -185,7 +198,8 @@ export const updateStoreItem = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid(), patch: StoreItemFieldsSchema.partial() }).parse(d),
   )
   .handler(async ({ data, context }): Promise<AffiliateProduct> => {
-    const { id: storeId } = await resolveOwnStore(context.supabase, context.userId);
+    const { id: storeId, status } = await resolveOwnStore(context.supabase, context.userId);
+    assertNotSuspended(status);
     const p = data.patch;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = {};
@@ -226,7 +240,8 @@ export const deleteStoreItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
-    const { id: storeId } = await resolveOwnStore(context.supabase, context.userId);
+    const { id: storeId, status } = await resolveOwnStore(context.supabase, context.userId);
+    assertNotSuspended(status);
     const { error, count } = await affiliateProductsTable(context.supabase)
       .delete({ count: "exact" })
       .eq("id", data.id)

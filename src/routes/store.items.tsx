@@ -59,13 +59,16 @@ function StoreItemsPage() {
 
   const maxItems = STORE_PACKAGES[store.package].maxItems;
   const atCap = items.length >= maxItems;
+  const suspended = store.status === "suspended";
 
   const openAdd = () => {
-    if (atCap) return;
+    if (atCap || suspended) return;
     setModalItem(null);
     setModalOpen(true);
   };
   const openEdit = (p: AffiliateProduct) => {
+    // Gated like openAdd: a suspended owner can look but not change (027).
+    if (suspended) return;
     setModalItem(p);
     setModalOpen(true);
   };
@@ -82,14 +85,24 @@ function StoreItemsPage() {
           </div>
           <button
             onClick={openAdd}
-            disabled={atCap}
+            disabled={atCap || suspended}
             className="shrink-0 flex items-center gap-1.5 bg-primary text-primary-foreground rounded-full px-4 py-2.5 text-sm font-semibold shadow-sm hover:opacity-90 transition disabled:opacity-40"
           >
             <Plus className="size-4" /> เพิ่มไอเท็ม
           </button>
         </header>
 
-        {atCap && (
+        {/* Enforcement is migration 027's RLS predicate on affiliate_products
+            — this banner (and disabling "เพิ่มไอเท็ม" above) is purely
+            informational; createStoreItem/updateStoreItem/deleteStoreItem
+            also refuse early with a Thai message, for the same reason. */}
+        {suspended && (
+          <div className="bg-destructive/10 text-destructive rounded-2xl px-4 py-3 text-sm mb-4">
+            ร้านค้าของคุณถูกระงับชั่วคราว ไม่สามารถแก้ไขไอเท็มได้ กรุณาติดต่อผู้ดูแลระบบ
+          </div>
+        )}
+
+        {atCap && !suspended && (
           <p className="text-xs text-destructive mb-4">
             ไอเท็มในร้านเต็มโควตาแล้ว กรุณาติดต่อเพื่ออัปเกรดแพ็กเกจ
           </p>

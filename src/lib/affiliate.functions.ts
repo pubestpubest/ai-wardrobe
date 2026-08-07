@@ -21,7 +21,10 @@ function adminClient() {
 // the service-role client (bypasses RLS), so this check — not a DB policy —
 // is what keeps non-admins from mutating the catalog. Empty/unset
 // ADMIN_EMAILS means nobody is admin (fail closed).
-function assertAdmin(context: { claims?: { email?: string } }): void {
+// Exported (B16) so store.functions.ts's setStorePackage/setStoreStatus reuse
+// this exact allowlist check instead of duplicating it — two copies of an
+// authorization check are how one gets forgotten during a change.
+export function assertAdmin(context: { claims?: { email?: string } }): void {
   const allowlist = new Set(
     (process.env.ADMIN_EMAILS ?? "")
       .split(",")
@@ -333,17 +336,60 @@ export const updateAffiliateProduct = createServerFn({ method: "POST" })
 // or unclaimed, or an admin can never assign an item to one
 // (LOCAL-STORE.md §3/§4 — "an admin-added item would carry store_id = null
 // forever and be silently invisible").
+// Extended for B16's /admin/stores: the dropdown only ever needed
+// {id, name}, but the admin store list also needs package/status/owner/item
+// count. Kept as one function rather than splitting — both callers are
+// admin-only and the extra columns cost nothing extra to select.
+export type AdminStoreListItem = {
+  id: string;
+  name: string;
+  package: StorePackage;
+  status: "approved" | "suspended";
+  ownerUserId: string | null;
+  itemCount: number;
+};
+
 export const listStoresForAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({}).parse(d))
-  .handler(async ({ context }): Promise<{ id: string; name: string }[]> => {
+  .handler(async ({ context }): Promise<AdminStoreListItem[]> => {
     assertAdmin(context);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: rows, error } = await (adminClient().from("stores" as any) as any)
-      .select("id, name")
+      .select("id, name, package, status, owner_user_id")
       .order("name", { ascending: true });
     if (error) throw new Error(error.message);
-    return (rows ?? []) as { id: string; name: string }[];
+
+    // One `count` request per store rather than pulling every store_id row.
+    // The bulk-select version under-reports the moment PostgREST's db-max-rows
+    // is set — silently, and an admin uses this number to decide downgrades.
+    // Same discipline createStoreItem's comment argues for. Bounded by the
+    // store count (6 today), not the catalog size.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const storeRows = (rows ?? []) as any[];
+    const counts = new Map<string, number>(
+      await Promise.all(
+        storeRows.map(async (r): Promise<[string, number]> => {
+          const { count, error: cErr } =
+            await // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (adminClient().from("affiliate_products" as any) as any)
+              .select("id", { count: "exact", head: true })
+              .eq("store_id", r.id);
+          if (cErr) throw new Error(cErr.message);
+          return [r.id as string, count ?? 0];
+        }),
+      ),
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return storeRows.map((r: any) => ({
+      id: r.id,
+      name: r.name ?? "",
+      package: r.package,
+      status: r.status,
+      ownerUserId: r.owner_user_id ?? null,
+      itemCount: counts.get(r.id) ?? 0,
+    }));
   });
 
 export const deleteAffiliateProduct = createServerFn({ method: "POST" })

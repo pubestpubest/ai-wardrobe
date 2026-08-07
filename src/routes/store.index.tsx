@@ -75,6 +75,16 @@ function StorePage() {
 
   return (
     <div className="min-h-screen pb-28 bg-[#FDFCFD] px-5 py-8">
+      {/* Enforcement is migration 027's RLS predicate on affiliate_products
+          (item writes only) — this banner is purely informational. Store-
+          profile edits stay allowed on purpose (B16-L1 grill outcome): a
+          suspended shop must still be able to fix whatever caused it. */}
+      {store.status === "suspended" && (
+        <div className="max-w-xl mx-auto mb-5 bg-destructive/10 text-destructive rounded-2xl px-4 py-3 text-sm">
+          ร้านค้าของคุณถูกระงับชั่วคราว — ไม่แสดงในหน้าช้อปปิ้งและแก้ไขไอเท็มไม่ได้
+          จนกว่าจะเปิดใช้งานอีกครั้ง คุณยังแก้ไขข้อมูลร้านค้าด้านล่างได้ กรุณาติดต่อผู้ดูแลระบบ
+        </div>
+      )}
       {/* key=store.id remounts StoreForm with fresh `initial` whenever the
           loaded store changes identity (e.g. account switch) — simpler than
           syncing local draft state to a prop via an effect. */}

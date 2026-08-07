@@ -7,9 +7,12 @@ import { useAuth } from "@/hooks/use-auth";
 // typing the bare domain, or following an old bookmark to a shopper route,
 // must not render half-broken shopper UI: /wardrobe, /stylist and
 // /virtual-model all depend on a body profile a store account never fills in.
-function isStorePath(pathname: string): boolean {
+// /admin/* is exempt too: an ADMIN_EMAILS account that also owns a store would
+// otherwise be redirected off /admin/stores with no explanation — plausible
+// while testing, since the seed store logins are the easiest admin candidates.
+function isExemptPath(pathname: string): boolean {
   const p = pathname.replace(/\/+$/, "") || "/";
-  return p === "/store" || p.startsWith("/store/");
+  return p === "/store" || p.startsWith("/store/") || p === "/admin" || p.startsWith("/admin/");
 }
 
 export function StoreGuard() {
@@ -36,7 +39,7 @@ export function StoreGuard() {
     // effect here. (Corrected in B12b-L2 — the original note had the hazard
     // backwards and the next loop would have trusted it.)
     if (profileLoading) return;
-    if (profile.role === "store" && !isStorePath(pathname)) {
+    if (profile.role === "store" && !isExemptPath(pathname)) {
       navigate({ to: "/store", replace: true });
     }
   }, [mounted, authLoading, session, profileLoading, profile.role, pathname, navigate]);

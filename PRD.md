@@ -466,7 +466,7 @@ Deploy: Docker image (`Dockerfile` + `prod.ts` static-file server หน้า S
 >
 > แต่ละ backlog มี ID (`B01`–`B16`) ใช้อ้างอิงใน `LOOP.md` และ loop docs (`loops/<ID>-L<n>.md`)
 >
-> **สถานะคิว (2026-08-07):** B01–B03, B05–B07, B09, B10, **B11** ✅ · B04 ⏭️ (รวมเข้า B08) · **คิวปัจจุบัน: B16 (Local Store, Tier 5) แล้วค่อย B08 — Virtual Try-On (Tier 6)** ส่วนงานที่ค้างนอกคิวอยู่ใน §13
+> **สถานะคิว (2026-08-07):** B01–B03, B05–B07, B09, B10, **B11** ✅ · B04 ⏭️ (รวมเข้า B08) · **คิวปัจจุบัน: เหลือ B08 — Virtual Try-On (Tier 6) รายการเดียว · Local Store (B11–B16) ✅ ครบแล้ว แล้วค่อย B08 — Virtual Try-On (Tier 6)** ส่วนงานที่ค้างนอกคิวอยู่ใน §13
 
 ### Tier 1 — Quick wins (ไม่มี dependency, ง่าย)
 
@@ -531,7 +531,7 @@ Deploy: Docker image (`Dockerfile` + `prod.ts` static-file server หน้า S
 13. **B15 — AI recommendation weighting** ✅ (loop `B15-L1`, ไม่มี migration) — `findAffiliateProduct`: เปลี่ยนการสุ่มท้ายสุดเป็น **two-step (สุ่มร้านแบบ weighted → สุ่มไอเท็มในร้านแบบเท่ากัน)** เพื่อไม่ให้ขนาดแคตตาล็อกกับ weight คูณกัน (20× × 8× = ~160× = hard filter โดยไม่ตั้งใจ) + ตัดร้าน suspended และแถว `store_id is null` ออกจาก pool **ด้วย filter ในคิวรีตรง ๆ** (path นี้ใช้ `adminClient()` service-role, RLS ไม่มีผล)
     - verify เชิงตัวเลข: สุ่ม 1000 ครั้งจาก pool ที่รู้คำตอบ ต้องได้ใกล้ 8:1 ไม่ใช่ 160:1
     - เงื่อนไข `store_id is null` จะไม่เจอแถวไหนเลยหลัง backfill ของ B11 — **อย่าลบทิ้ง** เพราะ admin editor (B10) ยังสร้างไอเท็มที่ไม่มี `store_id` ได้อยู่
-14. **B16 — Store admin** — ต่อยอด `assertAdmin` เดิม: ตั้ง `stores.package` และ `status = 'suspended'` ได้จากฝั่ง admin
+14. **B16 — Store admin** ✅ (loop `B16-L1`, migration `027`) — ต่อยอด `assertAdmin` เดิม: ตั้ง `stores.package` และ `status = 'suspended'` ได้จากฝั่ง admin
 
 ### Tier 6 — Last (ยากสุดตามที่ตกลง)
 

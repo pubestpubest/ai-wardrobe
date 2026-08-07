@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import { Sparkles, Plus } from "lucide-react";
 import { WardrobeCard } from "@/components/WardrobeCard";
@@ -13,7 +13,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { EditItem } from "@/components/EditItem";
 import { WardrobeUpgradeCard } from "@/components/WardrobeUpgradeCard";
 import { WeatherCard } from "@/components/WeatherCard";
-import { useAffiliateProducts } from "@/hooks/use-affiliate-products";
+import { useDiscoverStores } from "@/hooks/use-discover-stores";
 import { pickRandomOutfit } from "@/lib/daily-pick";
 
 export const Route = createFileRoute("/")({
@@ -28,7 +28,16 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { items, add, update, remove } = useWardrobe();
-  const { affiliateProducts } = useAffiliateProducts();
+  // Sourced from getDiscoverStores, not getAffiliateProducts: the latter is a
+  // service-role select("*") with no status filter, so a SUSPENDED store's items
+  // were still recommended here — and AffiliateItemModal's "ดูที่ร้าน" then linked
+  // to /store/$id, which RLS hides, dead-ending the shopper. Discover and the AI
+  // pool already exclude suspended stores; this was the last surface that didn't.
+  // getAffiliateProducts stays unfiltered on purpose — matches.tsx needs it to
+  // resolve historical affiliateProductIds, including items from stores that
+  // have since been suspended.
+  const { stores: discoverStores } = useDiscoverStores();
+  const affiliateProducts = useMemo(() => discoverStores.flatMap((s) => s.items), [discoverStores]);
   const { profile } = useProfile();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [devOpen, setDevOpen] = useState(false);

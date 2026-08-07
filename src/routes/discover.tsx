@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import {
   ArrowRight,
@@ -119,12 +119,20 @@ function DiscoverPage() {
             </p>
           </div>
           {isAdmin && (
-            <button
-              onClick={() => setAdding(true)}
-              className="px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5 shrink-0"
-            >
-              <Plus className="size-4" /> เพิ่มไอเท็ม
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                to="/admin/stores"
+                className="px-4 py-2 rounded-full bg-white border border-border/60 text-xs font-semibold"
+              >
+                จัดการร้านค้า
+              </Link>
+              <button
+                onClick={() => setAdding(true)}
+                className="px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5"
+              >
+                <Plus className="size-4" /> เพิ่มไอเท็ม
+              </button>
+            </div>
           )}
         </header>
 

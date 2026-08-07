@@ -21,6 +21,7 @@ import { Route as StoreRegisterRouteImport } from './routes/store.register'
 import { Route as StorePackageRouteImport } from './routes/store.package'
 import { Route as StoreItemsRouteImport } from './routes/store.items'
 import { Route as StoreIdRouteImport } from './routes/store.$id'
+import { Route as AdminStoresRouteImport } from './routes/admin.stores'
 
 const WardrobeRoute = WardrobeRouteImport.update({
   id: '/wardrobe',
@@ -82,6 +83,11 @@ const StoreIdRoute = StoreIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => StoreRoute,
 } as any)
+const AdminStoresRoute = AdminStoresRouteImport.update({
+  id: '/admin/stores',
+  path: '/admin/stores',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/store': typeof StoreRouteWithChildren
   '/virtual-model': typeof VirtualModelRoute
   '/wardrobe': typeof WardrobeRoute
+  '/admin/stores': typeof AdminStoresRoute
   '/store/$id': typeof StoreIdRoute
   '/store/items': typeof StoreItemsRoute
   '/store/package': typeof StorePackageRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/virtual-model': typeof VirtualModelRoute
   '/wardrobe': typeof WardrobeRoute
+  '/admin/stores': typeof AdminStoresRoute
   '/store/$id': typeof StoreIdRoute
   '/store/items': typeof StoreItemsRoute
   '/store/package': typeof StorePackageRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/store': typeof StoreRouteWithChildren
   '/virtual-model': typeof VirtualModelRoute
   '/wardrobe': typeof WardrobeRoute
+  '/admin/stores': typeof AdminStoresRoute
   '/store/$id': typeof StoreIdRoute
   '/store/items': typeof StoreItemsRoute
   '/store/package': typeof StorePackageRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/store'
     | '/virtual-model'
     | '/wardrobe'
+    | '/admin/stores'
     | '/store/$id'
     | '/store/items'
     | '/store/package'
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/virtual-model'
     | '/wardrobe'
+    | '/admin/stores'
     | '/store/$id'
     | '/store/items'
     | '/store/package'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/store'
     | '/virtual-model'
     | '/wardrobe'
+    | '/admin/stores'
     | '/store/$id'
     | '/store/items'
     | '/store/package'
@@ -177,6 +189,7 @@ export interface RootRouteChildren {
   StoreRoute: typeof StoreRouteWithChildren
   VirtualModelRoute: typeof VirtualModelRoute
   WardrobeRoute: typeof WardrobeRoute
+  AdminStoresRoute: typeof AdminStoresRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -265,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreIdRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/admin/stores': {
+      id: '/admin/stores'
+      path: '/admin/stores'
+      fullPath: '/admin/stores'
+      preLoaderRoute: typeof AdminStoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -294,6 +314,7 @@ const rootRouteChildren: RootRouteChildren = {
   StoreRoute: StoreRouteWithChildren,
   VirtualModelRoute: VirtualModelRoute,
   WardrobeRoute: WardrobeRoute,
+  AdminStoresRoute: AdminStoresRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

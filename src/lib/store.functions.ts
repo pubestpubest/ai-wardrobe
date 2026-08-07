@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertAdmin } from "@/lib/affiliate.functions";
 import type { Store } from "@/hooks/use-store";
 import type { StorePublic } from "@/hooks/use-store-public";
 import type { AffiliateProduct, StorePackage } from "@/lib/wardrobe";
@@ -363,6 +364,70 @@ export const updateStore = createServerFn({ method: "POST" })
       // in createStore: surface Thai, not a raw PostgREST string.
       if ((error as { code?: string }).code === "PGRST116") {
         throw new Error("ไม่พบร้านค้าของคุณ");
+      }
+      throw new Error(error.message);
+    }
+    return mapRow(row);
+  });
+
+// ─── Admin: set a store's package / status (B16) ───────────────────────────
+//
+// Both write through the SERVICE-ROLE client, not context.supabase:
+// 018/019/020/022 deliberately never granted `package`/`status` to
+// `authenticated` at all (that's what stops a store self-upgrading or
+// self-approving — LOCAL-STORE.md §3, B11's escalation). RLS's "Owners
+// manage own store" would happily let an owner through on ownership alone, so
+// the only thing standing between "any signed-in user" and these two columns
+// is assertAdmin, called first in both handlers, same as every other admin
+// write in affiliate.functions.ts.
+
+const SetStorePackageSchema = z.object({
+  id: z.string().uuid(),
+  package: z.enum(["free", "basic", "premium"]),
+});
+
+export const setStorePackage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => SetStorePackageSchema.parse(d))
+  .handler(async ({ data, context }): Promise<Store> => {
+    assertAdmin(context);
+    // An admin may downgrade a store below its current item count — allowed.
+    // 025/026's cap trigger fires only on affiliate_products writes (insert,
+    // or update that moves store_id), never on this UPDATE to `stores`, so a
+    // downgraded store simply sits over quota and can't add more until back
+    // under the new cap. /store/package already renders that as "18 / 10".
+    const { data: row, error } = await storesTable(adminClient())
+      .update({ package: data.package })
+      .eq("id", data.id)
+      .select("*")
+      .single();
+    if (error) {
+      if ((error as { code?: string }).code === "PGRST116") {
+        throw new Error("ไม่พบร้านค้านี้");
+      }
+      throw new Error(error.message);
+    }
+    return mapRow(row);
+  });
+
+const SetStoreStatusSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(["approved", "suspended"]),
+});
+
+export const setStoreStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => SetStoreStatusSchema.parse(d))
+  .handler(async ({ data, context }): Promise<Store> => {
+    assertAdmin(context);
+    const { data: row, error } = await storesTable(adminClient())
+      .update({ status: data.status })
+      .eq("id", data.id)
+      .select("*")
+      .single();
+    if (error) {
+      if ((error as { code?: string }).code === "PGRST116") {
+        throw new Error("ไม่พบร้านค้านี้");
       }
       throw new Error(error.message);
     }

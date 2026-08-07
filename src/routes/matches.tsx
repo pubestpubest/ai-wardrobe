@@ -40,7 +40,7 @@ function MatchesPage() {
     : [];
 
   return (
-    <div className="min-h-screen pb-28 bg-[#FDFCFD]">
+    <div className="min-h-screen pb-28 bg-[#FDFCFD]/75">
       <div className="mx-auto max-w-6xl px-5 pt-8">
         <header className="flex items-center justify-between mb-6">
           <div>

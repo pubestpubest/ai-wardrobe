@@ -28,7 +28,7 @@ function StoreItemsPage() {
 
   if (storeLoading || itemsLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FDFCFD] text-sm text-muted-foreground">
+      <div className="min-h-screen flex items-center justify-center bg-[#FDFCFD]/75 text-sm text-muted-foreground">
         กำลังโหลด…
       </div>
     );
@@ -39,7 +39,7 @@ function StoreItemsPage() {
   // "couldn't load" look identical otherwise (B12b-L3).
   if (storeIsError || itemsIsError) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD] px-6 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD]/75 px-6 text-center">
         <p className="text-sm text-muted-foreground">โหลดข้อมูลไอเท็มไม่สำเร็จ</p>
         <button
           onClick={() => window.location.reload()}
@@ -74,7 +74,7 @@ function StoreItemsPage() {
   };
 
   return (
-    <div className="min-h-screen pb-28 bg-[#FDFCFD]">
+    <div className="min-h-screen pb-28 bg-[#FDFCFD]/75">
       <div className="mx-auto max-w-6xl px-5 pt-8">
         <header className="mb-6 flex items-start justify-between gap-3">
           <div>

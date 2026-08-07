@@ -11,6 +11,7 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { ProfileGate } from "@/components/ProfileGate";
 import { AuthGate } from "@/components/AuthGate";
+import { AmbientBackground } from "@/components/AmbientBackground";
 import { StoreGuard } from "@/components/StoreGuard";
 
 import "../styles.css";
@@ -118,6 +119,8 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      {/* Outside AuthGate: behind every screen, sign-in included. */}
+      <AmbientBackground />
       <AuthGate>
         <div key={pathname} className="page-enter">
           <Outlet />

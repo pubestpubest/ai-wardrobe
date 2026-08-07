@@ -19,7 +19,7 @@ function StoreRegisterPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FDFCFD] text-sm text-muted-foreground">
+      <div className="min-h-screen flex items-center justify-center bg-[#FDFCFD]/75 text-sm text-muted-foreground">
         กำลังโหลด…
       </div>
     );
@@ -33,7 +33,7 @@ function StoreRegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCFD] px-5 py-10">
+    <div className="min-h-screen bg-[#FDFCFD]/75 px-5 py-10">
       <StoreForm
         heading="สมัครร้านค้า"
         subheading="ลงทะเบียนร้านค้าของคุณเพื่อแสดงในหน้าช้อปปิ้งของ Digital Wardrobe"

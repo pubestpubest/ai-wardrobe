@@ -115,6 +115,23 @@
       transform: translate3d(0, -22px, 0) scale(1.08);
     }
   }
+  /* App-wide ambient orbs (AmbientBackground). Much slower and gentler than
+     .animate-drift, which is the auth page's foreground treatment — this one
+     should never be something you notice moving, only something you'd miss if
+     it were gone. */
+  .animate-ambient {
+    animation: ambient 48s ease-in-out infinite;
+  }
+  @keyframes ambient {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(0, -14px, 0) scale(1.05);
+    }
+  }
+
   /* Entrance for list/grid items. fill-mode `both` matters: without it a
      delayed item renders at full opacity first, then jumps to the start of the
      keyframe. Stagger by setting --d inline; see the grids for the cap. */
@@ -143,7 +160,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .animate-drift {
+    .animate-drift,
+    .animate-ambient {
       animation: none;
     }
   }
@@ -167,7 +185,8 @@
     animation-duration: 1s !important;
     animation-iteration-count: infinite !important;
   }
-  .animate-drift {
+  .animate-drift,
+  .animate-ambient {
     animation: none !important;
   }
 }

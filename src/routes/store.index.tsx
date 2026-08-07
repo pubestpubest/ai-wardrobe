@@ -21,7 +21,7 @@ function StorePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FDFCFD] text-sm text-muted-foreground">
+      <div className="min-h-screen flex items-center justify-center bg-[#FDFCFD]/75 text-sm text-muted-foreground">
         กำลังโหลด…
       </div>
     );
@@ -32,7 +32,7 @@ function StorePage() {
   // otherwise, and the latter would show a real owner the registration form.
   if (isError) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD] px-6 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD]/75 px-6 text-center">
         <p className="text-sm text-muted-foreground">โหลดข้อมูลร้านไม่สำเร็จ</p>
         <button
           onClick={() => window.location.reload()}
@@ -52,7 +52,7 @@ function StorePage() {
   // No StoreBottomNav here: there is no shell to show nav for yet.
   if (!store) {
     return (
-      <div className="min-h-screen bg-[#FDFCFD] px-5 py-10">
+      <div className="min-h-screen bg-[#FDFCFD]/75 px-5 py-10">
         <StoreForm
           heading="สมัครร้านค้า"
           subheading="ลงทะเบียนร้านค้าของคุณเพื่อแสดงในหน้าช้อปปิ้งของ Digital Wardrobe"
@@ -74,7 +74,7 @@ function StorePage() {
   }
 
   return (
-    <div className="min-h-screen pb-28 bg-[#FDFCFD] px-5 py-8">
+    <div className="min-h-screen pb-28 bg-[#FDFCFD]/75 px-5 py-8">
       {/* Enforcement is migration 027's RLS predicate on affiliate_products
           (item writes only) — this banner is purely informational. Store-
           profile edits stay allowed on purpose (B16-L1 grill outcome): a

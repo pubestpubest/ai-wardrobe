@@ -33,7 +33,7 @@ function AdminStoresPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FDFCFD] text-sm text-muted-foreground">
+      <div className="min-h-screen flex items-center justify-center bg-[#FDFCFD]/75 text-sm text-muted-foreground">
         กำลังโหลด…
       </div>
     );
@@ -47,7 +47,7 @@ function AdminStoresPage() {
   // failure still reaches the isError branch below, since isAdmin is true.
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD] px-6 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD]/75 px-6 text-center">
         <ShieldAlert className="size-10 text-muted-foreground opacity-50" />
         <p className="text-sm text-muted-foreground">หน้านี้สำหรับผู้ดูแลระบบเท่านั้น</p>
       </div>
@@ -58,7 +58,7 @@ function AdminStoresPage() {
   // — same reasoning as every other store page (B12b-L3).
   if (isError) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD] px-6 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD]/75 px-6 text-center">
         <p className="text-sm text-muted-foreground">โหลดข้อมูลร้านค้าไม่สำเร็จ</p>
         <button
           onClick={() => window.location.reload()}
@@ -72,7 +72,7 @@ function AdminStoresPage() {
 
   if (stores.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD] px-6 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD]/75 px-6 text-center">
         <StoreIcon className="size-10 text-muted-foreground opacity-40" />
         <p className="text-sm text-muted-foreground">ยังไม่มีร้านค้าในระบบ</p>
       </div>
@@ -98,7 +98,7 @@ function AdminStoresPage() {
   }
 
   return (
-    <div className="min-h-screen pb-16 bg-[#FDFCFD]">
+    <div className="min-h-screen pb-16 bg-[#FDFCFD]/75">
       <div className="mx-auto max-w-3xl px-5 pt-8">
         <h1 className="text-2xl font-bold text-foreground mb-1">จัดการร้านค้า</h1>
         <p className="text-xs text-muted-foreground mb-6">{stores.length} ร้านค้าในระบบ</p>

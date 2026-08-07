@@ -186,7 +186,7 @@ function VirtualModelPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCFD] flex flex-col">
+    <div className="min-h-screen bg-[#FDFCFD]/75 flex flex-col">
       <div className="h-1 bg-muted">
         <div
           className="h-full bg-primary transition-all duration-500"

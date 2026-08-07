@@ -21,7 +21,7 @@ function StorePackagePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FDFCFD] text-sm text-muted-foreground">
+      <div className="min-h-screen flex items-center justify-center bg-[#FDFCFD]/75 text-sm text-muted-foreground">
         กำลังโหลด…
       </div>
     );
@@ -32,7 +32,7 @@ function StorePackagePage() {
   // otherwise, and the latter would show a real owner the registration form.
   if (isError) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD] px-6 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD]/75 px-6 text-center">
         <p className="text-sm text-muted-foreground">โหลดข้อมูลร้านไม่สำเร็จ</p>
         <button
           onClick={() => window.location.reload()}
@@ -61,7 +61,7 @@ function StorePackagePage() {
   };
 
   return (
-    <div className="min-h-screen pb-28 bg-[#FDFCFD]">
+    <div className="min-h-screen pb-28 bg-[#FDFCFD]/75">
       <div className="mx-auto max-w-2xl px-5 pt-8">
         <h1 className="text-2xl font-bold text-foreground mb-6">บัญชี</h1>
 

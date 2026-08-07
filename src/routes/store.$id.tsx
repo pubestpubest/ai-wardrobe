@@ -34,7 +34,7 @@ function StorePublicPage() {
   // loading → error → not-found → content.
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FDFCFD] text-sm text-muted-foreground">
+      <div className="min-h-screen flex items-center justify-center bg-[#FDFCFD]/75 text-sm text-muted-foreground">
         กำลังโหลด…
       </div>
     );
@@ -48,7 +48,7 @@ function StorePublicPage() {
   // screen. Only a first load with no data shows it.
   if (isError && !store) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD] px-6 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD]/75 px-6 text-center">
         <p className="text-sm text-muted-foreground">โหลดข้อมูลร้านไม่สำเร็จ</p>
         <button
           onClick={() => window.location.reload()}
@@ -65,7 +65,7 @@ function StorePublicPage() {
   // purpose, both mean "nothing to show here".
   if (!store) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD] px-6 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD]/75 px-6 text-center">
         <p className="text-sm text-muted-foreground">ไม่พบร้านค้านี้</p>
         <Link
           to="/discover"
@@ -90,7 +90,7 @@ function StorePublicPage() {
   ].filter((row): row is ContactRow => row !== null);
 
   return (
-    <div className="min-h-screen pb-28 bg-[#FDFCFD]">
+    <div className="min-h-screen pb-28 bg-[#FDFCFD]/75">
       <div className="relative">
         <div className="h-40 sm:h-56 w-full bg-lilac/30 overflow-hidden">
           {store.coverUrl && (

@@ -13,25 +13,7 @@ export function StoreBottomNav() {
   return (
     <nav className="fixed bottom-5 left-1/2 -translate-x-1/2 glass rounded-full border border-border px-2 py-2 flex items-center gap-1 shadow-lg z-40">
       <NavLink to="/store" icon={Store} active={norm(pathname) === "/store"} />
-
-      {/* Ships disabled in B12b, enabled in B13 (LOCAL-STORE.md §8) — a
-          button, not a Link, so it can never navigate; visibly dimmed so it
-          doesn't read as broken. */}
-      <div className="relative">
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          aria-label="ไอเท็ม (เร็ว ๆ นี้)"
-          className="size-11 rounded-full flex items-center justify-center text-muted-foreground/30 cursor-not-allowed"
-        >
-          <Shirt className="size-4" />
-        </button>
-        <span className="pointer-events-none absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-muted px-1.5 py-0.5 text-[8px] font-medium leading-none text-muted-foreground/80">
-          เร็ว ๆ นี้
-        </span>
-      </div>
-
+      <NavLink to="/store/items" icon={Shirt} active={norm(pathname) === "/store/items"} />
       <NavLink to="/store/package" icon={Wallet} active={norm(pathname) === "/store/package"} />
     </nav>
   );

@@ -1,0 +1,32 @@
+-- B13a: verified live before this migration — `affiliate_products` still
+-- carries Supabase's default table-wide grants:
+--   anon:          DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+--   authenticated: DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+--   policies:      "Public read catalog" / SELECT / {public} / using (true)
+--   CHECK constraints: 0
+--
+-- Writes are blocked today ONLY by the absence of a write policy — RLS with
+-- no permissive policy denies by default even though the grant would allow
+-- it. That is a single point of failure, not a boundary: the moment B13b
+-- adds "Owners manage own store items" as a permissive FOR ALL policy, these
+-- table-wide grants go live immediately, and every column of every row
+-- becomes writable by any authenticated user whose row passes the policy —
+-- with zero value validation anywhere (0 CHECKs; the httpUrl refinement that
+-- guards image_url/affiliate_url today lives only in B10's admin-path zod,
+-- which a direct PostgREST call never reaches). This is the exact same class
+-- of hole 018/019/020 closed on `stores` — LOCAL-STORE.md §3.
+--
+-- Revoking first, ahead of B13b's policy, means the policy is born onto a
+-- table where the only writable columns are the ones B13b grants back
+-- narrowly. `service_role` is untouched by this REVOKE, so B10's admin
+-- editor and the AI match path (both service-role, affiliate.functions.ts)
+-- keep working unchanged.
+--
+-- B13b MUST add its "Owners manage own store items" policy together with,
+-- in the same migration as: column-level grants naming exactly the columns
+-- a store owner may write, AND DB CHECK constraints bounding their values
+-- (http(s)-only URLs, non-blank name, etc. — same shape as 021). Never
+-- restore the table-wide form (`grant insert/update/delete on
+-- public.affiliate_products to authenticated`) to fix a permission-denied —
+-- that reopens exactly this hole.
+revoke insert, update, delete on public.affiliate_products from anon, authenticated;

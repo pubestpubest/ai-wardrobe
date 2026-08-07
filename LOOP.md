@@ -141,11 +141,12 @@ bug, not before.
 <!-- newest first: date | <ID>-L<n> | ✅ done / 🔁 re-loop / ⛔ blocked | one-line note -->
 
 _Queue state (2026-08-07, after B11): **B12–B16 remain in Tier 5**, then B08
-(Tier 6). Next `/drain` picks **B13** (store item CRUD). It must recreate the
-`Owners manage own store items` policy that `019` removed, add its own column
-grants, and put the item cap behind a service-role count — `getMyStore`'s
-`itemCount` reads through `Public read catalog` and would silently under-report
-if that policy ever narrows._
+(Tier 6). Next `/drain` picks **B13b** (store item CRUD). It **needs an explicit human go**
+— it creates the `Owners manage own store items` RLS policy. It must ship that
+policy together with narrow column grants AND CHECK constraints (`image_url`,
+`affiliate_url`, `category`), and put the item cap behind a **service-role**
+count. `023` already removed the table-wide write grants that would otherwise
+make a permissive policy catastrophic._
 
 _Superseded — queue state before B11: **B11–B16 (Local Store, PRD §12 Tier 5) queued ahead
 of B08 — Virtual Try-On (Tier 6)**. Next `/drain` picks **B11**, which is gated
@@ -158,6 +159,7 @@ _Queue state (2026-08-06): everything drained except **B08 — Virtual Try-On**.
 Commits after B10 (poster page, docker/UI fixes) were direct work, not loops —
 no Loop Log rows for them by design._
 
+- 2026-08-07 | B13a-L1 | ✅ done | Harden + read-only item list — `023` revokes table-wide insert/update/delete on affiliate_products from anon+authenticated (they were granted, and only the ABSENCE of a write policy blocked writes, so B13b's policy would have opened table-wide unvalidated writes); grill split B13 so no grant/policy ships ahead of its writer. **First clean scrutinize on this feature** — and it closed my verification gap by extracting the server-fn id from the client bundle and proving getMyStoreItems returns 18/12/9/5/4/2, disjoint, summing to the whole table
 - 2026-08-07 | B12b-L3 | ✅ done | Fetch-failure branch — surfaced `isError` so a thrown getMyStore stops masquerading as "you have no store" (it was redirecting owners off /store/package and showing them the registration form, the L1 symptom through a different door); scrutinize's hook sweep also turned up a pre-existing worse variant in virtual-model.tsx, filed as UX-1
 - 2026-08-07 | B12b-L2 | ✅ done | Disabled-query load state — `isLoading: !session || isLoading`; TanStack v5 reports isLoading===false for a query disabled by `enabled: !!session`, so every store page took its no-store branch on a cold load. My L1 gate accepted "200 + empty body" without asking why `store` was null — a status code is not a render check
 - 2026-08-07 | B12b-L1 | 🔁 re-loop | Store shell — `022` column UPDATE grant (owner_user_id excluded so a store can't be transferred), `updateStore`, `/store` editor, `/store/package`, StoreBottomNav (ไอเท็ม disabled until B13), StoreGuard redirect; UPDATE path pen-tested with the discriminating owner_user_id case (GRANT-denied, not RLS-denied) and 021's CHECKs proven to bind UPDATE; **first loop in this feature where scrutinize found no authorization hole** — it found a load-state bug instead

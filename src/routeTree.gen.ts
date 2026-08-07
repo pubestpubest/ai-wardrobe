@@ -19,6 +19,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoreIndexRouteImport } from './routes/store.index'
 import { Route as StoreRegisterRouteImport } from './routes/store.register'
 import { Route as StorePackageRouteImport } from './routes/store.package'
+import { Route as StoreItemsRouteImport } from './routes/store.items'
 
 const WardrobeRoute = WardrobeRouteImport.update({
   id: '/wardrobe',
@@ -70,6 +71,11 @@ const StorePackageRoute = StorePackageRouteImport.update({
   path: '/package',
   getParentRoute: () => StoreRoute,
 } as any)
+const StoreItemsRoute = StoreItemsRouteImport.update({
+  id: '/items',
+  path: '/items',
+  getParentRoute: () => StoreRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -79,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/store': typeof StoreRouteWithChildren
   '/virtual-model': typeof VirtualModelRoute
   '/wardrobe': typeof WardrobeRoute
+  '/store/items': typeof StoreItemsRoute
   '/store/package': typeof StorePackageRoute
   '/store/register': typeof StoreRegisterRoute
   '/store/': typeof StoreIndexRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/virtual-model': typeof VirtualModelRoute
   '/wardrobe': typeof WardrobeRoute
+  '/store/items': typeof StoreItemsRoute
   '/store/package': typeof StorePackageRoute
   '/store/register': typeof StoreRegisterRoute
   '/store': typeof StoreIndexRoute
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/store': typeof StoreRouteWithChildren
   '/virtual-model': typeof VirtualModelRoute
   '/wardrobe': typeof WardrobeRoute
+  '/store/items': typeof StoreItemsRoute
   '/store/package': typeof StorePackageRoute
   '/store/register': typeof StoreRegisterRoute
   '/store/': typeof StoreIndexRoute
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/store'
     | '/virtual-model'
     | '/wardrobe'
+    | '/store/items'
     | '/store/package'
     | '/store/register'
     | '/store/'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/virtual-model'
     | '/wardrobe'
+    | '/store/items'
     | '/store/package'
     | '/store/register'
     | '/store'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/store'
     | '/virtual-model'
     | '/wardrobe'
+    | '/store/items'
     | '/store/package'
     | '/store/register'
     | '/store/'
@@ -227,16 +239,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StorePackageRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/store/items': {
+      id: '/store/items'
+      path: '/items'
+      fullPath: '/store/items'
+      preLoaderRoute: typeof StoreItemsRouteImport
+      parentRoute: typeof StoreRoute
+    }
   }
 }
 
 interface StoreRouteChildren {
+  StoreItemsRoute: typeof StoreItemsRoute
   StorePackageRoute: typeof StorePackageRoute
   StoreRegisterRoute: typeof StoreRegisterRoute
   StoreIndexRoute: typeof StoreIndexRoute
 }
 
 const StoreRouteChildren: StoreRouteChildren = {
+  StoreItemsRoute: StoreItemsRoute,
   StorePackageRoute: StorePackageRoute,
   StoreRegisterRoute: StoreRegisterRoute,
   StoreIndexRoute: StoreIndexRoute,

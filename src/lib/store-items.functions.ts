@@ -31,7 +31,7 @@ function adminClient() {
 // rather than `null` (React renders both as nothing, but the type must say
 // "optional" for B13b's zod schemas to agree with this shape).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapRow(row: any): AffiliateProduct {
+function mapRow(row: any, storeName?: string): AffiliateProduct {
   return {
     id: row.id,
     name: row.name,
@@ -47,6 +47,8 @@ function mapRow(row: any): AffiliateProduct {
     imageUrl: row.image_url ?? undefined,
     description: row.description ?? undefined,
     affiliateUrl: row.affiliate_url ?? undefined,
+    storeId: row.store_id ?? undefined,
+    storeName,
   };
 }
 
@@ -61,7 +63,7 @@ export const getMyStoreItems = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({}).parse(d))
   .handler(async ({ context }): Promise<AffiliateProduct[]> => {
     const { data: store, error: storeError } = await storesTable(context.supabase)
-      .select("id")
+      .select("id, name")
       .eq("owner_user_id", context.userId)
       .maybeSingle();
     if (storeError) throw new Error(storeError.message);
@@ -75,7 +77,8 @@ export const getMyStoreItems = createServerFn({ method: "POST" })
       .eq("store_id", store.id)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return (rows ?? []).map(mapRow);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (rows ?? []).map((r: any) => mapRow(r, store.name));
   });
 
 // ─── Create / update / delete the caller's own store items (B13b) ─────────

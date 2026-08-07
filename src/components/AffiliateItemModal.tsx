@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ExternalLink, X } from "lucide-react";
+import { ExternalLink, X, Store } from "lucide-react";
 import type { AffiliateProduct } from "@/lib/wardrobe";
 
 interface Props {
@@ -35,7 +35,7 @@ export function AffiliateItemModal({ item, onClose }: Props) {
         <div className="grid grid-cols-2 gap-3">
           <InfoField label="ราคา" value={`${item.price.toLocaleString("th-TH")} บาท`} />
           <InfoField label="ไซซ์" value={item.size ?? "-"} />
-          {item.store && <InfoField label="ร้านค้า" value={item.store} />}
+          {item.store && <InfoField label="ร้านค้า" value={item.storeName ?? item.store ?? "—"} />}
           {item.platform && <InfoField label="แพลตฟอร์ม" value={item.platform} />}
         </div>
 
@@ -43,29 +43,37 @@ export function AffiliateItemModal({ item, onClose }: Props) {
           <p className="text-sm text-foreground/70 leading-relaxed italic">{item.description}</p>
         )}
 
-        {/* External affiliateUrl always wins; a local-store item (no
-            affiliateUrl) falls back to its /store/$id page instead. Neither
-            present → no button, same as before B14b. */}
-        {item.affiliateUrl ? (
-          <a
-            href={item.affiliateUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full bg-primary text-primary-foreground rounded-full py-3 text-sm font-medium flex items-center justify-center gap-2 mt-1"
-          >
-            ไปที่ร้านค้า <ExternalLink className="size-4" />
-          </a>
-        ) : (
-          item.storeId && (
-            <Link
-              to="/store/$id"
-              params={{ id: item.storeId }}
-              onClick={onClose}
-              className="w-full bg-primary text-primary-foreground rounded-full py-3 text-sm font-medium flex items-center justify-center gap-2 mt-1"
-            >
-              ดูที่ร้าน <ExternalLink className="size-4" />
-            </Link>
-          )
+        {/* Both, when both exist. The external link is where you BUY; the
+            store page is where you learn who you're buying from — they answer
+            different questions, so making them exclusive meant a marketplace
+            item never surfaced its shop at all. */}
+        {(item.affiliateUrl || item.storeId) && (
+          <div className="flex flex-col gap-2 mt-1">
+            {item.affiliateUrl && (
+              <a
+                href={item.affiliateUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-primary text-primary-foreground rounded-full py-3 text-sm font-medium flex items-center justify-center gap-2"
+              >
+                ไปที่ร้านค้า <ExternalLink className="size-4" />
+              </a>
+            )}
+            {item.storeId && (
+              <Link
+                to="/store/$id"
+                params={{ id: item.storeId }}
+                onClick={onClose}
+                className={`w-full rounded-full py-3 text-sm font-medium flex items-center justify-center gap-2 ${
+                  item.affiliateUrl
+                    ? "bg-white border border-border/60 text-foreground/80 hover:bg-muted transition"
+                    : "bg-primary text-primary-foreground"
+                }`}
+              >
+                <Store className="size-4" /> ดูโปรไฟล์ร้าน
+              </Link>
+            )}
+          </div>
         )}
       </div>
     </div>

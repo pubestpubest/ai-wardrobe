@@ -173,6 +173,12 @@ export type AffiliateProduct = {
   // B13b-L1 — here it's the mirror image: an unseen field silently DOES
   // "save" over the real value unless the read path returns it).
   storeId?: string;
+  // The owning local store's display name. `store` above is the legacy
+  // free-text marketplace brand ("Zara"), which 018 left in place but stopped
+  // writing — LOCAL-STORE.md §1 says the name to SHOW is
+  // coalesce(stores.name, affiliate_products.store). Without this the modal
+  // credits a seeded shop's item to Zara.
+  storeName?: string;
 };
 
 export type Match = {

@@ -67,6 +67,7 @@ function mapRow(row: any): AffiliateProduct {
     description: row.description ?? undefined,
     affiliateUrl: row.affiliate_url ?? undefined,
     storeId: row.store_id ?? undefined,
+    storeName: row.stores?.name ?? undefined,
   };
 }
 
@@ -101,7 +102,7 @@ async function fetchApprovedCandidateRows(category: WardrobeItem["category"]): P
   const admin = adminClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const primary = await (admin.from("affiliate_products" as any) as any)
-    .select("*, stores!inner(package, status)")
+    .select("*, stores!inner(package, status, name)")
     .eq("category", category)
     .eq("stores.status", "approved");
 
@@ -205,7 +206,10 @@ export const getAffiliateProducts = createServerFn({ method: "POST" })
   .handler(async (): Promise<AffiliateProduct[]> => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: rows, error } = await (adminClient().from("affiliate_products" as any) as any)
-      .select("*")
+      // Left embed, deliberately NOT stores!inner: an inner join would drop
+      // store_id-null rows, and matches.tsx resolves historical
+      // affiliateProductIds through this read.
+      .select("*, stores(name)")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (rows ?? []).map(mapRow);

@@ -224,7 +224,7 @@ export const createStore = createServerFn({ method: "POST" })
 // the owner-write path — same duplication the codebase already has between
 // affiliate.functions.ts and store-items.functions.ts.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapItemRow(row: any): AffiliateProduct {
+function mapItemRow(row: any, storeName?: string): AffiliateProduct {
   return {
     id: row.id,
     name: row.name,
@@ -245,6 +245,7 @@ function mapItemRow(row: any): AffiliateProduct {
     // Redundant but harmless on /store/$id, where every item's storeId
     // already equals the page's own id.
     storeId: row.store_id ?? undefined,
+    storeName,
   };
 }
 
@@ -285,7 +286,11 @@ export const getStorePublic = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false });
     if (itemsError) throw new Error(itemsError.message);
 
-    return { ...mapRow(row), items: (itemRows ?? []).map(mapItemRow) };
+    return {
+      ...mapRow(row),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      items: (itemRows ?? []).map((r: any) => mapItemRow(r, row.name)),
+    };
   });
 
 // ─── Discover feed: approved stores + their items (B14b) ──────────────────
@@ -325,6 +330,10 @@ export const getDiscoverStores = createServerFn({ method: "POST" })
     // store_id is null (legacy admin items predating B14a's store dropdown)
     // are excluded by the `.in()` filter itself, so they get no card.
     const storeIds = storeRows.map((r: { id: string }) => r.id);
+    const nameByStoreId = new Map<string, string>(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (storeRows as any[]).map((r) => [r.id as string, (r.name ?? "") as string]),
+    );
     const { data: itemRows, error: itemsError } = await affiliateProductsTable(context.supabase)
       .select("*")
       .in("store_id", storeIds)
@@ -335,7 +344,7 @@ export const getDiscoverStores = createServerFn({ method: "POST" })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const row of (itemRows ?? []) as any[]) {
       const list = itemsByStore.get(row.store_id) ?? [];
-      list.push(mapItemRow(row));
+      list.push(mapItemRow(row, nameByStoreId.get(row.store_id)));
       itemsByStore.set(row.store_id, list);
     }
 

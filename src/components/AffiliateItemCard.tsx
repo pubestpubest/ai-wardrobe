@@ -1,3 +1,4 @@
+import { Store } from "lucide-react";
 import type { AffiliateProduct } from "@/lib/wardrobe";
 
 const TONES = ["bg-lilac", "bg-blush", "bg-sky"] as const;
@@ -28,9 +29,18 @@ export function AffiliateItemCard({ item, onView }: Props) {
           <p className="text-xs font-semibold text-foreground/70">
             {item.price.toLocaleString("th-TH")} บาท
           </p>
-          {(item.store || item.platform) && (
-            <p className="text-[11px] text-muted-foreground truncate">
-              {[item.store, item.platform].filter(Boolean).join(" · ")}
+          {/* The local store's name wins over the legacy marketplace text —
+              018 stopped writing `store` but left the old values in place. */}
+          {(item.storeName || item.store || item.platform) && (
+            <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
+              {item.storeName ? (
+                <>
+                  <Store className="size-3 shrink-0" />
+                  {item.storeName}
+                </>
+              ) : (
+                [item.store, item.platform].filter(Boolean).join(" · ")
+              )}
             </p>
           )}
           {item.description && (

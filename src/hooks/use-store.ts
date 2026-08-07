@@ -51,7 +51,7 @@ export function useStore() {
   const createFn = useServerFn(createStore);
   const updateFn = useServerFn(updateStore);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     // key scoped to the user so account switch can't serve a stale store
     queryKey: [...STORE_QUERY_KEY, session?.user?.id],
     queryFn: () => fetchFn({ data: {} }),
@@ -85,6 +85,13 @@ export function useStore() {
     // and takes its no-store branch — /store/package redirected away on any
     // refresh or bookmark, /store flashed the registration form at real owners.
     isLoading: !session || isLoading,
+    // Surfaced separately so consumers can tell "you have no store" from "the
+    // fetch failed". Without it a thrown getMyStore (offline, 5xx, or the
+    // affiliate_products count erroring) leaves store===null with isLoading
+    // false — which is the SAME no-store branch the L2 blocker took, reached
+    // through a different door: /store/package redirects away and /store shows
+    // a real owner the registration form.
+    isError,
     create: (input: CreateStoreInput) => createMutation.mutateAsync(input),
     isCreating: createMutation.isPending,
     update: (input: UpdateStoreInput) => updateMutation.mutateAsync(input),

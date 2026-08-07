@@ -127,9 +127,11 @@ const CreateStoreSchema = StoreFieldsSchema.refine(hasContact, { message: CONTAC
 const UpdateStoreSchema = StoreFieldsSchema.refine(hasContact, { message: CONTACT_MESSAGE });
 
 // Full replacement, not a patch: every column is written on every call, so an
-// omitted optional field becomes null. Safe today because StoreForm always
-// sends all ten — but updateStore is a public endpoint whose name reads like a
-// patch, so any future caller must send the complete field set.
+// omitted field becomes null. StoreForm does NOT send all ten — it emits
+// undefined for empty inputs and JSON drops those keys. It is safe only because
+// the edit form seeds its draft from the fully-loaded store, so an omitted field
+// means the user genuinely cleared it. Any other caller must send the complete
+// field set or it will silently null the columns it left out.
 function toRow(data: z.infer<typeof StoreFieldsSchema>) {
   return {
     name: data.name,

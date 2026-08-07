@@ -15,7 +15,7 @@ export const Route = (createFileRoute as any)("/store/package")({
 });
 
 function StorePackagePage() {
-  const { store, isLoading } = useStore();
+  const { store, isLoading, isError } = useStore();
   const { user, signOut } = useAuth();
   const queryClient = useQueryClient();
 
@@ -23,6 +23,23 @@ function StorePackagePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FDFCFD] text-sm text-muted-foreground">
         กำลังโหลด…
+      </div>
+    );
+  }
+
+  // A failed fetch must NOT fall through to the no-store branch below —
+  // "you have no store" and "we couldn't load your store" look identical
+  // otherwise, and the latter would show a real owner the registration form.
+  if (isError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#FDFCFD] px-6 text-center">
+        <p className="text-sm text-muted-foreground">โหลดข้อมูลร้านไม่สำเร็จ</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-5 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
+        >
+          ลองใหม่
+        </button>
       </div>
     );
   }

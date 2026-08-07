@@ -182,6 +182,44 @@ async function main() {
     console.log(`[seed-guest] already has ${matchCount} matches — left alone`);
   }
 
+  // ── Calendar (outfit_wears) ─────────────────────────────────────────────
+  // A scatter of worn days over the past few weeks so the calendar has
+  // something to show. Migration 017 enforces one outfit per (user, date), so
+  // the day offsets must be distinct — they are, and the insert is skipped
+  // entirely when any wear already exists.
+  const { count: wearCount } = await admin
+    .from("outfit_wears")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
+
+  if ((wearCount ?? 0) === 0) {
+    const { data: seededMatches } = await admin.from("matches").select("id").eq("user_id", userId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ids = (seededMatches ?? []).map((m: any) => m.id as string);
+    if (ids.length > 0) {
+      // Local date, not toISOString(): the calendar keys cells in local time,
+      // and a UTC-derived key lands on the wrong day near midnight — the bug
+      // B05-L1's scrutinize caught, which is why localDateKey exists.
+      const dayKey = (daysAgo: number) => {
+        const d = new Date();
+        d.setDate(d.getDate() - daysAgo);
+        const p = (n: number) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+      };
+      const offsets = [1, 3, 4, 8, 11, 15, 18, 24];
+      const wears = offsets.map((off, i) => ({
+        user_id: userId,
+        match_id: ids[i % ids.length],
+        worn_date: dayKey(off),
+      }));
+      const { error: wErr } = await admin.from("outfit_wears").insert(wears);
+      if (wErr) throw new Error(`outfit_wears insert: ${wErr.message}`);
+      console.log(`[seed-guest] logged ${wears.length} worn days`);
+    }
+  } else {
+    console.log(`[seed-guest] already has ${wearCount} worn days — left alone`);
+  }
+
   // ── Mock body model (virtual try-on) ───────────────────────────────────
   // Try-on is still mocked repo-wide (PRD §11.3): it serves prepared images
   // from public/ rather than generating. Pointing the guest at one lets the

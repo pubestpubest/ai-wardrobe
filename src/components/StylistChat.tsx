@@ -6,12 +6,13 @@ import { matchChat } from "@/lib/match-chat.functions";
 import { useMatches } from "@/hooks/use-matches";
 import { useSpeechToText } from "@/hooks/use-speech-to-text";
 import { useIsGuest } from "@/hooks/use-guest";
+import { useAffiliateProducts } from "@/hooks/use-affiliate-products";
 import { SuggestionCard } from "@/components/SuggestionCard";
 import { AffiliateItemCard } from "@/components/AffiliateItemCard";
 import { AffiliateItemModal } from "@/components/AffiliateItemModal";
 import { wardrobeMode } from "@/lib/wardrobe";
 import type { StoredItem } from "@/hooks/use-wardrobe";
-import type { AffiliateProduct, MatchSuggestion } from "@/lib/wardrobe";
+import type { AffiliateProduct, MatchSuggestion, WardrobeItem } from "@/lib/wardrobe";
 import type { DailyPick } from "@/lib/daily-pick";
 
 export type StylistChatHandle = {
@@ -62,32 +63,64 @@ const GREETING: Msg = {
 // seeded server-side like its wardrobe and matches — it's planted here on the
 // first visit instead. A guest can't call the AI anyway: 029 blocks ai_usage
 // writes, so without this the chat tab would be a permanently empty room.
-const GUEST_SAMPLE: Msg[] = [
-  GREETING,
-  { role: "user", content: "พรุ่งนี้ไปคาเฟ่กับเพื่อน ใส่อะไรดี" },
-  {
-    role: "assistant",
-    content:
-      "ลองเดรสลายดอกสีเขียวคู่กับรองเท้าผ้าใบลายสีดูนะ ดูสบาย ๆ แต่ยังเก๋ เติมแว่นกันแดดไปด้วยจะช่วยให้ลุคดูจบขึ้นค่ะ ☕️",
-  },
-  { role: "user", content: "แล้วถ้าไปทำงานล่ะ" },
-  {
-    role: "assistant",
-    content:
-      "กางเกงยีนส์ขากระบอกสีน้ำเงินกับรองเท้าบูทสีดำกำลังดีเลยค่ะ ดูเรียบร้อยแต่ไม่แข็งจนเกินไป ถ้าออฟฟิศแอร์เย็นค่อยเติมเสื้อกันหนาวทับอีกชั้นได้ 🧥",
-  },
-];
+// Sample conversation for the read-only demo account. Built from LIVE data, not
+// hard-coded: the suggestion has to reference item ids this guest actually owns
+// (its 12 items are drawn at random), and the recommendation card needs real
+// products. Chat lives only in localStorage — there is no chat table — so this
+// can't be seeded server-side like the wardrobe, matches and calendar. And a
+// guest can never generate one itself: 029 blocks ai_usage writes.
+function buildGuestSample(wardrobe: WardrobeItem[], affiliates: AffiliateProduct[]): Msg[] {
+  const pick = (c: WardrobeItem["category"]) => wardrobe.find((i) => i.category === c);
+  const base = pick("dress") ?? pick("bottom");
+  const shoe = pick("shoes");
+  const extra = pick("accessory") ?? pick("outerwear");
+  const outfit = [base, shoe, extra].filter(Boolean) as WardrobeItem[];
 
-function loadMessages(isGuest = false): Msg[] {
+  const msgs: Msg[] = [GREETING, { role: "user", content: "พรุ่งนี้ไปคาเฟ่กับเพื่อน ใส่อะไรดี" }];
+
+  // Only attach the suggestion card when there's a real outfit to point at —
+  // an empty itemIds would render a card with nothing in it.
+  if (outfit.length >= 2) {
+    msgs.push({
+      role: "assistant",
+      content: "จัดให้แล้วค่ะ ลองลุคนี้ดูนะ ดูสบาย ๆ แต่ยังเก๋ ☕️",
+      suggestion: {
+        name: "ลุคคาเฟ่สบาย ๆ",
+        occasion: "เที่ยว",
+        itemIds: outfit.map((i) => i.id),
+        reason: `จับคู่${outfit[0].name}กับ${outfit[1].name}ให้ดูสบายแต่ยังดูตั้งใจแต่งค่ะ`,
+      },
+    });
+  } else {
+    msgs.push({ role: "assistant", content: "จัดให้แล้วค่ะ ลองลุคสบาย ๆ ดูนะ ☕️" });
+  }
+
+  msgs.push({ role: "user", content: "มีอะไรแนะนำเพิ่มไหม" });
+
+  const recs = affiliates.slice(0, 2);
+  msgs.push({
+    role: "assistant",
+    content: recs.length
+      ? "ถ้าอยากให้ลุคดูจบขึ้น ลองดูไอเท็มจากร้านค้าพวกนี้ได้ค่ะ ✨"
+      : "ตอนนี้ตู้ของคุณครบสำหรับลุคนี้แล้วค่ะ ✨",
+    ...(recs.length ? { affiliateItems: recs } : {}),
+  });
+
+  return msgs;
+}
+
+function loadMessages(): Msg[] {
+  // No guest branch here on purpose: the sample needs live wardrobe and
+  // catalog data, which this initializer can't have — it runs before either
+  // query resolves. buildGuestSample is applied from an effect instead.
   if (typeof window === "undefined") return [GREETING];
   try {
     const raw = window.localStorage.getItem(CHAT_STORAGE_KEY);
-    if (!raw) return isGuest ? GUEST_SAMPLE : [GREETING];
+    if (!raw) return [GREETING];
     const parsed = JSON.parse(raw) as Msg[];
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    return isGuest ? GUEST_SAMPLE : [GREETING];
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [GREETING];
   } catch {
-    return isGuest ? GUEST_SAMPLE : [GREETING];
+    return [GREETING];
   }
 }
 
@@ -104,14 +137,19 @@ export function StylistChat({
   const { add: addMatch } = useMatches();
   const [messages, setMessages] = useState<Msg[]>(() => loadMessages());
   const isGuest = useIsGuest();
+  const { affiliateProducts } = useAffiliateProducts();
   // Effect, not a useState initializer: `isGuest` comes from a query that has
   // not resolved on first render, and an initializer never re-runs — the exact
   // trap UX-1 was filed for. Only fires while the transcript is still the bare
   // greeting, so it can never overwrite a real conversation.
   useEffect(() => {
-    if (!isGuest) return;
-    setMessages((m) => (m.length === 1 && m[0].role === "assistant" ? GUEST_SAMPLE : m));
-  }, [isGuest]);
+    if (!isGuest || wardrobe.length === 0) return;
+    setMessages((m) =>
+      m.length === 1 && m[0].role === "assistant"
+        ? buildGuestSample(wardrobe, affiliateProducts)
+        : m,
+    );
+  }, [isGuest, wardrobe, affiliateProducts]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [viewingAffiliate, setViewingAffiliate] = useState<AffiliateProduct | null>(null);

@@ -36,12 +36,6 @@ const SUGGESTIONS = [
 
 const CHAT_STORAGE_KEY = "wardrobe.chat";
 const AFFILIATE_TURNS_KEY = "wardrobe.affiliateTurns";
-// Bump when buildGuestSample changes. A guest's transcript can only ever BE the
-// sample — 029 blocks ai_usage writes, so they cannot generate a message — which
-// is what makes overwriting it safe here and nowhere else. Without a version the
-// first sample sticks in localStorage forever and later ones never appear.
-const GUEST_SAMPLE_KEY = "wardrobe.chat.guestSampleVersion";
-const GUEST_SAMPLE_VERSION = "3";
 
 function readAffiliateTurns(): number {
   if (typeof window === "undefined") return 0;
@@ -154,23 +148,27 @@ export function StylistChat({
   // overwrite for a guest specifically: 029 blocks ai_usage writes, so a guest
   // can never have produced a conversation of their own to lose.
   useEffect(() => {
-    if (!isGuest || typeof window === "undefined") return;
-    // Wait for BOTH sources. The wardrobe resolves first, and seeding on that
-    // alone built the sample against an empty catalog — so the recommendation
-    // card silently became its "your wardrobe is already complete" fallback,
-    // and the version marker below then stopped it ever being rebuilt.
-    if (wardrobe.length === 0 || affiliatesLoading) return;
-    if (window.localStorage.getItem(GUEST_SAMPLE_KEY) === GUEST_SAMPLE_VERSION) return;
-    setMessages(buildGuestSample(wardrobe, affiliateProducts));
-    window.localStorage.setItem(GUEST_SAMPLE_KEY, GUEST_SAMPLE_VERSION);
+    if (!isGuest) return;
+    // Both sources must be settled: the wardrobe resolves first, and building on
+    // it alone produced a sample whose recommendation card silently degraded to
+    // the "your wardrobe is already complete" fallback.
+    if (wardrobe.length === 0 || affiliatesLoading || affiliateProducts.length === 0) return;
+
+    // Content-based, not version-based. A stored sample is stale if it carries
+    // no recommendation card while the catalog has products — which is true of
+    // every earlier cut of this sample. Versioning only self-heals for someone
+    // who happens to load the exact build that bumps the number; this converges
+    // from ANY prior state, including a transcript written weeks ago.
+    //
+    // It cannot loop: the rebuild always attaches affiliateItems when the
+    // catalog is non-empty, so the condition is false on the next pass.
+    setMessages((m) =>
+      m.some((msg) => msg.affiliateItems?.length)
+        ? m
+        : buildGuestSample(wardrobe, affiliateProducts),
+    );
   }, [isGuest, wardrobe, affiliateProducts, affiliatesLoading]);
 
-  // Clearing the chat as a guest should bring the sample back, not leave an
-  // empty room they have no way to fill.
-  useEffect(() => {
-    if (!isGuest || typeof window === "undefined") return;
-    if (messages.length <= 1) window.localStorage.removeItem(GUEST_SAMPLE_KEY);
-  }, [isGuest, messages.length]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [viewingAffiliate, setViewingAffiliate] = useState<AffiliateProduct | null>(null);

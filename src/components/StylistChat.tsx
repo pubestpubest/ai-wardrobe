@@ -5,6 +5,7 @@ import { Send, Sparkles, Loader2, Trash2, Mic, Square } from "lucide-react";
 import { matchChat } from "@/lib/match-chat.functions";
 import { useMatches } from "@/hooks/use-matches";
 import { useSpeechToText } from "@/hooks/use-speech-to-text";
+import { useIsGuest } from "@/hooks/use-guest";
 import { SuggestionCard } from "@/components/SuggestionCard";
 import { AffiliateItemCard } from "@/components/AffiliateItemCard";
 import { AffiliateItemModal } from "@/components/AffiliateItemModal";
@@ -56,15 +57,37 @@ const GREETING: Msg = {
     "สวัสดีค่ะ ✨ ฉันเป็น AI Stylist ส่วนตัวของคุณ\nบอกฉันได้เลยว่าวันนี้จะไปไหน อากาศเป็นยังไง หรือสไตล์ที่อยากได้ แล้วฉันจะจัดชุดให้จากตู้เสื้อผ้าของคุณค่ะ",
 };
 
-function loadMessages(): Msg[] {
+// Sample conversation for the read-only demo account. Chat lives ONLY in
+// localStorage (there is no chat table), so the guest's transcript can't be
+// seeded server-side like its wardrobe and matches — it's planted here on the
+// first visit instead. A guest can't call the AI anyway: 029 blocks ai_usage
+// writes, so without this the chat tab would be a permanently empty room.
+const GUEST_SAMPLE: Msg[] = [
+  GREETING,
+  { role: "user", content: "พรุ่งนี้ไปคาเฟ่กับเพื่อน ใส่อะไรดี" },
+  {
+    role: "assistant",
+    content:
+      "ลองเดรสลายดอกสีเขียวคู่กับรองเท้าผ้าใบลายสีดูนะ ดูสบาย ๆ แต่ยังเก๋ เติมแว่นกันแดดไปด้วยจะช่วยให้ลุคดูจบขึ้นค่ะ ☕️",
+  },
+  { role: "user", content: "แล้วถ้าไปทำงานล่ะ" },
+  {
+    role: "assistant",
+    content:
+      "กางเกงยีนส์ขากระบอกสีน้ำเงินกับรองเท้าบูทสีดำกำลังดีเลยค่ะ ดูเรียบร้อยแต่ไม่แข็งจนเกินไป ถ้าออฟฟิศแอร์เย็นค่อยเติมเสื้อกันหนาวทับอีกชั้นได้ 🧥",
+  },
+];
+
+function loadMessages(isGuest = false): Msg[] {
   if (typeof window === "undefined") return [GREETING];
   try {
     const raw = window.localStorage.getItem(CHAT_STORAGE_KEY);
-    if (!raw) return [GREETING];
+    if (!raw) return isGuest ? GUEST_SAMPLE : [GREETING];
     const parsed = JSON.parse(raw) as Msg[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [GREETING];
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    return isGuest ? GUEST_SAMPLE : [GREETING];
   } catch {
-    return [GREETING];
+    return isGuest ? GUEST_SAMPLE : [GREETING];
   }
 }
 
@@ -80,6 +103,15 @@ export function StylistChat({
   const chat = useServerFn(matchChat);
   const { add: addMatch } = useMatches();
   const [messages, setMessages] = useState<Msg[]>(() => loadMessages());
+  const isGuest = useIsGuest();
+  // Effect, not a useState initializer: `isGuest` comes from a query that has
+  // not resolved on first render, and an initializer never re-runs — the exact
+  // trap UX-1 was filed for. Only fires while the transcript is still the bare
+  // greeting, so it can never overwrite a real conversation.
+  useEffect(() => {
+    if (!isGuest) return;
+    setMessages((m) => (m.length === 1 && m[0].role === "assistant" ? GUEST_SAMPLE : m));
+  }, [isGuest]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [viewingAffiliate, setViewingAffiliate] = useState<AffiliateProduct | null>(null);

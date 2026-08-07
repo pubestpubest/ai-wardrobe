@@ -36,7 +36,12 @@ export function useBodyModel() {
 
   return {
     bodyModel,
-    isLoading,
+    // `!session ||` for the same reason as useStore (B12b-L2): a query disabled
+    // by `enabled: !!session` reports isLoading===false with data===undefined,
+    // and virtual-model.tsx reads bodyModel in useState INITIALIZERS, which
+    // never re-run — so a cold load permanently stranded a user with a saved
+    // model on the measure wizard (UX-1).
+    isLoading: !session || isLoading,
     generate: (input: GenerateBodyModelInput) => generateMutation.mutateAsync(input),
     isGenerating: generateMutation.isPending,
   };

@@ -28,6 +28,23 @@ const PROGRESS: Record<Step, string> = {
 };
 
 function VirtualModelPage() {
+  // Split so the inner component MOUNTS only once bodyModel/profile have
+  // resolved. An isLoading guard inside the body isn't enough — the state
+  // below is seeded in useState initializers, which run once and never
+  // re-run, so they must not run against a not-yet-loaded null (UX-1).
+  const { isLoading } = useBodyModel();
+  const { isLoading: profileLoading } = useProfile();
+  if (isLoading || profileLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FDFCFD]/75 text-sm text-muted-foreground">
+        กำลังโหลด…
+      </div>
+    );
+  }
+  return <VirtualModelInner />;
+}
+
+function VirtualModelInner() {
   const navigate = useNavigate();
   const { profile } = useProfile();
   const { bodyModel, generate } = useBodyModel();

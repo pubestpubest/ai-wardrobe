@@ -104,6 +104,107 @@ async function main() {
     console.log(`[seed-guest] wardrobe already has ${count} items — left alone`);
   }
 
+  // ── Matches ────────────────────────────────────────────────────────────
+  // Built from whatever the wardrobe actually drew, not hard-coded ids: the
+  // 12 items are random, so a fixed outfit would reference items this guest
+  // may not own. Each match takes one "base" (dress, else bottom) plus shoes
+  // plus an optional accessory/outerwear, and is skipped if its base is
+  // missing rather than saved half-empty.
+  const { data: owned, error: ownErr } = await admin
+    .from("items")
+    .select("id, name, category")
+    .eq("user_id", userId);
+  if (ownErr) throw new Error(`items read: ${ownErr.message}`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const byCat = (c: string) => (owned ?? []).filter((i: any) => i.category === c);
+
+  const { count: matchCount } = await admin
+    .from("matches")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
+
+  if ((matchCount ?? 0) === 0) {
+    const dresses = byCat("dress");
+    const bottoms = byCat("bottom");
+    const shoes = byCat("shoes");
+    const extras = [...byCat("accessory"), ...byCat("outerwear")];
+
+    const plans = [
+      {
+        name: "ลุคเที่ยวสบาย ๆ",
+        occasion: "เที่ยว",
+        base: dresses[0],
+        shoe: shoes[0],
+        extra: extras[0],
+      },
+      {
+        name: "ลุคทำงานเรียบง่าย",
+        occasion: "ทำงาน",
+        base: bottoms[0],
+        shoe: shoes[1],
+        extra: extras[1],
+      },
+      {
+        name: "ลุคออกเดทตอนเย็น",
+        occasion: "ออกเดท",
+        base: dresses[1],
+        shoe: shoes[2],
+        extra: extras[2],
+      },
+      {
+        name: "ลุคลำลองวันหยุด",
+        occasion: "ลำลอง",
+        base: bottoms[1],
+        shoe: shoes[0],
+        extra: extras[0],
+      },
+    ];
+
+    const rows = plans
+      .filter((p) => p.base && p.shoe)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((p: any) => ({
+        user_id: userId,
+        name: p.name,
+        occasion: p.occasion,
+        item_ids: [p.base.id, p.shoe.id, ...(p.extra ? [p.extra.id] : [])],
+        source: "ai",
+        reason: `จับคู่${p.base.name}กับ${p.shoe.name}${p.extra ? ` แล้วเติม${p.extra.name}` : ""}ให้ลุคดูจบขึ้น`,
+        affiliate_product_ids: [],
+      }));
+
+    if (rows.length > 0) {
+      const { error: mErr } = await admin.from("matches").insert(rows);
+      if (mErr) throw new Error(`matches insert: ${mErr.message}`);
+    }
+    console.log(`[seed-guest] created ${rows.length} matches`);
+  } else {
+    console.log(`[seed-guest] already has ${matchCount} matches — left alone`);
+  }
+
+  // ── Mock body model (virtual try-on) ───────────────────────────────────
+  // Try-on is still mocked repo-wide (PRD §11.3): it serves prepared images
+  // from public/ rather than generating. Pointing the guest at one lets the
+  // page render its result state instead of the measure wizard.
+  const { count: bmCount } = await admin
+    .from("body_models")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
+  if ((bmCount ?? 0) === 0) {
+    const { error: bmErr } = await admin.from("body_models").insert({
+      user_id: userId,
+      height_cm: 165,
+      weight_kg: 52,
+      gender: "other",
+      source_image_url: "/images/model.png",
+      avatar_image_url: "/images/model.png",
+    });
+    if (bmErr) throw new Error(`body_models insert: ${bmErr.message}`);
+    console.log("[seed-guest] created mock body model");
+  } else {
+    console.log("[seed-guest] body model already present — left alone");
+  }
+
   console.log(`[seed-guest] ${GUEST_EMAIL} ready (${userId})`);
 }
 

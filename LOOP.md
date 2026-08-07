@@ -141,12 +141,10 @@ bug, not before.
 <!-- newest first: date | <ID>-L<n> | ✅ done / 🔁 re-loop / ⛔ blocked | one-line note -->
 
 _Queue state (2026-08-07, after B11): **B12–B16 remain in Tier 5**, then B08
-(Tier 6). Next `/drain` picks **B13b** (store item CRUD). It **needs an explicit human go**
-— it creates the `Owners manage own store items` RLS policy. It must ship that
-policy together with narrow column grants AND CHECK constraints (`image_url`,
-`affiliate_url`, `category`), and put the item cap behind a **service-role**
-count. `023` already removed the table-wide write grants that would otherwise
-make a permissive policy catastrophic._
+(Tier 6). Next `/drain` picks **B14** (Discover store cards + `/store/$id`). Note it also
+owns the admin store-dropdown (PRD §12 B14) — without it, admin-added items keep
+`store_id = null` and vanish from Discover and the AI pool. Store `status =
+'suspended'` currently does NOT block item CRUD; decide whether that is B16's job._
 
 _Superseded — queue state before B11: **B11–B16 (Local Store, PRD §12 Tier 5) queued ahead
 of B08 — Virtual Try-On (Tier 6)**. Next `/drain` picks **B11**, which is gated
@@ -159,6 +157,8 @@ _Queue state (2026-08-06): everything drained except **B08 — Virtual Try-On**.
 Commits after B10 (poster page, docker/UI fixes) were direct work, not loops —
 no Loop Log rows for them by design._
 
+- 2026-08-07 | B13b-L2 | ✅ done | Silent-save + input fixes — clearing an optional field was a no-op with a success toast (needed BOTH halves: emit "" and let the URL schemas accept ""); style field swallowed commas turning a,b into "ab"; zod now mirrors the DB CHECKs so raw English constraint text stops reaching the Thai UI; B10's admin editor given the same bounds so 024 doesn't regress it
+- 2026-08-07 | B13b-L1 | 🔁 re-loop | Item CRUD — `024` ownership policy + narrow column grants + 7 CHECKs (14/14 pen-test). **Gate found the cap fully bypassable** — one PostgREST bulk insert put 17 rows in a cap-10 store, because grants bound columns and CHECKs bound values but nothing bounds a COUNT; `025` adds a before-insert trigger (human go taken), verified to hold under a 6-way race and to cap service-role too
 - 2026-08-07 | B13a-L1 | ✅ done | Harden + read-only item list — `023` revokes table-wide insert/update/delete on affiliate_products from anon+authenticated (they were granted, and only the ABSENCE of a write policy blocked writes, so B13b's policy would have opened table-wide unvalidated writes); grill split B13 so no grant/policy ships ahead of its writer. **First clean scrutinize on this feature** — and it closed my verification gap by extracting the server-fn id from the client bundle and proving getMyStoreItems returns 18/12/9/5/4/2, disjoint, summing to the whole table
 - 2026-08-07 | B12b-L3 | ✅ done | Fetch-failure branch — surfaced `isError` so a thrown getMyStore stops masquerading as "you have no store" (it was redirecting owners off /store/package and showing them the registration form, the L1 symptom through a different door); scrutinize's hook sweep also turned up a pre-existing worse variant in virtual-model.tsx, filed as UX-1
 - 2026-08-07 | B12b-L2 | ✅ done | Disabled-query load state — `isLoading: !session || isLoading`; TanStack v5 reports isLoading===false for a query disabled by `enabled: !!session`, so every store page took its no-store branch on a cold load. My L1 gate accepted "200 + empty body" without asking why `store` was null — a status code is not a render check

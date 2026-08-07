@@ -1,9 +1,11 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { ShoppingBag } from "lucide-react";
+import { useState } from "react";
+import { Plus, ShoppingBag } from "lucide-react";
 import { useStore } from "@/hooks/use-store";
 import { useStoreItems } from "@/hooks/use-store-items";
 import { StoreBottomNav } from "@/components/StoreBottomNav";
-import { CATEGORY_LABELS } from "@/lib/wardrobe";
+import { StoreItemModal } from "@/components/StoreItemModal";
+import { CATEGORY_LABELS, STORE_PACKAGES, type AffiliateProduct } from "@/lib/wardrobe";
 
 const TONES = ["bg-lilac", "bg-blush", "bg-sky"] as const;
 
@@ -21,6 +23,8 @@ function StoreItemsPage() {
   // existence is checked the same way store.package.tsx does: via useStore.
   const { store, isLoading: storeLoading, isError: storeIsError } = useStore();
   const { items, isLoading: itemsLoading, isError: itemsIsError } = useStoreItems();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalItem, setModalItem] = useState<AffiliateProduct | null>(null);
 
   if (storeLoading || itemsLoading) {
     return (
@@ -53,20 +57,51 @@ function StoreItemsPage() {
     return <Navigate to="/store" replace />;
   }
 
+  const maxItems = STORE_PACKAGES[store.package].maxItems;
+  const atCap = items.length >= maxItems;
+
+  const openAdd = () => {
+    if (atCap) return;
+    setModalItem(null);
+    setModalOpen(true);
+  };
+  const openEdit = (p: AffiliateProduct) => {
+    setModalItem(p);
+    setModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen pb-28 bg-[#FDFCFD]">
       <div className="mx-auto max-w-6xl px-5 pt-8">
-        <header className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">ไอเท็ม</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">{items.length} รายการในร้านของคุณ</p>
+        <header className="mb-6 flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">ไอเท็ม</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {items.length} / {maxItems} ไอเท็ม
+            </p>
+          </div>
+          <button
+            onClick={openAdd}
+            disabled={atCap}
+            className="shrink-0 flex items-center gap-1.5 bg-primary text-primary-foreground rounded-full px-4 py-2.5 text-sm font-semibold shadow-sm hover:opacity-90 transition disabled:opacity-40"
+          >
+            <Plus className="size-4" /> เพิ่มไอเท็ม
+          </button>
         </header>
+
+        {atCap && (
+          <p className="text-xs text-destructive mb-4">
+            ไอเท็มในร้านเต็มโควตาแล้ว กรุณาติดต่อเพื่ออัปเกรดแพ็กเกจ
+          </p>
+        )}
 
         {items.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {items.map((p, i) => (
-              <div
+              <button
                 key={p.id}
-                className="bg-white rounded-2xl border border-border/40 shadow-sm p-3 flex flex-col gap-2"
+                onClick={() => openEdit(p)}
+                className="text-left bg-white rounded-2xl border border-border/40 shadow-sm p-3 flex flex-col gap-2 hover:shadow-md transition"
               >
                 <div
                   className={`aspect-square rounded-xl ${TONES[i % 3]} flex items-center justify-center overflow-hidden`}
@@ -84,7 +119,7 @@ function StoreItemsPage() {
                 <p className="text-[11px] text-muted-foreground truncate">
                   {CATEGORY_LABELS[p.category]}
                 </p>
-              </div>
+              </button>
             ))}
           </div>
         ) : (
@@ -93,11 +128,12 @@ function StoreItemsPage() {
               <ShoppingBag className="size-10" />
             </div>
             <p className="text-base font-bold text-foreground/80">ยังไม่มีไอเท็มในร้าน</p>
-            <p className="text-sm opacity-60 mt-1">เพิ่มไอเท็มเร็ว ๆ นี้</p>
+            <p className="text-sm opacity-60 mt-1">เพิ่มไอเท็มแรกของคุณเลย</p>
           </div>
         )}
       </div>
 
+      <StoreItemModal item={modalItem} open={modalOpen} onClose={() => setModalOpen(false)} />
       <StoreBottomNav />
     </div>
   );

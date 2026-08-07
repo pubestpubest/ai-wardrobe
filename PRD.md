@@ -466,7 +466,7 @@ Deploy: Docker image (`Dockerfile` + `prod.ts` static-file server หน้า S
 >
 > แต่ละ backlog มี ID (`B01`–`B16`) ใช้อ้างอิงใน `LOOP.md` และ loop docs (`loops/<ID>-L<n>.md`)
 >
-> **สถานะคิว (2026-08-07):** B01–B03, B05–B07, B09, B10, **B11** ✅ · B04 ⏭️ (รวมเข้า B08) · **คิวปัจจุบัน: B13b → B16 (Local Store, Tier 5) แล้วค่อย B08 — Virtual Try-On (Tier 6)** ส่วนงานที่ค้างนอกคิวอยู่ใน §13
+> **สถานะคิว (2026-08-07):** B01–B03, B05–B07, B09, B10, **B11** ✅ · B04 ⏭️ (รวมเข้า B08) · **คิวปัจจุบัน: B14 → B16 (Local Store, Tier 5) แล้วค่อย B08 — Virtual Try-On (Tier 6)** ส่วนงานที่ค้างนอกคิวอยู่ใน §13
 
 ### Tier 1 — Quick wins (ไม่มี dependency, ง่าย)
 
@@ -514,7 +514,7 @@ Deploy: Docker image (`Dockerfile` + `prod.ts` static-file server หน้า S
 
 11. **B13 — Store item management** — **แตกเป็น B13a/B13b** (grill 2026-08-07: ~7 ไฟล์ เกิน trigger; แบ่งตามบทเรียน B11/B12a — ห้าม ship grant/policy ก่อนตัวที่เขียนจริง)
     - **B13a — Hardening + read-only list** ✅ (loop `B13a-L1`, migration `023`) — migration `023`: **revoke insert/update/delete บน `affiliate_products` จาก `anon` + `authenticated`** (ตอนนี้เป็น grant ระดับตารางทั้งคู่ มีแค่การไม่มี write policy ที่กันไว้ — ถ้า B13b ใส่ policy แบบ permissive เข้าไปตอนนี้จะเปิดเขียนทั้งตารางทันที) **ไม่เพิ่ม grant ไม่เพิ่ม policy** + `getMyStoreItems` + `/store/items` แสดงรายการอย่างเดียว + เปิดแท็บ ไอเท็ม. **Gate:** เจ้าของร้านเห็นไอเท็มจริงของตัวเอง (ร้าน seed มี 18/12/9/5/4/2)
-    - **B13b — CRUD** — **ต้องขอ go เรื่อง RLS ก่อน** — policy `Owners manage own store items` + column grant แคบ ๆ + **CHECK constraints บน `image_url`/`affiliate_url` และ `category`** (B13a-L1 scrutinize: `category` เป็น free text ไม่มี CHECK — ค่านอกลิสต์จะ render label ว่าง) (ตอนนี้ `affiliate_products` ไม่มี CHECK เลย และ httpUrl อยู่แค่ใน zod ฝั่ง admin — บทเรียน B12a-L2: grant คุมคอลัมน์ ไม่คุมค่า) + create/edit/delete + เพดานแพ็กเกจ **นับด้วย service-role** (B12b-L3: `itemCount` ปัจจุบันอ่านผ่าน `Public read catalog` ถ้า policy แคบลงจะนับต่ำกว่าจริงแบบเงียบ ๆ) + อัปโหลดหรือวาง URL
+    - **B13b — CRUD** ✅ (loops `B13b-L1/L2`, migrations `024`+`025`; RLS go ได้รับแล้ว) — policy `Owners manage own store items` + column grant แคบ ๆ + **CHECK constraints บน `image_url`/`affiliate_url` และ `category`** (B13a-L1 scrutinize: `category` เป็น free text ไม่มี CHECK — ค่านอกลิสต์จะ render label ว่าง) (ตอนนี้ `affiliate_products` ไม่มี CHECK เลย และ httpUrl อยู่แค่ใน zod ฝั่ง admin — บทเรียน B12a-L2: grant คุมคอลัมน์ ไม่คุมค่า) + create/edit/delete + เพดานแพ็กเกจ **นับด้วย service-role** (B12b-L3: `itemCount` ปัจจุบันอ่านผ่าน `Public read catalog` ถ้า policy แคบลงจะนับต่ำกว่าจริงแบบเงียบ ๆ) + อัปโหลดหรือวาง URL
 
     รายละเอียดเดิม: **ต้องสร้าง policy `Owners manage own store items` ขึ้นใหม่ก่อน** (`019` ลบทิ้งเพราะ B11/B12 ไม่มีตัวเขียนผ่าน user-scoped client และตอนนั้นยังไม่มี zod/httpUrl/เพดาน) และจำไว้ว่า `affiliate_products` ยังมี grant ระดับตารางอยู่ policy ที่หลวมจะเปิดช่องเขียนทั้งตารางทันที — `/store/items` CRUD ไอเท็มของร้านผ่าน user-scoped client (RLS + grant เป็นตัวบังคับ owner) + เพดานแพ็กเกจแบบ count-then-insert (`ponytail:` comment ระบุ ceiling) + รูปแบบ **อัปโหลดหรือวาง URL** (ใช้ `uploadWardrobeImage` เดิมซ้ำ ไม่สร้าง bucket ใหม่)
     - ต้องรับผลจาก B11 ที่ drop not null: `store`/`platform`/`affiliateUrl` กลายเป็น optional บน type `AffiliateProduct` → แก้ consumer ทุกจุด (`discover.tsx:161` แสดง `{p.store} · {p.platform}`, ปุ่มซื้อใน `AffiliateItemModal` fallback ไป `/store/$id`) และแยก zod เป็นสองชุด: **admin path ยังบังคับครบ** (B10 ลง marketplace product), store path ปล่อย optional

@@ -153,18 +153,20 @@ const httpUrl = z
   .refine((u) => /^https?:\/\//i.test(u), { message: "ต้องเป็นลิงก์ http(s)" });
 
 const AffiliateProductFields = z.object({
-  name: z.string().min(1),
+  name: z.string().trim().min(1).max(200),
   category: z.enum(["top", "bottom", "outerwear", "shoes", "dress", "accessory"]),
   color: z.string().optional(),
   style: z.array(z.string()).default([]),
   formality: z.enum(["casual", "smart-casual", "formal"]),
-  price: z.number(),
+  // Mirrors 024's CHECKs, which apply to service_role too — without these an
+  // admin gets a raw English constraint string where the write used to succeed.
+  price: z.number().finite().min(0),
   size: z.string().optional(),
   store: z.string().min(1),
   platform: z.string().min(1),
-  emoji: z.string().min(1),
+  emoji: z.string().trim().min(1).max(16),
   imageUrl: httpUrl.optional(),
-  description: z.string().optional(),
+  description: z.string().max(2000).optional(),
   affiliateUrl: httpUrl,
 });
 

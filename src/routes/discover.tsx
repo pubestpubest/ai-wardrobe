@@ -213,7 +213,15 @@ function DiscoverPage() {
                   }
                   className="rise bg-white rounded-3xl border border-border/40 shadow-sm p-4 flex flex-col gap-3"
                 >
-                  <div className="flex items-center gap-3">
+                  {/* The whole header links to the store page. The ดูทั้งหมด
+                      footer only renders when a store has MORE than PREVIEW_CAP
+                      items, so on its own it left every small shop with no route
+                      to its own profile — 3 of the 6 seeded stores. */}
+                  <Link
+                    to="/store/$id"
+                    params={{ id: store.id }}
+                    className="flex items-center gap-3 rounded-2xl -m-1 p-1 hover:bg-muted/50 transition"
+                  >
                     <div className="size-11 rounded-2xl overflow-hidden bg-lilac/20 flex items-center justify-center shrink-0">
                       {store.logoUrl ? (
                         <img
@@ -225,13 +233,19 @@ function DiscoverPage() {
                         <StoreIcon className="size-5 text-lilac-foreground/70" />
                       )}
                     </div>
-                    <p className="text-sm font-bold text-foreground truncate flex-1 min-w-0">
-                      {store.name}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-foreground truncate">{store.name}</p>
+                      {(store.address || store.contactLine) && (
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {[store.address, store.contactLine].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
+                    </div>
                     <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-lilac text-lilac-foreground text-[10px] font-semibold">
                       <Package className="size-3" /> {pkg.label}
                     </span>
-                  </div>
+                    <ArrowRight className="size-4 text-muted-foreground shrink-0" />
+                  </Link>
 
                   <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                     {shown.map((p, itemIdx) => (

@@ -295,6 +295,12 @@ export type DiscoverStore = {
   description: string;
   logoUrl: string;
   package: StorePackage;
+  // Surfaced on the Discover card so a shopper can size up a shop without
+  // opening it. Deliberately only these two — phone and email stay on
+  // /store/$id, so a shop's directly-contactable details aren't sprayed
+  // across a browse page.
+  address: string;
+  contactLine: string;
   items: AffiliateProduct[];
 };
 
@@ -334,6 +340,8 @@ export const getDiscoverStores = createServerFn({ method: "POST" })
       description: row.description ?? "",
       logoUrl: row.logo_url ?? "",
       package: row.package,
+      address: row.address ?? "",
+      contactLine: row.contact_line ?? "",
       items: itemsByStore.get(row.id) ?? [],
     }));
   });

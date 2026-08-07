@@ -66,6 +66,15 @@ export type AffiliateProduct = {
   imageUrl?: string;
   description?: string;
   affiliateUrl?: string;
+  // Which local store (public.stores) this item belongs to — undefined for a
+  // marketplace row with no store, same `?? undefined` convention as the
+  // fields above. Populated on the admin-editor path (B14a) so
+  // AffiliateEditModal's store dropdown can show the current assignment
+  // instead of always defaulting to "no store" and silently clearing it on
+  // every save (the "cleared field silently doesn't save" bug class,
+  // B13b-L1 — here it's the mirror image: an unseen field silently DOES
+  // "save" over the real value unless the read path returns it).
+  storeId?: string;
 };
 
 export type Match = {

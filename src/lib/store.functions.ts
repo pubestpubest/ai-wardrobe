@@ -4,6 +4,8 @@ import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Store } from "@/hooks/use-store";
+import type { StorePublic } from "@/hooks/use-store-public";
+import type { AffiliateProduct } from "@/lib/wardrobe";
 
 function adminClient() {
   const url = process.env.SUPABASE_URL;
@@ -206,6 +208,72 @@ export const createStore = createServerFn({ method: "POST" })
     await setRoleStore(context.userId);
 
     return mapRow(row);
+  });
+
+// ─── Fetch a store's public profile + catalog (B14a) ───────────────────────
+//
+// Same shape as store-items.functions.ts's mapRow (AffiliateProduct), copied
+// rather than imported: this is a read-only display path and that module is
+// the owner-write path — same duplication the codebase already has between
+// affiliate.functions.ts and store-items.functions.ts.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapItemRow(row: any): AffiliateProduct {
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    color: row.color ?? undefined,
+    style: row.style ?? [],
+    formality: row.formality,
+    price: row.price,
+    size: row.size ?? undefined,
+    store: row.store ?? undefined,
+    platform: row.platform ?? undefined,
+    emoji: row.emoji,
+    imageUrl: row.image_url ?? undefined,
+    description: row.description ?? undefined,
+    affiliateUrl: row.affiliate_url ?? undefined,
+  };
+}
+
+const GetStorePublicSchema = z.object({ id: z.string().uuid() });
+
+// `/store/$id` is signed-in only, not public (AuthGate.tsx:49 gates every
+// router route, no pathname exemption — LOCAL-STORE.md §2). Reads through
+// context.supabase so RLS "Public read approved stores" (018/019) applies —
+// that is what hides a suspended store from everyone but its owner, and it
+// must NOT be re-implemented as an app-level `status` check here: the policy
+// is the single source of truth, and duplicating it risks the two drifting.
+// Returns null (not a throw) for BOTH a missing id and a row RLS hides — the
+// two are indistinguishable from this handler, and both mean "nothing to
+// show", which is exactly what the not-found branch on /store/$id wants.
+export const getStorePublic = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  // safeParse, not parse: a malformed or stale id is semantically NOT FOUND, not
+  // "the fetch failed". Throwing here drove the route's error branch, whose
+  // "ลองใหม่" button reloads into the identical failure forever (B14a-L1
+  // scrutinize).
+  .inputValidator((d: unknown) => {
+    const r = GetStorePublicSchema.safeParse(d);
+    return r.success ? r.data : { id: null };
+  })
+  .handler(async ({ data, context }): Promise<StorePublic | null> => {
+    // safeParse above yields { id: null } for a malformed id — treat as not-found.
+    if (!data.id) return null;
+    const { data: row, error } = await storesTable(context.supabase)
+      .select("*")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) return null;
+
+    const { data: itemRows, error: itemsError } = await affiliateProductsTable(context.supabase)
+      .select("*")
+      .eq("store_id", row.id)
+      .order("created_at", { ascending: false });
+    if (itemsError) throw new Error(itemsError.message);
+
+    return { ...mapRow(row), items: (itemRows ?? []).map(mapItemRow) };
   });
 
 // ─── Update the caller's own store profile ─────────────────────────────────

@@ -57,6 +57,7 @@ function mapRow(row: any): AffiliateProduct {
     imageUrl: row.image_url ?? undefined,
     description: row.description ?? undefined,
     affiliateUrl: row.affiliate_url ?? undefined,
+    storeId: row.store_id ?? undefined,
   };
 }
 
@@ -134,7 +135,15 @@ export async function findAffiliateProduct({
   return pick ? mapRow(pick) : null;
 }
 
+// requireSupabaseAuth added in B14a-L2: this reads through adminClient()
+// (service-role, RLS bypassed) with select("*"), and B14a added `storeId` to
+// mapRow — so unauthenticated callers were being handed the store→item mapping
+// for every store, including ones RLS hides. LOCAL-STORE.md §2 explicitly
+// decided the store page is signed-in only; this endpoint was quietly serving
+// half of it to anyone. Every caller (useAffiliateProducts) is already gated on
+// `!!session`, so nothing legitimate loses access.
 export const getAffiliateProducts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({}).parse(d))
   .handler(async (): Promise<AffiliateProduct[]> => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -168,6 +177,12 @@ const AffiliateProductFields = z.object({
   imageUrl: httpUrl.optional(),
   description: z.string().max(2000).optional(),
   affiliateUrl: httpUrl,
+  // Which local store this admin-added item belongs to. Optional+nullable:
+  // undefined on create means "not sent" (defaults to no store below), and an
+  // explicit null on update is how the modal's "— ไม่ระบุร้าน —" option clears
+  // a previously-assigned store — the same explicit-null-not-omission
+  // reasoning as B13b-L2's toInput fix for the store-owner path.
+  storeId: z.string().uuid().optional().nullable(),
 });
 
 export const createAffiliateProduct = createServerFn({ method: "POST" })
@@ -192,6 +207,12 @@ export const createAffiliateProduct = createServerFn({ method: "POST" })
         image_url: p.imageUrl ?? null,
         description: p.description ?? null,
         affiliate_url: p.affiliateUrl,
+        // 025's cap trigger exempts `store_id is null` (admin marketplace
+        // rows carry no cap) — assigning a store here brings this item under
+        // THAT store's package cap, same as if the owner had created it
+        // themselves. An admin assigning a store to an already-full store
+        // gets 025's Thai error ("ถึงขีดจำกัดของแพ็กเกจแล้ว…") on this insert.
+        store_id: p.storeId ?? null,
       })
       .select("*")
       .single();
@@ -222,6 +243,17 @@ export const updateAffiliateProduct = createServerFn({ method: "POST" })
     if (p.imageUrl !== undefined) updateData.image_url = p.imageUrl || null;
     if (p.description !== undefined) updateData.description = p.description || null;
     if (p.affiliateUrl !== undefined) updateData.affiliate_url = p.affiliateUrl;
+    // `!== undefined`, not truthy: an explicit `null` here (the modal's
+    // "— ไม่ระบุร้าน —" option) must reach Postgres as a real clear, not be
+    // skipped like an omitted field — same reasoning as every other patch
+    // field above.
+    // The UPDATE path IS capped: 025's trigger covers INSERT, 026 covers
+    // UPDATE with `when (new.store_id is distinct from old.store_id)`. An admin
+    // re-pointing an item into a full store gets 025's Thai cap error; an
+    // ordinary edit that doesn't move the item isn't re-counted. (B14a-L1's
+    // gate found this gap — an UPDATE had moved 18 items into a cap-10 store —
+    // and shipped 026 in the same change. Do not re-add a migration for it.)
+    if (p.storeId !== undefined) updateData.store_id = p.storeId;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (adminClient().from("affiliate_products" as any) as any)
@@ -229,6 +261,30 @@ export const updateAffiliateProduct = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+// ─── Store list for the admin editor's dropdown (B14a) ─────────────────────
+//
+// Service-role, not context.supabase: RLS's "Public read approved stores"
+// (018/019) is `using (status = 'approved' or owner_user_id = auth.uid())` —
+// it hides a SUSPENDED store from every caller except its own owner, and the
+// admin is neither. An unclaimed seeded store (owner_user_id is null,
+// status still 'approved') happens to pass that policy already, but the admin
+// path is written to not depend on that: it must see every store, suspended
+// or unclaimed, or an admin can never assign an item to one
+// (LOCAL-STORE.md §3/§4 — "an admin-added item would carry store_id = null
+// forever and be silently invisible").
+export const listStoresForAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({}).parse(d))
+  .handler(async ({ context }): Promise<{ id: string; name: string }[]> => {
+    assertAdmin(context);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: rows, error } = await (adminClient().from("stores" as any) as any)
+      .select("id, name")
+      .order("name", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as { id: string; name: string }[];
   });
 
 export const deleteAffiliateProduct = createServerFn({ method: "POST" })

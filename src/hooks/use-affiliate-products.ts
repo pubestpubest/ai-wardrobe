@@ -7,6 +7,7 @@ import {
   createAffiliateProduct,
   updateAffiliateProduct,
   deleteAffiliateProduct,
+  listStoresForAdmin,
 } from "@/lib/affiliate.functions";
 import type { AffiliateProduct } from "@/lib/wardrobe";
 import { useAuth } from "@/hooks/use-auth";
@@ -16,13 +17,18 @@ export const AFFILIATE_PRODUCTS_QUERY_KEY = ["affiliate-products"];
 // The admin editor (AffiliateEditModal) still lists marketplace products, so
 // unlike AffiliateProduct these three stay required here — mirrors
 // AffiliateProductFields in affiliate.functions.ts (two schemas, one table).
+// `storeId` is `string | null`, not optional: the modal always sends it
+// explicitly (uuid or null for "— ไม่ระบุร้าน —"), never omits it, so an
+// update can never silently leave a stale assignment in place — same
+// explicit-value-over-omission reasoning as B13b-L2's toInput fix.
 export type NewAffiliateProduct = Omit<
   AffiliateProduct,
-  "id" | "store" | "platform" | "affiliateUrl"
+  "id" | "store" | "platform" | "affiliateUrl" | "storeId"
 > & {
   store: string;
   platform: string;
   affiliateUrl: string;
+  storeId: string | null;
 };
 export type AffiliateProductPatch = Partial<NewAffiliateProduct>;
 
@@ -35,6 +41,7 @@ export function useAffiliateProducts() {
   const createFn = useServerFn(createAffiliateProduct);
   const updateFn = useServerFn(updateAffiliateProduct);
   const removeFn = useServerFn(deleteAffiliateProduct);
+  const listStoresFn = useServerFn(listStoresForAdmin);
 
   const { data: affiliateProducts = [], isLoading } = useQuery<AffiliateProduct[]>({
     queryKey: AFFILIATE_PRODUCTS_QUERY_KEY,
@@ -46,6 +53,16 @@ export function useAffiliateProducts() {
     queryKey: ["is-admin", session?.user?.id],
     queryFn: () => isAdminFn({ data: {} }).then((r) => r.isAdmin),
     enabled: !!session,
+    staleTime: 30_000,
+  });
+
+  // Only fetched once isAdmin resolves true — listStoresForAdmin itself
+  // rejects a non-admin caller, so gating on isAdmin here just avoids a
+  // pointless round trip for every shopper viewing Discover.
+  const { data: storesForAdmin = [] } = useQuery({
+    queryKey: ["stores-for-admin", session?.user?.id],
+    queryFn: () => listStoresFn({ data: {} }),
+    enabled: !!session && isAdmin,
     staleTime: 30_000,
   });
 
@@ -83,6 +100,7 @@ export function useAffiliateProducts() {
     affiliateProducts,
     isLoading,
     isAdmin,
+    storesForAdmin,
     create: (product: NewAffiliateProduct) => createMutation.mutateAsync(product),
     update: (id: string, patch: AffiliateProductPatch) => updateMutation.mutateAsync({ id, patch }),
     remove: (id: string) => removeMutation.mutateAsync(id),

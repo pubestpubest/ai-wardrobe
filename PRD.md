@@ -466,7 +466,7 @@ Deploy: Docker image (`Dockerfile` + `prod.ts` static-file server หน้า S
 >
 > แต่ละ backlog มี ID (`B01`–`B16`) ใช้อ้างอิงใน `LOOP.md` และ loop docs (`loops/<ID>-L<n>.md`)
 >
-> **สถานะคิว (2026-08-07):** B01–B03, B05–B07, B09, B10, **B11** ✅ · B04 ⏭️ (รวมเข้า B08) · **คิวปัจจุบัน: B14 → B16 (Local Store, Tier 5) แล้วค่อย B08 — Virtual Try-On (Tier 6)** ส่วนงานที่ค้างนอกคิวอยู่ใน §13
+> **สถานะคิว (2026-08-07):** B01–B03, B05–B07, B09, B10, **B11** ✅ · B04 ⏭️ (รวมเข้า B08) · **คิวปัจจุบัน: B14b → B16 (Local Store, Tier 5) แล้วค่อย B08 — Virtual Try-On (Tier 6)** ส่วนงานที่ค้างนอกคิวอยู่ใน §13
 
 ### Tier 1 — Quick wins (ไม่มี dependency, ง่าย)
 
@@ -519,8 +519,15 @@ Deploy: Docker image (`Dockerfile` + `prod.ts` static-file server หน้า S
     รายละเอียดเดิม: **ต้องสร้าง policy `Owners manage own store items` ขึ้นใหม่ก่อน** (`019` ลบทิ้งเพราะ B11/B12 ไม่มีตัวเขียนผ่าน user-scoped client และตอนนั้นยังไม่มี zod/httpUrl/เพดาน) และจำไว้ว่า `affiliate_products` ยังมี grant ระดับตารางอยู่ policy ที่หลวมจะเปิดช่องเขียนทั้งตารางทันที — `/store/items` CRUD ไอเท็มของร้านผ่าน user-scoped client (RLS + grant เป็นตัวบังคับ owner) + เพดานแพ็กเกจแบบ count-then-insert (`ponytail:` comment ระบุ ceiling) + รูปแบบ **อัปโหลดหรือวาง URL** (ใช้ `uploadWardrobeImage` เดิมซ้ำ ไม่สร้าง bucket ใหม่)
     - ต้องรับผลจาก B11 ที่ drop not null: `store`/`platform`/`affiliateUrl` กลายเป็น optional บน type `AffiliateProduct` → แก้ consumer ทุกจุด (`discover.tsx:161` แสดง `{p.store} · {p.platform}`, ปุ่มซื้อใน `AffiliateItemModal` fallback ไป `/store/$id`) และแยก zod เป็นสองชุด: **admin path ยังบังคับครบ** (B10 ลง marketplace product), store path ปล่อย optional
 
-12. **B14 — Discover store cards + public store page** — `discover.tsx` จัดกลุ่มเป็นการ์ดร้าน, preview ~6 ไอเท็ม + "ดูทั้งหมด (n)", เรียงแบบ weighted-random **memoize ครั้งเดียวต่อ data** (ไม่ใช่ต่อ render มิฉะนั้นการ์ดเด้งตอนพิมพ์ค้นหา), search ครอบคลุมชื่อร้านด้วย (โดนชื่อร้าน = การ์ดนั้นโชว์ไอเท็มครบทุกชิ้น, โดนแค่ชื่อไอเท็ม = การ์ดเหลือเฉพาะที่ตรง), filter แล้วซ่อนร้านที่ว่าง + route `/store/$id` (**ไม่ใช่หน้าสาธารณะ** — `AuthGate.tsx:49` ปล่อย children เฉพาะเมื่อมี session และไม่มี exemption ตาม pathname ทุก route ของ router จึงถูก gate หมด; ตัดสินใจไม่เปิด public เพราะต้องเพิ่ม bypass + อ่านผ่าน anon client ใต้ RLS)
+12. **B14 — **แตกเป็น B14a/B14b\*\* (grill 2026-08-07: ~550 บรรทัด เกิน trigger)
+    - **B14a — Store page + admin dropdown** ✅ (loop `B14a-L1`, migration `026`) — `getStorePublic` + route `/store/$id` (เข้าได้เมื่อ sign-in แล้ว ไม่ใช่หน้าสาธารณะ — `AuthGate.tsx:49`) + **dropdown เลือกร้านใน `AffiliateEditModal`** และ `createAffiliateProduct` เขียน `store_id` (ต้องมาก่อน filter `store_id is null` ของ B14b ไม่งั้นไอเท็มที่ admin เพิ่มจะหายเงียบ ๆ)
+    - **B14b — Discover regroup** — การ์ดร้าน + preview ~6 ไอเท็ม + "ดูทั้งหมด (n)" → `/store/$id` + เรียง weighted-random memoize ครั้งเดียวต่อ data + ซ่อนร้านที่ไม่มีไอเท็มตรงเงื่อนไข + search ครอบคลุมชื่อร้าน
+
+    **การ suspend:** grill 2026-08-07 ตัดสินว่า **B16 เป็นเจ้าของ** — ปัจจุบันไม่มีอะไรตั้ง `status='suspended'` ได้เลย (package/status เป็น service-role เท่านั้น) B14a แค่ได้ผลพลอยได้จาก RLS `Public read approved stores` ที่ซ่อนร้าน suspended อยู่แล้ว ส่วน banner + ปฏิเสธ mutation + ซ่อนจาก pool ของ AI ไปพร้อม admin suspend ใน B16
+
+    รายละเอียดเดิม: Discover store cards + public store page** — `discover.tsx` จัดกลุ่มเป็นการ์ดร้าน, preview ~6 ไอเท็ม + "ดูทั้งหมด (n)", เรียงแบบ weighted-random **memoize ครั้งเดียวต่อ data** (ไม่ใช่ต่อ render มิฉะนั้นการ์ดเด้งตอนพิมพ์ค้นหา), search ครอบคลุมชื่อร้านด้วย (โดนชื่อร้าน = การ์ดนั้นโชว์ไอเท็มครบทุกชิ้น, โดนแค่ชื่อไอเท็ม = การ์ดเหลือเฉพาะที่ตรง), filter แล้วซ่อนร้านที่ว่าง + route `/store/$id` (**ไม่ใช่หน้าสาธารณะ\*\* — `AuthGate.tsx:49` ปล่อย children เฉพาะเมื่อมี session และไม่มี exemption ตาม pathname ทุก route ของ router จึงถูก gate หมด; ตัดสินใจไม่เปิด public เพราะต้องเพิ่ม bypass + อ่านผ่าน anon client ใต้ RLS)
     - **+ dropdown เลือกร้านใน `AffiliateEditModal`** และ `createAffiliateProduct` เขียน `store_id` — ต้องมาพร้อม B14 **ไม่ใช่รอ B16** เพราะการตัดแถว `store_id is null` เกิดที่ B14/B15 ถ้าเลื่อนไป B16 ไอเท็มที่ admin เพิ่มจะหายจาก Discover + pool ของ AI แบบเงียบ ๆ ตลอดสอง loop
+
 13. **B15 — AI recommendation weighting** — `findAffiliateProduct`: เปลี่ยนการสุ่มท้ายสุดเป็น **two-step (สุ่มร้านแบบ weighted → สุ่มไอเท็มในร้านแบบเท่ากัน)** เพื่อไม่ให้ขนาดแคตตาล็อกกับ weight คูณกัน (20× × 8× = ~160× = hard filter โดยไม่ตั้งใจ) + ตัดร้าน suspended และแถว `store_id is null` ออกจาก pool **ด้วย filter ในคิวรีตรง ๆ** (path นี้ใช้ `adminClient()` service-role, RLS ไม่มีผล)
     - verify เชิงตัวเลข: สุ่ม 1000 ครั้งจาก pool ที่รู้คำตอบ ต้องได้ใกล้ 8:1 ไม่ใช่ 160:1
     - เงื่อนไข `store_id is null` จะไม่เจอแถวไหนเลยหลัง backfill ของ B11 — **อย่าลบทิ้ง** เพราะ admin editor (B10) ยังสร้างไอเท็มที่ไม่มี `store_id` ได้อยู่

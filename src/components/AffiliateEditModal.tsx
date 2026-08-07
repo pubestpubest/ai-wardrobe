@@ -21,6 +21,7 @@ const EMPTY_DRAFT: NewAffiliateProduct = {
   imageUrl: "",
   description: "",
   affiliateUrl: "",
+  storeId: null,
 };
 
 interface Props {
@@ -32,6 +33,10 @@ interface Props {
 // A product being edited may be a local-store item with no marketplace
 // store/platform/affiliateUrl (optional on AffiliateProduct since 018) — the
 // admin form still requires them, so a missing value becomes "" to fill in.
+// storeId defaults to null (not ""), matching the "— ไม่ระบุร้าน —" option's
+// value below — the dropdown must show the item's CURRENT assignment on
+// open, or an untouched save would silently clear it back to null (the
+// "cleared field" bug class from B13b-L1, mirrored here on the read side).
 function toDraft(product: AffiliateProduct | null): NewAffiliateProduct {
   if (!product) return EMPTY_DRAFT;
   return {
@@ -39,11 +44,12 @@ function toDraft(product: AffiliateProduct | null): NewAffiliateProduct {
     store: product.store ?? "",
     platform: product.platform ?? "",
     affiliateUrl: product.affiliateUrl ?? "",
+    storeId: product.storeId ?? null,
   };
 }
 
 export function AffiliateEditModal({ product, open, onClose }: Props) {
-  const { create, update, remove } = useAffiliateProducts();
+  const { create, update, remove, storesForAdmin } = useAffiliateProducts();
   const [draft, setDraft] = useState<NewAffiliateProduct>(toDraft(product));
   const [imgError, setImgError] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -218,6 +224,31 @@ export function AffiliateEditModal({ product, open, onClose }: Props) {
               onChange={(v) => setDraft({ ...draft, platform: v })}
             />
           </div>
+          {/* Distinct from the free-text "ร้านค้า" field above: this links
+              the item to a row in `stores` (LOCAL-STORE.md §4) — 025's cap
+              trigger then counts it against that store's package. */}
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">ร้านค้าในระบบ (ถ้ามี)</span>
+            <select
+              value={draft.storeId ?? ""}
+              onChange={(e) => setDraft({ ...draft, storeId: e.target.value || null })}
+              className="bg-muted rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-primary"
+            >
+              <option value="">— ไม่ระบุร้าน —</option>
+              {storesForAdmin.length === 0 && (
+                // Until the list resolves, a draft storeId matches no <option> and the
+                // browser renders the control blank rather than "— ไม่ระบุร้าน —".
+                <option value="" disabled>
+                  กำลังโหลดรายชื่อร้าน…
+                </option>
+              )}
+              {storesForAdmin.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <Field
             label="อีโมจิ"
             value={draft.emoji}

@@ -466,7 +466,7 @@ Deploy: Docker image (`Dockerfile` + `prod.ts` static-file server หน้า S
 >
 > แต่ละ backlog มี ID (`B01`–`B16`) ใช้อ้างอิงใน `LOOP.md` และ loop docs (`loops/<ID>-L<n>.md`)
 >
-> **สถานะคิว (2026-08-07):** B01–B03, B05–B07, B09, B10, **B11** ✅ · B04 ⏭️ (รวมเข้า B08) · **คิวปัจจุบัน: B15 → B16 (Local Store, Tier 5) แล้วค่อย B08 — Virtual Try-On (Tier 6)** ส่วนงานที่ค้างนอกคิวอยู่ใน §13
+> **สถานะคิว (2026-08-07):** B01–B03, B05–B07, B09, B10, **B11** ✅ · B04 ⏭️ (รวมเข้า B08) · **คิวปัจจุบัน: B16 (Local Store, Tier 5) แล้วค่อย B08 — Virtual Try-On (Tier 6)** ส่วนงานที่ค้างนอกคิวอยู่ใน §13
 
 ### Tier 1 — Quick wins (ไม่มี dependency, ง่าย)
 
@@ -528,7 +528,7 @@ Deploy: Docker image (`Dockerfile` + `prod.ts` static-file server หน้า S
     รายละเอียดเดิม: Discover store cards + public store page** — `discover.tsx` จัดกลุ่มเป็นการ์ดร้าน, preview ~6 ไอเท็ม + "ดูทั้งหมด (n)", เรียงแบบ weighted-random **memoize ครั้งเดียวต่อ data** (ไม่ใช่ต่อ render มิฉะนั้นการ์ดเด้งตอนพิมพ์ค้นหา), search ครอบคลุมชื่อร้านด้วย (โดนชื่อร้าน = การ์ดนั้นโชว์ไอเท็มครบทุกชิ้น, โดนแค่ชื่อไอเท็ม = การ์ดเหลือเฉพาะที่ตรง), filter แล้วซ่อนร้านที่ว่าง + route `/store/$id` (**ไม่ใช่หน้าสาธารณะ\*\* — `AuthGate.tsx:49` ปล่อย children เฉพาะเมื่อมี session และไม่มี exemption ตาม pathname ทุก route ของ router จึงถูก gate หมด; ตัดสินใจไม่เปิด public เพราะต้องเพิ่ม bypass + อ่านผ่าน anon client ใต้ RLS)
     - **+ dropdown เลือกร้านใน `AffiliateEditModal`** และ `createAffiliateProduct` เขียน `store_id` — ต้องมาพร้อม B14 **ไม่ใช่รอ B16** เพราะการตัดแถว `store_id is null` เกิดที่ B14/B15 ถ้าเลื่อนไป B16 ไอเท็มที่ admin เพิ่มจะหายจาก Discover + pool ของ AI แบบเงียบ ๆ ตลอดสอง loop
 
-13. **B15 — AI recommendation weighting** — `findAffiliateProduct`: เปลี่ยนการสุ่มท้ายสุดเป็น **two-step (สุ่มร้านแบบ weighted → สุ่มไอเท็มในร้านแบบเท่ากัน)** เพื่อไม่ให้ขนาดแคตตาล็อกกับ weight คูณกัน (20× × 8× = ~160× = hard filter โดยไม่ตั้งใจ) + ตัดร้าน suspended และแถว `store_id is null` ออกจาก pool **ด้วย filter ในคิวรีตรง ๆ** (path นี้ใช้ `adminClient()` service-role, RLS ไม่มีผล)
+13. **B15 — AI recommendation weighting** ✅ (loop `B15-L1`, ไม่มี migration) — `findAffiliateProduct`: เปลี่ยนการสุ่มท้ายสุดเป็น **two-step (สุ่มร้านแบบ weighted → สุ่มไอเท็มในร้านแบบเท่ากัน)** เพื่อไม่ให้ขนาดแคตตาล็อกกับ weight คูณกัน (20× × 8× = ~160× = hard filter โดยไม่ตั้งใจ) + ตัดร้าน suspended และแถว `store_id is null` ออกจาก pool **ด้วย filter ในคิวรีตรง ๆ** (path นี้ใช้ `adminClient()` service-role, RLS ไม่มีผล)
     - verify เชิงตัวเลข: สุ่ม 1000 ครั้งจาก pool ที่รู้คำตอบ ต้องได้ใกล้ 8:1 ไม่ใช่ 160:1
     - เงื่อนไข `store_id is null` จะไม่เจอแถวไหนเลยหลัง backfill ของ B11 — **อย่าลบทิ้ง** เพราะ admin editor (B10) ยังสร้างไอเท็มที่ไม่มี `store_id` ได้อยู่
 14. **B16 — Store admin** — ต่อยอด `assertAdmin` เดิม: ตั้ง `stores.package` และ `status = 'suspended'` ได้จากฝั่ง admin

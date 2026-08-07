@@ -234,7 +234,12 @@ export function AffiliateEditModal({ product, open, onClose }: Props) {
               onChange={(e) => setDraft({ ...draft, storeId: e.target.value || null })}
               className="bg-muted rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-primary"
             >
-              <option value="">— ไม่ระบุร้าน —</option>
+              {/* No "— ไม่ระบุร้าน —": a null-store item is invisible to every user
+                  (B15 excludes it from the AI pool, Discover groups by store) while
+                  still listing here. storeId is required by zod on create. */}
+              <option value="" disabled>
+                — เลือกร้านค้า —
+              </option>
               {storesForAdmin.length === 0 && (
                 // Until the list resolves, a draft storeId matches no <option> and the
                 // browser renders the control blank rather than "— ไม่ระบุร้าน —".

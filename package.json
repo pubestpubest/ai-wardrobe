@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "seed:stores": "bun scripts/seed-stores.ts"
+    "seed:stores": "bun scripts/seed-stores.ts",
+    "check:weighting": "bun scripts/check-weighting.ts"
   },
   "dependencies": {
     "@google/genai": "^2.3.0",

@@ -2,7 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { AffiliateProduct, WardrobeItem } from "./wardrobe";
+import {
+  STORE_PACKAGES,
+  weightedPickByGroup,
+  type AffiliateProduct,
+  type StorePackage,
+  type WardrobeItem,
+} from "./wardrobe";
 
 function adminClient() {
   const url = process.env.SUPABASE_URL;
@@ -75,16 +81,57 @@ function keywordScore(keyword: string, text: string): number {
   return 0;
 }
 
+// findAffiliateProduct uses adminClient() (service-role), which bypasses RLS
+// entirely — the "Public read approved stores" policy (018/019) does nothing
+// here. Suspended stores and store_id-null rows must therefore be excluded
+// as an EXPLICIT filter in the query itself (LOCAL-STORE.md §4), not by
+// filtering in JS after the fact.
+//
+// Primary path: embed `stores` with `!inner`, which both (a) turns the
+// left-join into an inner join so a null store_id drops the row, and (b)
+// lets `.eq("stores.status", ...)` filter on the joined table rather than
+// just the nested object. Falls back to a second query (never N+1 — one
+// query for the distinct store ids referenced) if this PostgREST instance's
+// embed syntax doesn't resolve.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchApprovedCandidateRows(category: WardrobeItem["category"]): Promise<any[]> {
+  const admin = adminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const primary = await (admin.from("affiliate_products" as any) as any)
+    .select("*, stores!inner(package, status)")
+    .eq("category", category)
+    .eq("stores.status", "approved");
+
+  // Fail loud. The FK `affiliate_products_store_id_fkey` has existed since 019,
+  // so PostgREST always resolves this embed — a fallback path here would be
+  // unreachable, and the one that shipped first turned every real failure
+  // (timeout, pooler exhaustion, permission) into a console.warn plus a silent
+  // retry down a different path.
+  if (primary.error) throw new Error(primary.error.message);
+  return primary.data ?? [];
+}
+
 /**
  * Finds a matching affiliate product for a wardrobe gap. Filtered by exact
- * category, scored (a `keyword` — the specific item the stylist has in mind,
- * e.g. "แว่นตา" — dominates so a specific request beats generic
- * color/style/formality hints, critical since a coarse category like
- * "accessory" holds bags, glasses, and belts together), then picked at RANDOM
- * among every row tied for the top score — so asking for the same gap
- * repeatedly doesn't always return the identical item, while a single strong
- * signal (a keyword hit, or any hint no one else shares) still wins outright.
- * Returns null if no product matches the category at all.
+ * category and store approval (suspended/storeless rows never enter the
+ * pool — see fetchApprovedCandidateRows), scored (a `keyword` — the specific
+ * item the stylist has in mind, e.g. "แว่นตา" — dominates so a specific
+ * request beats generic color/style/formality hints, critical since a coarse
+ * category like "accessory" holds bags, glasses, and belts together).
+ *
+ * Every row tied for the top score is picked in TWO STEPS (LOCAL-STORE.md
+ * §4): group the tied candidates by store, weight the STORE choice by its
+ * package (`STORE_PACKAGES[pkg].weight`), then pick uniformly among that
+ * store's tied items. Not per-item weighting — the two levers would
+ * multiply (a premium store can hold ~20x more rows AND be 8x likelier per
+ * row, ~160x exposure by accident). Two-step pins the ratio at exactly the
+ * package weight regardless of catalog size.
+ *
+ * Relevance still gates the pool before any of this runs — package only
+ * enters at the tie-break, so a single strong signal (a keyword hit, or any
+ * hint no one else shares) still wins outright; a premium store can never
+ * buy past a genuinely better match. Returns null if no approved-store
+ * product matches the category at all.
  */
 export async function findAffiliateProduct({
   category,
@@ -99,12 +146,8 @@ export async function findAffiliateProduct({
   style?: string[];
   formality?: WardrobeItem["formality"];
 }): Promise<AffiliateProduct | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: rows, error } = await (adminClient().from("affiliate_products" as any) as any)
-    .select("*")
-    .eq("category", category);
-  if (error) throw new Error(error.message);
-  if (!rows || rows.length === 0) return null;
+  const rows = await fetchApprovedCandidateRows(category);
+  if (rows.length === 0) return null;
 
   const scored = (rows as unknown[]).map((row) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -130,7 +173,18 @@ export async function findAffiliateProduct({
 
   const bestScore = Math.max(...scored.map((s) => s.score));
   const candidates = scored.filter((s) => s.score === bestScore).map((s) => s.row);
-  const pick = candidates[Math.floor(Math.random() * candidates.length)];
+
+  // Two-step pick — the shared rule in wardrobe.ts, which scripts/check-weighting.ts
+  // also drives, so a revert here fails that check.
+  const packageByStoreId = new Map(
+    candidates.map((row) => [row.store_id as string, row.stores.package as StorePackage]),
+  );
+  const pick = weightedPickByGroup(
+    candidates,
+    (row) => row.store_id as string,
+    (id) => STORE_PACKAGES[packageByStoreId.get(id)!].weight,
+    Math.random,
+  );
 
   return pick ? mapRow(pick) : null;
 }
@@ -182,7 +236,12 @@ const AffiliateProductFields = z.object({
   // explicit null on update is how the modal's "— ไม่ระบุร้าน —" option clears
   // a previously-assigned store — the same explicit-null-not-omission
   // reasoning as B13b-L2's toInput fix for the store-owner path.
-  storeId: z.string().uuid().optional().nullable(),
+  // Required, not nullable: since B15 the AI pool excludes `store_id is null`
+  // and Discover groups by store, so a null-store item is invisible EVERYWHERE
+  // while still showing in this editor's own list — an admin would see an item
+  // no user can reach, with no signal. B14a made the dropdown optional; B15's
+  // filter is what turned that into a silent hole.
+  storeId: z.string().uuid("กรุณาเลือกร้านค้า"),
 });
 
 export const createAffiliateProduct = createServerFn({ method: "POST" })
@@ -212,7 +271,7 @@ export const createAffiliateProduct = createServerFn({ method: "POST" })
         // THAT store's package cap, same as if the owner had created it
         // themselves. An admin assigning a store to an already-full store
         // gets 025's Thai error ("ถึงขีดจำกัดของแพ็กเกจแล้ว…") on this insert.
-        store_id: p.storeId ?? null,
+        store_id: p.storeId,
       })
       .select("*")
       .single();

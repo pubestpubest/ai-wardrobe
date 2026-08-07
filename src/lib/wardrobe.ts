@@ -45,6 +45,104 @@ export const STORE_PACKAGES = {
 } as const;
 export type StorePackage = keyof typeof STORE_PACKAGES;
 
+// Deterministic PRNG (mulberry32) so the SAME seed always produces the SAME
+// sequence. No Math.random() call lives inside weightedShuffle/weightedPick
+// themselves — the caller supplies rand — which is what lets a caller like
+// discover.tsx hold an order stable across re-renders (memoized on a
+// useState seed fixed at mount), and lets scripts/check-weighting.ts drive
+// thousands of draws deterministically instead of depending on real
+// randomness to eventually converge.
+// Moved here from discover.tsx (B15-L1) so Discover's card order and the AI
+// recommendation pool share one weighting rule instead of two copies that
+// can drift on what a package tier is worth.
+export function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Weighted-random ordering (Efraimidis-Spirakis A-ExpJ): draw
+// key = rand() ** (1/weight) per item, sort descending by key. Higher weight
+// biases toward the front without being a strict sort — a free store can
+// still land near the top, same lottery shape as the AI recommendation pick
+// (LOCAL-STORE.md §4).
+export function weightedShuffle<T>(items: T[], weightFn: (item: T) => number, seed: number): T[] {
+  const rand = mulberry32(Math.floor(seed * 0xffffffff));
+  return items
+    .map((item) => ({ item, key: Math.pow(rand(), 1 / Math.max(weightFn(item), 0.0001)) }))
+    .sort((a, b) => b.key - a.key)
+    .map(({ item }) => item);
+}
+
+// Weighted single selection — the AI recommendation store pick (B15-L1,
+// LOCAL-STORE.md §4). `rand` is injected (never Math.random() internally) so
+// callers can drive it deterministically, e.g. scripts/check-weighting.ts
+// running thousands of seeded draws to verify the distribution instead of
+// eyeballing production traffic.
+//
+// Edge cases: empty input -> null; a single item -> that item regardless of
+// its weight; all-equal weights -> uniform (falls out of the standard
+// cumulative-weight draw below); a zero or negative weight is clamped to 0
+// so it can never win on a positive draw and never produces a
+// negative-probability slice.
+/**
+ * Two-step weighted selection: choose a GROUP weighted by `weightOfGroup`, then
+ * one member uniformly within it. This is THE weighting rule (LOCAL-STORE.md
+ * §4) — exported as a whole, not just as `weightedPick`, so `findAffiliateProduct`
+ * and `scripts/check-weighting.ts` exercise the same code. A check that
+ * reimplements the composition can't catch a revert in the composition, which is
+ * the only regression worth catching here.
+ *
+ * Why two-step rather than weighting each item: the two package levers multiply.
+ * A premium store holds up to 20x more rows (200 vs 10) and each row would be 8x
+ * likelier — ~160x exposure, the hard-filter outcome by accident. This pins the
+ * ratio at the package weight regardless of catalog size.
+ */
+export function weightedPickByGroup<T>(
+  items: T[],
+  groupOf: (item: T) => string,
+  weightOfGroup: (group: string) => number,
+  rand: () => number,
+): T | null {
+  if (items.length === 0) return null;
+  const byGroup = new Map<string, T[]>();
+  for (const item of items) {
+    const key = groupOf(item);
+    const list = byGroup.get(key) ?? [];
+    list.push(item);
+    byGroup.set(key, list);
+  }
+  const group = weightedPick([...byGroup.keys()], weightOfGroup, rand);
+  if (group === null) return null;
+  return weightedPick(byGroup.get(group) ?? [], () => 1, rand);
+}
+
+export function weightedPick<T>(
+  items: T[],
+  weightFn: (item: T) => number,
+  rand: () => number,
+): T | null {
+  if (items.length === 0) return null;
+  const weights = items.map((item) => Math.max(weightFn(item), 0));
+  const total = weights.reduce((sum, w) => sum + w, 0);
+  if (total <= 0) {
+    // Every weight clamped to 0 (or the pool is otherwise degenerate) — fall
+    // back to uniform rather than returning null, so a single item (however
+    // it's weighted) still always resolves.
+    return items[Math.floor(rand() * items.length)];
+  }
+  let r = rand() * total;
+  for (let i = 0; i < items.length; i++) {
+    r -= weights[i];
+    if (r < 0) return items[i];
+  }
+  return items[items.length - 1]; // float rounding safety net
+}
+
 export type MatchSource = "manual" | "ai";
 
 export type AffiliateProduct = {

@@ -20,10 +20,14 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install and lint
+      - name: Install, lint and check weighting
         run: |
           bun install --frozen-lockfile
           bun run lint
+          # Needs no DB and no env vars. The package-weight ratio is the
+          # monetization rule and it fails SILENTLY — nothing errors, a premium
+          # store just quietly stops winning — so lint/build/render can't see it.
+          bun run check:weighting
 
   build:
     needs: [lint]

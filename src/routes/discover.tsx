@@ -16,7 +16,12 @@ import { GridSkeleton } from "@/components/GridSkeleton";
 import { useDiscoverStores, type DiscoverStore } from "@/hooks/use-discover-stores";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { Input } from "@/components/ui/input";
-import { CATEGORY_LABELS, STORE_PACKAGES, type AffiliateProduct } from "@/lib/wardrobe";
+import {
+  CATEGORY_LABELS,
+  STORE_PACKAGES,
+  weightedShuffle,
+  type AffiliateProduct,
+} from "@/lib/wardrobe";
 
 const TONES = ["bg-lilac", "bg-blush", "bg-sky"] as const;
 const PREVIEW_CAP = 6;
@@ -42,34 +47,11 @@ export const Route = (createFileRoute as any)("/discover")({
   }),
 });
 
-// Deterministic PRNG (mulberry32) so the SAME seed always produces the SAME
-// sequence. No Math.random() call lives inside weightedShuffle itself — the
-// caller supplies the seed (from useState, so it's fixed for the mount) —
-// which is what lets useMemo hold the order stable across re-renders
-// (LOCAL-STORE.md §5 / B14b-L1 grill: must not reshuffle while typing or on
-// a background refetch).
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-// Weighted-random ordering (Efraimidis-Spirakis A-ExpJ): draw
-// key = rand() ** (1/weight) per item, sort descending by key. Higher weight
-// biases toward the front without being a strict sort — a free store can
-// still land near the top, same lottery shape as the AI recommendation pick
-// (LOCAL-STORE.md §4).
-function weightedShuffle<T>(items: T[], weightFn: (item: T) => number, seed: number): T[] {
-  const rand = mulberry32(Math.floor(seed * 0xffffffff));
-  return items
-    .map((item) => ({ item, key: Math.pow(rand(), 1 / Math.max(weightFn(item), 0.0001)) }))
-    .sort((a, b) => b.key - a.key)
-    .map(({ item }) => item);
-}
+// weightedShuffle/mulberry32 moved to src/lib/wardrobe.ts (B15-L1) — shared
+// with the AI recommendation pool so both agree on what a package tier is
+// worth. Seed comes from useState below, fixed for the mount, which is what
+// lets useMemo hold the order stable across re-renders (LOCAL-STORE.md §5 /
+// B14b-L1 grill: must not reshuffle while typing or on a background refetch).
 
 type CardEntry = { store: DiscoverStore; items: AffiliateProduct[] };
 

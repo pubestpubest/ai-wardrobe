@@ -141,13 +141,12 @@ bug, not before.
 <!-- newest first: date | <ID>-L<n> | ✅ done / 🔁 re-loop / ⛔ blocked | one-line note -->
 
 _Queue state (2026-08-07, after B11): **B12–B16 remain in Tier 5**, then B08
-(Tier 6). Next `/drain` picks **B15** (AI recommendation weighting). It replaces
-`findAffiliateProduct`'s uniform tie-break with a **two-step** pick — weighted
-store first, then uniform item within it — so catalog size and package weight
-don't multiply (20× × 8× = ~160×, a hard filter by accident). It must also
-exclude suspended stores and `store_id is null` rows **with an explicit filter**:
-that path uses `adminClient()` (service-role), so RLS does nothing there. B14b's
-`weightedShuffle` in `discover.tsx` is a working reference for the weighting._
+(Tier 6). Next `/drain` picks **B16** (admin: set package, suspend store) — the **last**
+Local Store item, after which only B08 (Virtual Try-On, Tier 6) remains. B16 owns
+the suspension enforcement the grills deferred to it: a banner on `/store`,
+refusing item mutations for a suspended store, and the admin action that sets the
+flag. Note B15 already excludes suspended stores from the AI pool and B14b from
+Discover, so B16 is the owner-facing half only._
 
 _Superseded — queue state before B11: **B11–B16 (Local Store, PRD §12 Tier 5) queued ahead
 of B08 — Virtual Try-On (Tier 6)**. Next `/drain` picks **B11**, which is gated
@@ -160,6 +159,7 @@ _Queue state (2026-08-06): everything drained except **B08 — Virtual Try-On**.
 Commits after B10 (poster page, docker/UI fixes) were direct work, not loops —
 no Loop Log rows for them by design._
 
+- 2026-08-07 | B15-L1 | ✅ done | AI weighting — two-step pick (weighted store, then uniform item) so catalog size and package weight stop multiplying; suspended + null-store rows excluded by an EXPLICIT query filter since findAffiliateProduct runs service-role and RLS is inert there (proven: suspending the premium store empties the accessory pool 9→0). Shipped `bun run check:weighting`, now in CI. Scrutinize caught that the check reimplemented the composition and so couldn't catch a revert — and my first fix was still vacuous because the pool's item counts were proportional to the weights, making uniform-per-item indistinguishable from weight-based; inverted the pool and sabotage-tested all three plausible reverts
 - 2026-08-07 | B14b-L1 | ✅ done | Discover regroup into store cards — getDiscoverStores (suspension excluded by RLS, null-store rows by the .in filter), weighted-random order proven correct by extraction (premium-first 47.8% vs 47% theoretical, deterministic per seed), 6-item preview → /store/$id, search matches store names, AffiliateItemModal ดูที่ร้าน fallback adopted. Scrutinize caught that no mutation invalidated the new Discover cache — admin saves toasted success over a stale card; and fixing it surfaced that my own B14a-L2 auth middleware had left the products query firing unauthenticated with no session in its key
 - 2026-08-07 | B14a-L1 | ✅ done | Store page + admin store dropdown — `/store/$id` (signed-in only; RLS hides suspended stores for free, verified), `listStoresForAdmin` + store `<select>` so admin items stop getting `store_id = null`. **Gate found a second cap bypass**: 025's trigger was INSERT-only, and B14a made UPDATE reachable via the admin path — an UPDATE moved 18 items into a cap-10 store; `026` closes it. Scrutinize (re-run after the first agent died mid-API-call) found a comment declaring that gap unfixed while its fix shipped alongside — the B12b-L2 failure mode again — plus an unauthenticated `getAffiliateProducts` that B14a had widened
 - 2026-08-07 | B13b-L2 | ✅ done | Silent-save + input fixes — clearing an optional field was a no-op with a success toast (needed BOTH halves: emit "" and let the URL schemas accept ""); style field swallowed commas turning a,b into "ab"; zod now mirrors the DB CHECKs so raw English constraint text stops reaching the Thai UI; B10's admin editor given the same bounds so 024 doesn't regress it

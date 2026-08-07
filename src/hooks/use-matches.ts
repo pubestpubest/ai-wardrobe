@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { getMatches, saveMatch, updateMatch, removeMatch } from "@/lib/matches.functions";
 import type { Match, MatchSource } from "@/lib/wardrobe";
 import { useAuth } from "@/hooks/use-auth";
+import { useGuestGuard } from "@/hooks/use-guest";
 
 export const MATCHES_QUERY_KEY = ["matches"];
 
@@ -28,6 +29,7 @@ export type MatchPatch = {
 
 export function useMatches() {
   const { session } = useAuth();
+  const blockIfGuest = useGuestGuard();
   const qc = useQueryClient();
 
   const fetchFn = useServerFn(getMatches);
@@ -74,8 +76,12 @@ export function useMatches() {
   return {
     matches,
     isLoading,
-    add: (m: NewMatch) => addMutation.mutateAsync(m),
-    update: (id: string, patch: MatchPatch) => updateMutation.mutateAsync({ id, patch }),
-    remove: (id: string) => removeMutation.mutate(id),
+    add: (m: NewMatch) =>
+      blockIfGuest("บันทึกแมตช์") ? Promise.resolve(null) : addMutation.mutateAsync(m),
+    update: (id: string, patch: MatchPatch) =>
+      blockIfGuest("แก้ไขแมตช์")
+        ? Promise.resolve(null)
+        : updateMutation.mutateAsync({ id, patch }),
+    remove: (id: string) => blockIfGuest("ลบแมตช์") || removeMutation.mutate(id),
   };
 }

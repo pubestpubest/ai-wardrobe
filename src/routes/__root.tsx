@@ -12,6 +12,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ProfileGate } from "@/components/ProfileGate";
 import { AuthGate } from "@/components/AuthGate";
 import { AmbientBackground } from "@/components/AmbientBackground";
+import { GuestGateModal } from "@/components/GuestGateModal";
 import { StoreGuard } from "@/components/StoreGuard";
 
 import "../styles.css";
@@ -126,6 +127,7 @@ function RootComponent() {
           <Outlet />
         </div>
         <ProfileGate />
+        <GuestGateModal />
         <StoreGuard />
       </AuthGate>
       <Toaster richColors position="top-center" />

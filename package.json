@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "seed:stores": "bun scripts/seed-stores.ts",
-    "check:weighting": "bun scripts/check-weighting.ts"
+    "check:weighting": "bun scripts/check-weighting.ts",
+    "seed:guest": "bun scripts/seed-guest.ts"
   },
   "dependencies": {
     "@google/genai": "^2.3.0",

@@ -11,6 +11,7 @@ import {
 } from "@/lib/items.functions";
 import type { WardrobeItem } from "@/lib/wardrobe";
 import { useAuth } from "@/hooks/use-auth";
+import { useGuestGuard } from "@/hooks/use-guest";
 import { MATCHES_QUERY_KEY } from "@/hooks/use-matches";
 import { BODY_MODEL_QUERY_KEY } from "@/hooks/use-body-model";
 
@@ -20,6 +21,7 @@ export const WARDROBE_QUERY_KEY = ["wardrobe"];
 
 export function useWardrobe() {
   const { session } = useAuth();
+  const blockIfGuest = useGuestGuard();
   const qc = useQueryClient();
 
   const fetchFn = useServerFn(getItems);
@@ -90,10 +92,16 @@ export function useWardrobe() {
     items,
     isLoading,
     // Returns a promise so callers can await and catch errors
-    add: (item: WardrobeItem) => addMutation.mutateAsync(item),
-    update: (id: string, patch: Partial<StoredItem>) => updateMutation.mutate({ id, patch }),
-    remove: (id: string, imageUrl?: string) => deleteMutation.mutate({ id, imageUrl }),
-    markWorn: (id: string) => wearMutation.mutate(id),
-    claimOrphans: () => claimOrphansMutation.mutate(),
+    // Guarded at the hook, not in each component: every write path in the app
+    // funnels through here, and 029 refuses a guest at the database anyway —
+    // this is what turns that refusal into an explanation.
+    add: (item: WardrobeItem) =>
+      blockIfGuest("เพิ่มเสื้อผ้า") ? Promise.resolve(null) : addMutation.mutateAsync(item),
+    update: (id: string, patch: Partial<StoredItem>) =>
+      blockIfGuest("แก้ไขเสื้อผ้า") || updateMutation.mutate({ id, patch }),
+    remove: (id: string, imageUrl?: string) =>
+      blockIfGuest("ลบเสื้อผ้า") || deleteMutation.mutate({ id, imageUrl }),
+    markWorn: (id: string) => blockIfGuest("บันทึกการใส่") || wearMutation.mutate(id),
+    claimOrphans: () => blockIfGuest() || claimOrphansMutation.mutate(),
   };
 }

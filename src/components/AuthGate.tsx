@@ -8,6 +8,11 @@ import { useRouterState } from "@tanstack/react-router";
 // Two audiences, one product. Same layout and components throughout — only the
 // accent, the art and the words change, so a shop owner who also shops doesn't
 // feel like they've landed on a different brand.
+// Shared read-only demo account (scripts/seed-guest.ts). Not a secret: it is
+// deliberately public, and 029 makes every write it could attempt fail.
+const GUEST_EMAIL = "guest@demo.test";
+const GUEST_PIN = "000000";
+
 const AUDIENCES = {
   customer: {
     accent: "bg-primary text-primary-foreground shadow-primary/25",
@@ -268,6 +273,30 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             >
               {submitting ? "กำลังดำเนินการ…" : mode === "signin" ? A.signinCta : A.signupCta}
             </button>
+
+            {/* Guest mode — customer side only; a shop has nothing to demo
+                read-only. Signs into the shared demo account seeded by
+                scripts/seed-guest.ts; migration 029 is what makes it
+                read-only, not this button. */}
+            {audience === "customer" && (
+              <button
+                onClick={async () => {
+                  setSubmitting(true);
+                  try {
+                    await signIn(GUEST_EMAIL, GUEST_PIN);
+                    toast.success("กำลังดูแบบผู้เยี่ยมชม");
+                  } catch {
+                    toast.error("โหมดผู้เยี่ยมชมยังไม่พร้อมใช้งาน");
+                  } finally {
+                    setSubmitting(false);
+                  }
+                }}
+                disabled={submitting}
+                className="w-full rounded-full py-2.5 text-xs font-semibold bg-white/70 border border-border/50 text-foreground/75 hover:bg-white transition disabled:opacity-40"
+              >
+                ลองใช้แบบผู้เยี่ยมชม (ดูอย่างเดียว)
+              </button>
+            )}
 
             {/* Switches AUDIENCE, not mode. AuthGate renders regardless of
                 pathname, so this only changes the URL; the store register form

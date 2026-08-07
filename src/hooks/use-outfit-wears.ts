@@ -4,11 +4,13 @@ import { toast } from "sonner";
 import { getWears, logWear, clearWear } from "@/lib/outfit-wears.functions";
 import { localDateKey, type OutfitWear } from "@/lib/wardrobe";
 import { useAuth } from "@/hooks/use-auth";
+import { useGuestGuard } from "@/hooks/use-guest";
 
 export const OUTFIT_WEARS_QUERY_KEY = ["outfit-wears"];
 
 export function useOutfitWears() {
   const { session } = useAuth();
+  const blockIfGuest = useGuestGuard();
   const qc = useQueryClient();
 
   const fetchFn = useServerFn(getWears);
@@ -50,7 +52,8 @@ export function useOutfitWears() {
     isLoading,
     /** Match worn on a given day, or undefined. */
     wornMatchId: (date = localDateKey()) => wears.find((w) => w.wornDate === date)?.matchId,
-    toggleWear: (args: { matchId: string; wornDate?: string }) => toggleMutation.mutateAsync(args),
+    toggleWear: (args: { matchId: string; wornDate?: string }) =>
+      blockIfGuest("บันทึกว่าใส่ชุดนี้") ? Promise.resolve(null) : toggleMutation.mutateAsync(args),
     isToggling: toggleMutation.isPending,
   };
 }

@@ -3,13 +3,16 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { getProfile, upsertProfile } from "@/lib/profile.functions";
 import { useAuth } from "@/hooks/use-auth";
+// Imported directly, not via useGuestGuard: that hook reads useProfile, so
+// going through it here would be a module cycle.
+import { openGuestGate } from "@/lib/guest-gate";
 
 export type Gender = "" | "male" | "female" | "other";
 
 // Set exclusively by store.functions.ts's createStore via the service-role
 // client — `authenticated` has no grant on this column (018/019), so it can
 // never be written through upsertProfile.
-export type Role = "shopper" | "store";
+export type Role = "shopper" | "store" | "guest";
 
 export type Profile = {
   name: string;
@@ -69,7 +72,10 @@ export function useProfile() {
 
   return {
     profile: data ?? DEFAULT_PROFILE,
-    update: (patch: Partial<Omit<Profile, "role">>) => updateMutation.mutate(patch),
+    update: (patch: Partial<Omit<Profile, "role">>) => {
+      if ((data ?? DEFAULT_PROFILE).role === "guest") return openGuestGate("แก้ไขโปรไฟล์");
+      updateMutation.mutate(patch);
+    },
     isLoading,
   };
 }
